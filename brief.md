@@ -115,6 +115,14 @@ Goals they're trying to achieve:
 - **Customer Satisfaction:** 4.5+ App Store rating
 - **Feature Adoption:** 70% of users utilizing core reward system
 
+### Validation Metrics (MVP)
+
+- **Setup Completion:** % of families that pair at least one parent and one child device.
+- **Earning Activity:** % of families earning points weekly; median points earned.
+- **Redemption Activity:** % of families converting points to time weekly; median conversions per week.
+- **Control Effectiveness:** Count of shield events prevented vs. exemptions granted.
+- **Engagement Cadence:** Focus on WAU/MAU for parents rather than DAU; monitor weekly task completion rates.
+
 ## MVP Scope
 
 ### Core Features (Must Have)
@@ -125,6 +133,8 @@ Goals they're trying to achieve:
 - **Basic Dashboard:** Simple interface showing points earned, time spent, and available rewards
 - **Parental Controls:** Basic settings for point values, minimum time requirements, and reward limits
 - **Minimum Viable Reward System:** Core functionality for points-to-time conversion
+
+- **Anti-abuse & Integrity:** Foreground-only accrual, idle timeout to prevent farming, optional micro-interactions (e.g., periodic confirmation taps) to verify engagement, daily caps/rate limits, and a minimal audit log of parent edits.
 
 ### Out of Scope for MVP
 
@@ -199,6 +209,29 @@ A comprehensive family digital wellness platform that:
 - **Multi-Parent Synchronization:** Real-time data synchronization across multiple parent devices
 - **Conflict Resolution:** Mechanisms for handling simultaneous edits by multiple parents
 
+### Apple Screen Time API Requirements
+
+- **Frameworks:** Use Apple’s Screen Time APIs (iOS 16+): `FamilyControls`, `ManagedSettings`, and `DeviceActivity`.
+- **Entitlements:** Request the Family Controls entitlement from Apple with a clear justification of parental-control use cases.
+- **Extensions:** Implement a `DeviceActivityReport` extension to power reporting/summaries for parents.
+- **Authorization Flow:** Parent authorization for monitoring/controls; pair child devices and request the required scopes.
+- **Controls:** Shield/unshield apps and categories via `ManagedSettings`; grant temporary exemptions to reflect earned time.
+- **Monitoring:** Track app/category activity using `DeviceActivity` schedules and events (foreground-only; no private APIs).
+- **Review Considerations:** Adhere to Kids Category and parental-control guidelines; avoid third‑party tracking in child contexts.
+
+### Roles & Permissions Model
+
+- **Parent Admin:** Full control; manages categories, point rates, rewards, exemptions; views audit log.
+- **Co-Parent:** Same as Admin by default; optionally restrict destructive actions (delete/reset). Both parents visible in activity logs.
+- **Child:** No configuration access; can view points, request conversions, and redeem within limits.
+- **Pairing:** Onboarding flow to link parent and child devices (Family Sharing, deep link, or code pairing).
+
+### Data & Sync Strategy
+
+- **MVP Choice:** Prefer CloudKit for core sync and storage to minimize PII exposure and align with Apple review expectations.
+- **Alternative:** Introduce Firebase later for analytics/experiments if needed, with data minimization and strict separation from child contexts.
+- **Privacy:** Store only necessary aggregates (e.g., per-app/category totals); provide export/delete flows; no third‑party trackers in child UI.
+
 ## Constraints & Assumptions
 
 ### Constraints
@@ -227,6 +260,14 @@ A comprehensive family digital wellness platform that:
 - **Privacy Concerns:** Risk of negative response to children's usage tracking
 - **Multi-Parent Synchronization:** Risk of conflicts and data inconsistencies when multiple parents make simultaneous changes
 - **Security Vulnerabilities:** Risk of unauthorized access to family accounts with multiple parent access
+
+### Risk Mitigations
+
+- **Entitlement & Review:** Use only Apple Screen Time APIs; submit detailed justification for Family Controls entitlement; ensure strict parental gating and Kids Category compliance.
+- **Technical Feasibility:** Build an early prototype using `DeviceActivity`/`ManagedSettings`; document findings in `docs/feasibility.md` and adjust scope accordingly.
+- **Adoption:** Conduct parent interviews and small diary studies to validate the reward loop before expanding features.
+- **Privacy:** Data minimization, local-first where possible, CloudKit for storage; clear consent and transparency for parents.
+- **Sync Conflicts:** Last-writer-wins with visible audit trails and simple rollback for parent edits.
 
 ### Open Questions
 
