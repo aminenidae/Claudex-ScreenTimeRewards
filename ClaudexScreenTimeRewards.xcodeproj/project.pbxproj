@@ -7,371 +7,372 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-	A10000112B6D000000000001 /* ParentiOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000102B6D000000000001 /* ParentiOSApp.swift */; };
-	A10000132B6D000000000001 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000122B6D000000000001 /* AppModels.swift */; };
-	A10000152B6D000000000001 /* PointsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000142B6D000000000001 /* PointsEngine.swift */; };
-	A10000172B6D000000000001 /* ScreenTimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000162B6D000000000001 /* ScreenTimeService.swift */; };
-	A10000192B6D000000000001 /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000182B6D000000000001 /* SyncService.swift */; };
+	A10000112B6D000000000001 /* ClaudexApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000102B6D000000000001 /* ClaudexApp.swift */; };
+		A10000132B6D000000000001 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000122B6D000000000001 /* AppModels.swift */; };
+		A10000152B6D000000000001 /* PointsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000142B6D000000000001 /* PointsEngine.swift */; };
+		A10000172B6D000000000001 /* ScreenTimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000162B6D000000000001 /* ScreenTimeService.swift */; };
+		A10000192B6D000000000001 /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000182B6D000000000001 /* SyncService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-	A10000012B6D000000000001 /* ParentiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParentiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-	A10000102B6D000000000001 /* ParentiOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentiOSApp.swift; sourceTree = "<group>"; };
-	A10000122B6D000000000001 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
-	A10000142B6D000000000001 /* PointsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointsEngine.swift; sourceTree = "<group>"; };
-	A10000162B6D000000000001 /* ScreenTimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeService.swift; sourceTree = "<group>"; };
-	A10000182B6D000000000001 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
-	A100001B2B6D000000000001 /* ParentiOS-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ParentiOS-Info.plist"; sourceTree = "<group>"; };
-	A100001D2B6D000000000001 /* Parent.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Parent.entitlements; sourceTree = "<group>"; };
+		A10000012B6D000000000001 /* ParentiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParentiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+	A10000102B6D000000000001 /* ClaudexApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudexApp.swift; sourceTree = "<group>"; };
+		A10000122B6D000000000001 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
+		A10000142B6D000000000001 /* PointsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointsEngine.swift; sourceTree = "<group>"; };
+		A10000162B6D000000000001 /* ScreenTimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeService.swift; sourceTree = "<group>"; };
+		A10000182B6D000000000001 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
+		A100001B2B6D000000000001 /* ParentiOS-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ParentiOS-Info.plist"; sourceTree = "<group>"; };
+		A100001D2B6D000000000001 /* Parent.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Parent.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		A10000062B6D000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXGroup section */
-	A10000022B6D000000000001 = {
-		isa = PBXGroup;
-		children = (
-			A100001E2B6D000000000001 /* apps */,
-			A100001F2B6D000000000001 /* Sources */,
-			A10000202B6D000000000001 /* plist */,
-			A10000212B6D000000000001 /* entitlements */,
-			A10000032B6D000000000001 /* Products */,
-		);
-		sourceTree = "<group>";
-	};
-	A10000032B6D000000000001 /* Products */ = {
-		isa = PBXGroup;
-		children = (
-			A10000012B6D000000000001 /* ParentiOS.app */,
-		);
-		name = Products;
-		sourceTree = "<group>";
-	};
-	A100001E2B6D000000000001 /* apps */ = {
-		isa = PBXGroup;
-		children = (
-			A10000222B6D000000000001 /* ParentiOS */,
-		);
-		path = apps;
-		sourceTree = "<group>";
-	};
-	A10000222B6D000000000001 /* ParentiOS */ = {
-		isa = PBXGroup;
-		children = (
-			A10000102B6D000000000001 /* ParentiOSApp.swift */,
-		);
-		path = ParentiOS;
-		sourceTree = "<group>";
-	};
-	A100001F2B6D000000000001 /* Sources */ = {
-		isa = PBXGroup;
-		children = (
-			A10000232B6D000000000001 /* Core */, 
-			A10000242B6D000000000001 /* PointsEngine */, 
-			A10000252B6D000000000001 /* ScreenTimeService */, 
-			A10000262B6D000000000001 /* SyncKit */
-		);
-		path = Sources;
-		sourceTree = "<group>";
-	};
-	A10000232B6D000000000001 /* Core */ = {
-		isa = PBXGroup;
-		children = (
-			A10000122B6D000000000001 /* AppModels.swift */,
-		);
-		path = Core;
-		sourceTree = "<group>";
-	};
-	A10000242B6D000000000001 /* PointsEngine */ = {
-		isa = PBXGroup;
-		children = (
-			A10000142B6D000000000001 /* PointsEngine.swift */,
-		);
-		path = PointsEngine;
-		sourceTree = "<group>";
-	};
-	A10000252B6D000000000001 /* ScreenTimeService */ = {
-		isa = PBXGroup;
-		children = (
-			A10000162B6D000000000001 /* ScreenTimeService.swift */,
-		);
-		path = ScreenTimeService;
-		sourceTree = "<group>";
-	};
-	A10000262B6D000000000001 /* SyncKit */ = {
-		isa = PBXGroup;
-		children = (
-			A10000182B6D000000000001 /* SyncService.swift */,
-		);
-		path = SyncKit;
-		sourceTree = "<group>";
-	};
-	A10000202B6D000000000001 /* plist */ = {
-		isa = PBXGroup;
-		children = (
-			A100001B2B6D000000000001 /* ParentiOS-Info.plist */,
-		);
-		path = plist;
-		sourceTree = "<group>";
-	};
-	A10000212B6D000000000001 /* entitlements */ = {
-		isa = PBXGroup;
-		children = (
-			A100001D2B6D000000000001 /* Parent.entitlements */,
-		);
-		path = entitlements;
-		sourceTree = "<group>";
-	};
+		A10000022B6D000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A100001E2B6D000000000001 /* apps */,
+				A100001F2B6D000000000001 /* Sources */,
+				A10000202B6D000000000001 /* plist */,
+				A10000212B6D000000000001 /* entitlements */,
+				A10000032B6D000000000001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000032B6D000000000001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000012B6D000000000001 /* ParentiOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A100001E2B6D000000000001 /* apps */ = {
+			isa = PBXGroup;
+			children = (
+				A10000222B6D000000000001 /* ParentiOS */,
+			);
+			path = apps;
+			sourceTree = "<group>";
+		};
+		A100001F2B6D000000000001 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				A10000232B6D000000000001 /* Core */,
+				A10000242B6D000000000001 /* PointsEngine */,
+				A10000252B6D000000000001 /* ScreenTimeService */,
+				A10000262B6D000000000001 /* SyncKit */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A10000202B6D000000000001 /* plist */ = {
+			isa = PBXGroup;
+			children = (
+				A100001B2B6D000000000001 /* ParentiOS-Info.plist */,
+			);
+			path = plist;
+			sourceTree = "<group>";
+		};
+		A10000212B6D000000000001 /* entitlements */ = {
+			isa = PBXGroup;
+			children = (
+				A100001D2B6D000000000001 /* Parent.entitlements */,
+			);
+			path = entitlements;
+			sourceTree = "<group>";
+		};
+		A10000222B6D000000000001 /* ParentiOS */ = {
+			isa = PBXGroup;
+			children = (
+			A10000102B6D000000000001 /* ClaudexApp.swift */,
+			);
+			path = ParentiOS;
+			sourceTree = "<group>";
+		};
+		A10000232B6D000000000001 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				A10000122B6D000000000001 /* AppModels.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		A10000242B6D000000000001 /* PointsEngine */ = {
+			isa = PBXGroup;
+			children = (
+				A10000142B6D000000000001 /* PointsEngine.swift */,
+			);
+			path = PointsEngine;
+			sourceTree = "<group>";
+		};
+		A10000252B6D000000000001 /* ScreenTimeService */ = {
+			isa = PBXGroup;
+			children = (
+				A10000162B6D000000000001 /* ScreenTimeService.swift */,
+			);
+			path = ScreenTimeService;
+			sourceTree = "<group>";
+		};
+		A10000262B6D000000000001 /* SyncKit */ = {
+			isa = PBXGroup;
+			children = (
+				A10000182B6D000000000001 /* SyncService.swift */,
+			);
+			path = SyncKit;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-	A10000042B6D000000000001 /* ParentiOS */ = {
-		isa = PBXNativeTarget;
-		buildConfigurationList = A100002B2B6D000000000001 /* Build configuration list for PBXNativeTarget "ParentiOS" */;
-		buildPhases = (
-			A10000052B6D000000000001 /* Sources */,
-			A10000062B6D000000000001 /* Frameworks */,
-			A10000072B6D000000000001 /* Resources */,
-		);
-		buildRules = (
-		);
-		dependencies = (
-		);
-		name = ParentiOS;
-		productName = ParentiOS;
-		productReference = A10000012B6D000000000001 /* ParentiOS.app */;
-		productType = "com.apple.product-type.application";
-	};
+		A10000042B6D000000000001 /* ParentiOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A100002B2B6D000000000001 /* Build configuration list for PBXNativeTarget "ParentiOS" */;
+			buildPhases = (
+				A10000052B6D000000000001 /* Sources */,
+				A10000062B6D000000000001 /* Frameworks */,
+				A10000072B6D000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ParentiOS;
+			productName = ParentiOS;
+			productReference = A10000012B6D000000000001 /* ParentiOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-	A10000082B6D000000000001 /* Project object */ = {
-		isa = PBXProject;
-		attributes = {
-			LastUpgradeCheck = 1550;
+		A10000082B6D000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1550;
+			};
+			buildConfigurationList = A10000282B6D000000000001 /* Build configuration list for PBXProject "ClaudexScreenTimeRewards" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A10000022B6D000000000001;
+			productRefGroup = A10000032B6D000000000001 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000042B6D000000000001 /* ParentiOS */,
+			);
 		};
-		buildConfigurationList = A10000282B6D000000000001 /* Build configuration list for PBXProject "ClaudexScreenTimeRewards" */;
-		compatibilityVersion = "Xcode 14.0";
-		developmentRegion = en;
-		hasScannedForEncodings = 0;
-		knownRegions = (
-			en,
-			Base,
-		);
-		mainGroup = A10000022B6D000000000001;
-		productRefGroup = A10000032B6D000000000001 /* Products */;
-		projectDirPath = "";
-		projectRoot = "";
-		targets = (
-			A10000042B6D000000000001 /* ParentiOS */,
-		);
-	};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-	A10000072B6D000000000001 /* Resources */ = {
-		isa = PBXResourcesBuildPhase;
-		buildActionMask = 2147483647;
-		files = (
-		);
-		runOnlyForDeploymentPostprocessing = 0;
-	};
+		A10000072B6D000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-	A10000052B6D000000000001 /* Sources */ = {
-		isa = PBXSourcesBuildPhase;
-		buildActionMask = 2147483647;
-		files = (
-			A10000192B6D000000000001 /* SyncService.swift in Sources */,
-			A10000172B6D000000000001 /* ScreenTimeService.swift in Sources */,
-			A10000152B6D000000000001 /* PointsEngine.swift in Sources */,
-			A10000132B6D000000000001 /* AppModels.swift in Sources */,
-			A10000112B6D000000000001 /* ParentiOSApp.swift in Sources */,
-		);
-		runOnlyForDeploymentPostprocessing = 0;
-	};
+		A10000052B6D000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000192B6D000000000001 /* SyncService.swift in Sources */,
+				A10000172B6D000000000001 /* ScreenTimeService.swift in Sources */,
+				A10000152B6D000000000001 /* PointsEngine.swift in Sources */,
+				A10000132B6D000000000001 /* AppModels.swift in Sources */,
+			A10000112B6D000000000001 /* ClaudexApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXFrameworksBuildPhase section */
-	A10000062B6D000000000001 /* Frameworks */ = {
-		isa = PBXFrameworksBuildPhase;
-		buildActionMask = 2147483647;
-		files = (
-		);
-		runOnlyForDeploymentPostprocessing = 0;
-	};
-/* End PBXFrameworksBuildPhase section */
-
 /* Begin XCBuildConfiguration section */
-	A10000292B6D000000000001 /* Debug */ = {
-		isa = XCBuildConfiguration;
-		buildSettings = {
-			ALWAYS_SEARCH_USER_PATHS = NO;
-			CLANG_ANALYZER_NONNULL = YES;
-			CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-			CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-			CLANG_ENABLE_MODULES = YES;
-			CLANG_ENABLE_OBJC_ARC = YES;
-			CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-			CLANG_WARN_BOOL_CONVERSION = YES;
-			CLANG_WARN_COMMA = YES;
-			CLANG_WARN_CONSTANT_CONVERSION = YES;
-			CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-			CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-			CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-			CLANG_WARN_EMPTY_BODY = YES;
-			CLANG_WARN_ENUM_CONVERSION = YES;
-			CLANG_WARN_INFINITE_RECURSION = YES;
-			CLANG_WARN_INT_CONVERSION = YES;
-			CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-			CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-			CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-			CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-			CLANG_WARN_STRICT_PROTOTYPES = YES;
-			CLANG_WARN_SUSPICIOUS_MOVE = YES;
-			CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-			CODE_SIGN_STYLE = Automatic;
-			COPY_PHASE_STRIP = NO;
-			DEBUG_INFORMATION_FORMAT = dwarf;
-			ENABLE_STRICT_OBJC_MSGSEND = YES;
-			ENABLE_TESTABILITY = YES;
-			GCC_C_LANGUAGE_STANDARD = gnu11;
-			GCC_DYNAMIC_NO_PIC = NO;
-			GCC_NO_COMMON_BLOCKS = YES;
-			GCC_OPTIMIZATION_LEVEL = 0;
-			GCC_PREPROCESSOR_DEFINITIONS = (
-				"DEBUG=1",
-				"$(inherited)",
-			);
-			GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-			GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-			GCC_WARN_UNDECLARED_SELECTOR = YES;
-			GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-			GCC_WARN_UNUSED_FUNCTION = YES;
-			GCC_WARN_UNUSED_VARIABLE = YES;
-			IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-			MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-			ONLY_ACTIVE_ARCH = YES;
-			SDKROOT = iphoneos;
-			SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
-			SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+		A10000292B6D000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
 		};
-		name = Debug;
-	};
-	A100002A2B6D000000000001 /* Release */ = {
-		isa = XCBuildConfiguration;
-		buildSettings = {
-			ALWAYS_SEARCH_USER_PATHS = NO;
-			CLANG_ANALYZER_NONNULL = YES;
-			CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-			CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
-			CLANG_ENABLE_MODULES = YES;
-			CLANG_ENABLE_OBJC_ARC = YES;
-			CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-			CLANG_WARN_BOOL_CONVERSION = YES;
-			CLANG_WARN_COMMA = YES;
-			CLANG_WARN_CONSTANT_CONVERSION = YES;
-			CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
-			CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-			CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-			CLANG_WARN_EMPTY_BODY = YES;
-			CLANG_WARN_ENUM_CONVERSION = YES;
-			CLANG_WARN_INFINITE_RECURSION = YES;
-			CLANG_WARN_INT_CONVERSION = YES;
-			CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-			CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
-			CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-			CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-			CLANG_WARN_STRICT_PROTOTYPES = YES;
-			CLANG_WARN_SUSPICIOUS_MOVE = YES;
-			CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-			CODE_SIGN_STYLE = Automatic;
-			COPY_PHASE_STRIP = NO;
-			DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-			ENABLE_NS_ASSERTIONS = NO;
-			ENABLE_STRICT_OBJC_MSGSEND = YES;
-			GCC_C_LANGUAGE_STANDARD = gnu11;
-			GCC_NO_COMMON_BLOCKS = YES;
-			GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
-			GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-			GCC_WARN_UNDECLARED_SELECTOR = YES;
-			GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-			GCC_WARN_UNUSED_FUNCTION = YES;
-			GCC_WARN_UNUSED_VARIABLE = YES;
-			IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-			MTL_ENABLE_DEBUG_INFO = NO;
-			SDKROOT = iphoneos;
-			SWIFT_COMPILATION_MODE = wholemodule;
-			SWIFT_OPTIMIZATION_LEVEL = "-O";
+		A100002A2B6D000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
 		};
-		name = Release;
-	};
-	A100002C2B6D000000000001 /* Debug */ = {
-		isa = XCBuildConfiguration;
-		buildSettings = {
-			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-			CODE_SIGN_ENTITLEMENTS = entitlements/Parent.entitlements;
-			CODE_SIGN_STYLE = Automatic;
-			CURRENT_PROJECT_VERSION = 1;
-			GENERATE_INFOPLIST_FILE = NO;
-			INFOPLIST_FILE = plist/ParentiOS-Info.plist;
-			IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-			LD_RUNPATH_SEARCH_PATHS = (
-				"$(inherited)",
-				"@executable_path/Frameworks"
-			);
-			PRODUCT_BUNDLE_IDENTIFIER = com.claudex.parent.ios;
-			PRODUCT_NAME = "$(TARGET_NAME)";
-			SWIFT_EMIT_LOC_STRINGS = YES;
-			SWIFT_VERSION = 5.9;
-			TARGETED_DEVICE_FAMILY = "1,2";
+		A100002C2B6D000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = entitlements/Parent.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KQ5KZR3DQ5;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "plist/ParentiOS-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.claudex.parent.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
 		};
-		name = Debug;
-	};
-	A100002D2B6D000000000001 /* Release */ = {
-		isa = XCBuildConfiguration;
-		buildSettings = {
-			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-			CODE_SIGN_ENTITLEMENTS = entitlements/Parent.entitlements;
-			CODE_SIGN_STYLE = Automatic;
-			CURRENT_PROJECT_VERSION = 1;
-			GENERATE_INFOPLIST_FILE = NO;
-			INFOPLIST_FILE = plist/ParentiOS-Info.plist;
-			IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-			LD_RUNPATH_SEARCH_PATHS = (
-				"$(inherited)",
-				"@executable_path/Frameworks"
-			);
-			PRODUCT_BUNDLE_IDENTIFIER = com.claudex.parent.ios;
-			PRODUCT_NAME = "$(TARGET_NAME)";
-			SWIFT_EMIT_LOC_STRINGS = YES;
-			SWIFT_VERSION = 5.9;
-			TARGETED_DEVICE_FAMILY = "1,2";
+		A100002D2B6D000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = entitlements/Parent.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = KQ5KZR3DQ5;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "plist/ParentiOS-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.claudex.parent.ios;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
 		};
-		name = Release;
-	};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-	A10000282B6D000000000001 /* Build configuration list for PBXProject "ClaudexScreenTimeRewards" */ = {
-		isa = XCConfigurationList;
-		buildConfigurations = (
-			A10000292B6D000000000001 /* Debug */,
-			A100002A2B6D000000000001 /* Release */,
-		);
-		defaultConfigurationIsVisible = 0;
-		defaultConfigurationName = Debug;
-	};
-	A100002B2B6D000000000001 /* Build configuration list for PBXNativeTarget "ParentiOS" */ = {
-		isa = XCConfigurationList;
-		buildConfigurations = (
-			A100002C2B6D000000000001 /* Debug */,
-			A100002D2B6D000000000001 /* Release */,
-		);
-		defaultConfigurationIsVisible = 0;
-		defaultConfigurationName = Debug;
-	};
+		A10000282B6D000000000001 /* Build configuration list for PBXProject "ClaudexScreenTimeRewards" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000292B6D000000000001 /* Debug */,
+				A100002A2B6D000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A100002B2B6D000000000001 /* Build configuration list for PBXNativeTarget "ParentiOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A100002C2B6D000000000001 /* Debug */,
+				A100002D2B6D000000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = A10000082B6D000000000001 /* Project object */;
 }

@@ -10,7 +10,7 @@ This guide helps you bootstrap Epics/Stories and a lightweight board using GitHu
 Key labels
 - `type: epic`, `type: story`, `type: task`, `type: bug`
 - `phase: mvp`, `phase: post-mvp`
-- `platform: ios`, `platform: macos`
+- `platform: ios`
 - `role: parent`, `role: child`
 - `priority: p0|p1|p2`
 - `epic: ep-01` … `epic: ep-14`
@@ -44,11 +44,11 @@ Commands
 - Dry run: `bash scripts/seed_stories.sh --dry-run`
 - Seed MVP only: `bash scripts/seed_stories.sh`
 - Include optional MVP (EP-11): `bash scripts/seed_stories.sh --include-optional`
-- Include Post-MVP (EP-12 and EP-13 S-1302): `bash scripts/seed_stories.sh --include-post-mvp`
+- Include Post-MVP (EP-12 stories): `bash scripts/seed_stories.sh --include-post-mvp`
 - Single epic: `bash scripts/seed_stories.sh --epic EP-04`
 
 Notes
-- Script applies labels: `type: story`, `epic: ep-XX`, `phase: mvp|post-mvp`, `platform: ios|macos`, `role: parent|child`.
+- Script applies labels: `type: story`, `epic: ep-XX`, `phase: mvp|post-mvp`, `platform: ios`, `role: parent|child`.
 - After creation, open each story to add detailed AC and link to its Epic issue.
 
 ## 5) Creating Stories
@@ -71,5 +71,5 @@ Notes
 - EP-10 → Accessibility & Localization (MVP)
 - EP-11 → Monetization & Paywall (Optional MVP)
 - EP-12 → Learning Depth & Engagement (Post-MVP)
-- EP-13 → macOS Enhancements (MVP/Post-MVP)
+- EP-13 → Parent & Child Mode Experience (MVP)
 - EP-14 → Dev Experience & QA Infra (MVP)

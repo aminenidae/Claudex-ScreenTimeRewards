@@ -17,7 +17,7 @@ declare -A EPICS=(
   ["EP-10"]="Accessibility & Localization"
   ["EP-11"]="Monetization & Paywall (Optional)"
   ["EP-12"]="Learning Depth & Engagement (Post-MVP)"
-  ["EP-13"]="macOS Enhancements"
+  ["EP-13"]="Parent & Child Mode Experience"
   ["EP-14"]="Dev Experience & QA Infrastructure"
 )
 
@@ -44,4 +44,3 @@ for EP in "${!EPICS[@]}"; do
 done
 
 echo "Done. Review issues and adjust labels as needed."
-

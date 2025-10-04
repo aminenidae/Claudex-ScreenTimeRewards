@@ -4,8 +4,7 @@ import PackageDescription
 let package = Package(
     name: "ClaudexScreenTimeRewards",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13)
+        .iOS(.v16)
     ],
     products: [
         .library(name: "Core", targets: ["Core"]),
@@ -21,4 +20,3 @@ let package = Package(
         .testTarget(name: "CoreTests", dependencies: ["Core"], path: "Tests/CoreTests")
     ]
 )
-

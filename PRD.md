@@ -21,7 +21,7 @@ This PRD defines the MVP for a reward-based screen time management app that refr
 
 ## 3. Scope (MVP)
 
-- Platforms: Parent app on iOS/iPadOS 16+ and macOS 13+; Child app on iOS 16+ only.
+- Platforms: Single universal iOS/iPadOS 16+ app with parent and child modes.
 - APIs: Apple Screen Time APIs (FamilyControls, ManagedSettings, DeviceActivity) and DeviceActivityReport extension.
 - Data: CloudKit-based sync and storage (privacy-first); no third-party trackers in child context.
 - In: Parent/child onboarding, authorization, app categorization, point accrual, redemption to earned time, shielding/exemptions, dashboard, weekly reporting, minimal anti-abuse guardrails, multi-parent sync with audit entries.
@@ -36,9 +36,9 @@ This PRD defines the MVP for a reward-based screen time management app that refr
 
 ## 5. Users & Roles
 
-- Parent Admin: Full control; can authorize children via system UI, set point rates, categorize apps, redeem, review history.
-- Co-Parent: Same as Parent by default; optionally restricted on destructive actions; all actions audited.
-- Child: No configuration; can view points and request redemption; child app is informational and request-based only.
+- Parent Admin (Parent Mode within app): Full control; can authorize children via system UI, set point rates, categorize apps, redeem, review history.
+- Co-Parent (Parent Mode): Same as Parent by default; optionally restricted on destructive actions; all actions audited.
+- Child (Child Mode within app): No configuration; can view points and request redemption; child surfaces are informational/request-based only.
 
 ## 6. User Stories (MVP)
 
@@ -157,7 +157,7 @@ FR-13 Accessibility & Localization
 
 ## 10. Platform & Architecture
 
-- Apps: SwiftUI-first for iOS/iPadOS/macOS; UIKit/AppKit where necessary.
+- Apps: SwiftUI-first for iOS/iPadOS; UIKit where necessary.
 - Modules: Core (models/services), ScreenTimeService (FamilyControls/DeviceActivity/ManagedSettings), PointsEngine, ShieldController, Sync (CloudKit), UI, Notifications, Report Extension.
 - Data Layer: CloudKit (shared DB) for families, child contexts, rules, balances, transactions, audit entries.
 - Extensions: DeviceActivityReport for weekly summaries.
@@ -177,7 +177,7 @@ Note: Store only aggregates where possible; avoid raw event timelines.
 
 ## 12. Key Flows & Acceptance Criteria
 
-12.1 Parent Onboarding (iOS/macOS)
+12.1 Parent Onboarding (iOS)
 - Steps: Welcome → Authorization request → Success state → Add Child CTA.
 - Acceptance: Denied/restricted paths handled; retry supported.
 
@@ -243,7 +243,7 @@ Note: No analytics in child-facing surfaces beyond essential local logic; teleme
 
 ## 18. Dependencies & Risks
 
-- Dependencies: Apple Family Controls entitlement; iOS/iPadOS/macOS versions; CloudKit availability.
+- Dependencies: Apple Family Controls entitlement; iOS/iPadOS versions; CloudKit availability.
 - Risks: Entitlement approval timing; API limitations; App Review; user adoption; privacy concerns.
 - Mitigations: Early spikes (see docs/feasibility.md), strict adherence to guidelines, user research.
 
@@ -285,7 +285,7 @@ EP-01 Screen Time Foundations (Entitlements & Authorization) — Phase: MVP
 - S-102 Authorization Prompt & State: Request authorization behind parental gate; persist and reflect state. Acceptance: Denied/revoked handled with retry.
 - S-103 Child Selection UI: Present Apple system UI to select child; store opaque context. Acceptance: Multiple children added via repeated flow.
 - S-104 Revocation/Edge Cases: Handle authorization revocation, no-family group, and restricted devices. Acceptance: Clear messaging and safe fallback.
-- S-105 macOS Parent Authorization: Parity authorization flow on macOS. Acceptance: Works with same constraints as iOS.
+- S-105 iPad Experience: Ensure authorization UI adapts to iPad multitasking/layouts. Acceptance: Works consistently across size classes.
 
 EP-02 Pairing & Family Association — Phase: MVP
 - S-201 Pairing Code Generation: Parent generates short-lived code/deep link. Acceptance: Code TTL, one-time use, rate-limited.
@@ -327,7 +327,7 @@ EP-07 Dashboard & Reporting — Phase: MVP
 - S-701 Parent Dashboard: Points, learning time, redemptions, shields state. Acceptance: Refresh ≤1s.
 - S-702 Weekly Report Extension: DeviceActivityReport summarizes week. Acceptance: Matches dashboard ±5%.
 - S-703 Export Data: Parent can export summary CSV/JSON. Acceptance: Sanitized; no raw timelines.
-- S-704 macOS Dashboard: Parity on macOS. Acceptance: Functional equivalence.
+- S-704 Tablet Dashboard Layout: Optimize dashboard for iPad split-view/multitasking. Acceptance: Layout adapts without clipping.
 
 EP-08 Notifications — Phase: MVP
 - S-801 Entitlement State: Notify on revoked/changed authorization. Acceptance: Actionable, rate-limited.
@@ -361,10 +361,10 @@ EP-12 Learning Depth & Engagement — Phase: Post-MVP
 - S-1204 Real-World Rewards: Partner integration scaffolding. Acceptance: Feature-flagged; parental approval.
 - S-1205 Advanced Analytics: Trends and insights (parent-only). Acceptance: Aggregated; privacy-compliant.
 
-EP-13 macOS Enhancements — Phase: MVP/Post-MVP
-- S-1301 Onboarding Parity: macOS onboarding matches iOS. Acceptance: Completed for MVP.
-- S-1302 Menu Bar Status: Quick status and actions. Acceptance: Post-MVP.
-- S-1303 macOS Notifications: Native notification tuning. Acceptance: MVP.
+EP-13 Parent & Child Mode Experience — Phase: MVP
+- S-1301 Mode Selection & Security: Provide clear parent vs child mode entry with biometrics/parental gate. Acceptance: Switch requires auth; child cannot enter parent mode.
+- S-1302 Child Mode Guardrails: Restrict navigation, hide settings, and present kid-friendly UI. Acceptance: No escape hatch without parent auth.
+- S-1303 Fast Parent Toggle: Allow parent to re-enter parent mode quickly after authentication (e.g., shortcut). Acceptance: Flow <3 steps.
 
 EP-14 Dev Experience & QA Infrastructure — Phase: MVP
 - S-1401 Modular Project Setup: Targets and frameworks. Acceptance: Builds locally and CI.

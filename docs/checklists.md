@@ -86,9 +86,8 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [ ] Privacy policy covers COPPA/GDPR-K, export/delete
 
 ## 15) Test Matrix
-- [ ] iOS Parent: iOS 16/17/18 (latest minor), iPhone + iPad
-- [ ] macOS Parent: macOS 13/14/15 (latest minor), Intel/Apple Silicon as available
-- [ ] iOS Child: iOS 16/17/18 (latest minor), at least two device classes
+- [ ] Parent mode (iOS/iPadOS 16/17/18 latest minor) across iPhone and iPad form factors
+- [ ] Child mode (iOS/iPadOS 16/17/18 latest minor) across at least two device classes
 - [ ] Family without Family Sharing (edge case) and with multiple children
 - [ ] Device restart, app reinstall, revocation of authorization
 
@@ -99,7 +98,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [ ] S-102 Authorization gated and stateful
   - [ ] S-103 Child selection via system UI works (multi-child)
   - [ ] S-104 Revocation/edge cases handled
-  - [ ] S-105 macOS authorization parity
+  - [ ] S-105 iPad authorization/layout parity
 
 - EP-02 Pairing & Family Association
   - [ ] S-201 Pairing code/deep link generation (TTL, rate limits)
@@ -141,7 +140,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [ ] S-701 Parent dashboard responsive
   - [ ] S-702 Weekly report extension parity (±5%)
   - [ ] S-703 Export (CSV/JSON) sanitized
-  - [ ] S-704 macOS dashboard parity
+  - [ ] S-704 Tablet dashboard layout verified
 
 - EP-08 Notifications
   - [ ] S-801 Entitlement state change alerts
@@ -175,10 +174,10 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [ ] S-1204 Real-world rewards (flagged)
   - [ ] S-1205 Advanced analytics (aggregated)
 
-- EP-13 macOS Enhancements
-  - [ ] S-1301 Onboarding parity
-  - [ ] S-1302 Menu bar status (post-MVP)
-  - [ ] S-1303 macOS notifications
+- EP-13 Parent & Child Mode Experience
+  - [ ] S-1301 Mode selection & security
+  - [ ] S-1302 Child mode guardrails
+  - [ ] S-1303 Fast parent toggle
 
 - EP-14 DevEx & QA Infra
   - [ ] S-1401 Modular project

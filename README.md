@@ -13,8 +13,7 @@ Reward-based screen time management for families using Apple Screen Time APIs.
 
 ## Platforms
 
-- Parent app: iOS/iPadOS 16+ and macOS 13+
-- Child app: iOS 16+ only
+- Universal iOS/iPadOS 16+ app with parent and child modes
 
 ## Planning Helpers
 
@@ -26,17 +25,13 @@ Reward-based screen time management for families using Apple Screen Time APIs.
 
 ## Xcode Project Scaffold
 
-- `ClaudexScreenTimeRewards.xcodeproj` lives at the repo root and includes:
-  - ParentiOS (iOS app), ParentmacOS (macOS app), ChildiOS (iOS app)
-  - DeviceActivityReportExtension (iOS app extension)
-- Swift sources under `Sources/` are shared across targets (pending modularization).
+- `ClaudexScreenTimeRewards.xcodeproj` lives at the repo root and includes the iOS app target (parent & child modes).
+- Swift sources under `Sources/` are shared across features (pending modularization).
 - Entitlement files (`entitlements/`) are placeholders; add Family Controls entitlement after approval.
 - Info plists are minimal placeholders in `plist/`.
-
-> If you prefer to regenerate via XcodeGen, the spec remains in `.xcodegen/project.yml` with `scripts/bootstrap_xcodeproj.sh`.
 
 ## Notes
 
 - Requires Apple Family Controls entitlement.
-- Uses `FamilyControls`, `ManagedSettings`, `DeviceActivity` (iOS/iPadOS 16+, macOS 13+).
+- Uses `FamilyControls`, `ManagedSettings`, `DeviceActivity` (iOS/iPadOS 16+).
 - Privacy-first; CloudKit-backed sync; no third-party tracking in child context.

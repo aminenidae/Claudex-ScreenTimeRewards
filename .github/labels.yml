@@ -28,9 +28,6 @@
   color: '#fbca04'
   description: iOS/iPadOS related
 
-- name: platform: macos
-  color: '#0b5394'
-  description: macOS related
 
 - name: role: parent
   color: '#5319e7'
@@ -91,7 +88,7 @@
   description: EP-12 Learning Depth & Engagement
 - name: epic: ep-13
   color: '#0366d6'
-  description: EP-13 macOS Enhancements
+  description: EP-13 Parent & Child Mode Experience
 - name: epic: ep-14
   color: '#0366d6'
   description: EP-14 Dev Experience & QA Infra
