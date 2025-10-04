@@ -36,6 +36,21 @@ Run script
 - `bash scripts/seed_epics.sh`
 - The script creates one issue per Epic with title `[EPIC] EP-XX: …`, labels `type: epic`, `epic: ep-XX`, and a `phase` label.
 
+## 5) Seeding Stories via GitHub CLI (optional)
+
+Seed MVP stories from PRD §23 under their corresponding epics.
+
+Commands
+- Dry run: `bash scripts/seed_stories.sh --dry-run`
+- Seed MVP only: `bash scripts/seed_stories.sh`
+- Include optional MVP (EP-11): `bash scripts/seed_stories.sh --include-optional`
+- Include Post-MVP (EP-12 and EP-13 S-1302): `bash scripts/seed_stories.sh --include-post-mvp`
+- Single epic: `bash scripts/seed_stories.sh --epic EP-04`
+
+Notes
+- Script applies labels: `type: story`, `epic: ep-XX`, `phase: mvp|post-mvp`, `platform: ios|macos`, `role: parent|child`.
+- After creation, open each story to add detailed AC and link to its Epic issue.
+
 ## 5) Creating Stories
 
 - From each Epic, create Story issues using the Story template.
@@ -58,4 +73,3 @@ Run script
 - EP-12 → Learning Depth & Engagement (Post-MVP)
 - EP-13 → macOS Enhancements (MVP/Post-MVP)
 - EP-14 → Dev Experience & QA Infra (MVP)
-

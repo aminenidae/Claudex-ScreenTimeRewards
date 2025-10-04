@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Seed Story issues for MVP using GitHub CLI based on PRD §23
+# Usage:
+#   bash scripts/seed_stories.sh                # Seed MVP stories
+#   bash scripts/seed_stories.sh --dry-run      # Print commands only
+#   bash scripts/seed_stories.sh --epic EP-04   # Seed a single epic
+#   bash scripts/seed_stories.sh --include-optional   # Include optional MVP (EP-11)
+#   bash scripts/seed_stories.sh --include-post-mvp   # Include Post-MVP (EP-12, and EP-13 S-1302)
+
+DRY_RUN=false
+ONLY_EPIC=""
+INCLUDE_OPTIONAL=false
+INCLUDE_POST=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=true; shift ;;
+    --epic) ONLY_EPIC="${2:-}"; shift 2 ;;
+    --include-optional) INCLUDE_OPTIONAL=true; shift ;;
+    --include-post-mvp) INCLUDE_POST=true; shift ;;
+    *) echo "Unknown arg: $1"; exit 1 ;;
+  esac
+done
+
+function create_story() {
+  local id="$1"; shift
+  local epic="$1"; shift
+  local title="$1"; shift
+  local phase_label="$1"; shift
+  local platforms_csv="$1"; shift
+  local roles_csv="$1"; shift
+
+  local gh_title="[STORY] ${id}: ${title}"
+  local epic_label="epic: ${epic,,}" # lowercased EP-XX
+
+  # Build labels array
+  local labels=("type: story" "$epic_label" "$phase_label")
+  IFS=',' read -ra plats <<< "$platforms_csv"
+  for p in "${plats[@]}"; do
+    [[ -n "$p" ]] && labels+=("platform: ${p}")
+  done
+  IFS=',' read -ra rls <<< "$roles_csv"
+  for r in "${rls[@]}"; do
+    [[ -n "$r" ]] && labels+=("role: ${r}")
+  done
+
+  local body=$(cat <<'EOB'
+Link PRD: PRD.md (see §23 Epics & Stories)
+
+Acceptance Criteria:
+- [ ] Given ..., when ..., then ...
+- [ ] Given ..., when ..., then ...
+
+Notes:
+- Add link to the parent Epic issue.
+- See docs/checklists.md for DoR/DoD and QA notes.
+EOB
+)
+
+  local label_flags=()
+  for l in "${labels[@]}"; do
+    label_flags+=(--label "$l")
+  done
+
+  echo "Creating: $gh_title (labels: ${labels[*]})"
+  if $DRY_RUN; then
+    echo gh issue create --title "$gh_title" "${label_flags[@]}" --body "${body}"
+  else
+    gh issue create --title "$gh_title" "${label_flags[@]}" --body "${body}"
+  fi
+}
+
+# Define MVP stories: id|epic|title|phase_label|platforms|roles
+STORIES=(
+  # EP-01
+  "S-101|EP-01|Entitlement Request Package|phase: mvp|ios,macos|parent"
+  "S-102|EP-01|Authorization Prompt & State|phase: mvp|ios,macos|parent"
+  "S-103|EP-01|Child Selection via System UI|phase: mvp|ios,macos|parent"
+  "S-104|EP-01|Revocation & Edge Cases Handling|phase: mvp|ios,macos|parent"
+  "S-105|EP-01|macOS Parent Authorization|phase: mvp|macos|parent"
+  # EP-02
+  "S-201|EP-02|Pairing Code / Deep Link Generation|phase: mvp|ios,macos|parent"
+  "S-202|EP-02|Child Link Flow|phase: mvp|ios|child"
+  "S-203|EP-02|Unlink / Re-pair Flow|phase: mvp|ios,macos|parent"
+  "S-204|EP-02|Multi-Child Management UI|phase: mvp|ios,macos|parent"
+  "S-205|EP-02|Parent Multi-Device Parity|phase: mvp|ios,macos|parent"
+  # EP-03
+  "S-301|EP-03|Category Defaults for Learning/Reward|phase: mvp|ios,macos|parent"
+  "S-302|EP-03|Manual App Overrides|phase: mvp|ios,macos|parent"
+  "S-303|EP-03|Conflict Resolution Rules|phase: mvp|ios,macos|parent"
+  "S-304|EP-03|Rule Sync Across Devices|phase: mvp|ios,macos|parent"
+  "S-305|EP-03|Rule Audits|phase: mvp|ios,macos|parent"
+  # EP-04
+  "S-401|EP-04|Foreground-Only Point Accrual|phase: mvp|ios|child"
+  "S-402|EP-04|Idle Timeout for Accrual|phase: mvp|ios|child"
+  "S-403|EP-04|Daily Caps & Rate Limits|phase: mvp|ios|parent"
+  "S-404|EP-04|Points Ledger Persistence|phase: mvp|ios,macos|parent"
+  "S-405|EP-04|Monotonic Session Timing / Clock Change Handling|phase: mvp|ios|child"
+  "S-406|EP-04|Admin Adjustments|phase: mvp|ios,macos|parent"
+  # EP-05
+  "S-501|EP-05|Redemption UX with Validation|phase: mvp|ios|child"
+  "S-502|EP-05|Start Timed Exemption for Reward Apps|phase: mvp|ios|parent"
+  "S-503|EP-05|Extension Policy Enforcement|phase: mvp|ios|parent"
+  "S-504|EP-05|Re-lock ≤5s and Restart Resiliency|phase: mvp|ios|parent"
+  "S-505|EP-05|Per-App vs Category Precedence|phase: mvp|ios|parent"
+  # EP-06
+  "S-601|EP-06|CloudKit Schema Implementation|phase: mvp|ios,macos|parent"
+  "S-602|EP-06|Conflict Strategy (LWW with Timestamps)|phase: mvp|ios,macos|parent"
+  "S-603|EP-06|Offline Queue & Replay|phase: mvp|ios,macos|parent"
+  "S-604|EP-06|Audit Log Usability|phase: mvp|ios,macos|parent"
+  "S-605|EP-06|Performance Targets|phase: mvp|ios,macos|parent"
+  # EP-07
+  "S-701|EP-07|Parent Dashboard|phase: mvp|ios,macos|parent"
+  "S-702|EP-07|Weekly Report Extension|phase: mvp|ios,macos|parent"
+  "S-703|EP-07|Export Data (CSV/JSON)|phase: mvp|ios,macos|parent"
+  "S-704|EP-07|macOS Dashboard Parity|phase: mvp|macos|parent"
+  # EP-08
+  "S-801|EP-08|Entitlement State Change Alerts|phase: mvp|ios,macos|parent"
+  "S-802|EP-08|Weekly Summary Notifications|phase: mvp|ios,macos|parent"
+  "S-803|EP-08|Redemption Success (Child Local)|phase: mvp|ios|child"
+  "S-804|EP-08|Time Expiring Alerts|phase: mvp|ios|child"
+  # EP-09
+  "S-901|EP-09|Parental Consent & Disclosures|phase: mvp|ios,macos|parent"
+  "S-902|EP-09|Data Export/Delete|phase: mvp|ios,macos|parent"
+  "S-903|EP-09|Privacy Policy & In-App Disclosures|phase: mvp|ios,macos|parent"
+  "S-904|EP-09|Kids/Parental-Control Checklist Pass|phase: mvp|ios,macos|parent"
+  "S-905|EP-09|Secrets & Encryption Verification|phase: mvp|ios,macos|parent"
+  # EP-10
+  "S-1001|EP-10|Dynamic Type & Layout|phase: mvp|ios,macos|parent"
+  "S-1002|EP-10|VoiceOver Labels & Hints|phase: mvp|ios,macos|parent"
+  "S-1003|EP-10|Contrast & Tap Targets|phase: mvp|ios,macos|parent"
+  "S-1004|EP-10|Strings Externalized (EN MVP)|phase: mvp|ios,macos|parent"
+  # EP-11 (Optional MVP)
+  "S-1101|EP-11|Subscription Purchase|phase: mvp|ios,macos|parent"
+  "S-1102|EP-11|Restore Purchases|phase: mvp|ios,macos|parent"
+  "S-1103|EP-11|Family Plan Support|phase: mvp|ios,macos|parent"
+  "S-1104|EP-11|Feature Gating for Premium|phase: mvp|ios,macos|parent"
+  # EP-12 (Post-MVP)
+  "S-1201|EP-12|Subject Multipliers|phase: post-mvp|ios,macos|parent"
+  "S-1202|EP-12|Adaptive Difficulty|phase: post-mvp|ios,macos|parent"
+  "S-1203|EP-12|Family Competitions|phase: post-mvp|ios,macos|parent"
+  "S-1204|EP-12|Real-World Rewards Integrations|phase: post-mvp|ios,macos|parent"
+  "S-1205|EP-12|Advanced Analytics|phase: post-mvp|ios,macos|parent"
+  # EP-13 (mixed)
+  "S-1301|EP-13|macOS Onboarding Parity|phase: mvp|macos|parent"
+  "S-1302|EP-13|Menu Bar Status|phase: post-mvp|macos|parent"
+  "S-1303|EP-13|macOS Notifications|phase: mvp|macos|parent"
+  # EP-14
+  "S-1401|EP-14|Modular Project Setup|phase: mvp|ios,macos|parent"
+  "S-1402|EP-14|CI/CD Pipeline|phase: mvp|ios,macos|parent"
+  "S-1403|EP-14|Unit Tests Coverage|phase: mvp|ios,macos|parent"
+  "S-1404|EP-14|UI Tests for Critical Flows|phase: mvp|ios,macos|parent"
+  "S-1405|EP-14|Fixtures and Test Data|phase: mvp|ios,macos|parent"
+)
+
+for row in "${STORIES[@]}"; do
+  IFS='|' read -r id epic title phase platforms roles <<< "$row"
+
+  # Filter by epic if requested
+  if [[ -n "$ONLY_EPIC" && "$epic" != "$ONLY_EPIC" ]]; then
+    continue
+  fi
+
+  # Skip optional or post-mvp unless requested
+  if [[ "$phase" == "phase: post-mvp" && $INCLUDE_POST == false ]]; then
+    continue
+  fi
+  if [[ "$epic" == "EP-11" && $INCLUDE_OPTIONAL == false ]]; then
+    continue
+  fi
+
+  create_story "$id" "$epic" "$title" "$phase" "$platforms" "$roles"
+done
+
+echo "Done. Review created issues and link them to Epics."
+
