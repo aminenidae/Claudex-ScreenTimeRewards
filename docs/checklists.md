@@ -91,3 +91,112 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [ ] iOS Child: iOS 16/17/18 (latest minor), at least two device classes
 - [ ] Family without Family Sharing (edge case) and with multiple children
 - [ ] Device restart, app reinstall, revocation of authorization
+
+## 16) Epics Coverage (PRD §23)
+
+- EP-01 Screen Time Foundations
+  - [ ] S-101 Entitlement request package ready
+  - [ ] S-102 Authorization gated and stateful
+  - [ ] S-103 Child selection via system UI works (multi-child)
+  - [ ] S-104 Revocation/edge cases handled
+  - [ ] S-105 macOS authorization parity
+
+- EP-02 Pairing & Family Association
+  - [ ] S-201 Pairing code/deep link generation (TTL, rate limits)
+  - [ ] S-202 Child link flow (<2 minutes; errors handled)
+  - [ ] S-203 Unlink/re-pair flow
+  - [ ] S-204 Multi-child management UI
+  - [ ] S-205 Parent multi-device parity
+
+- EP-03 App Categorization & Rules
+  - [ ] S-301 Category defaults
+  - [ ] S-302 Manual overrides with precedence
+  - [ ] S-303 Conflict resolution rules tested
+  - [ ] S-304 Rule sync (<2s online)
+  - [ ] S-305 Rule audits present
+
+- EP-04 Points Engine & Integrity
+  - [ ] S-401 Foreground-only accrual (±5%)
+  - [ ] S-402 Idle timeout enforced
+  - [ ] S-403 Caps and rate limits
+  - [ ] S-404 Ledger persistence
+  - [ ] S-405 Monotonic timing/clock change handling
+  - [ ] S-406 Admin adjustments audited
+
+- EP-05 Redemption & Shielding
+  - [ ] S-501 Redemption UX with validation
+  - [ ] S-502 Timed exemption starts immediately
+  - [ ] S-503 Extension policy enforced
+  - [ ] S-504 Re-lock ≤5s; restart resiliency
+  - [ ] S-505 Per-app vs category precedence tested
+
+- EP-06 Sync & Multi-Parent
+  - [ ] S-601 CloudKit schema implemented
+  - [ ] S-602 Conflict strategy deterministic
+  - [ ] S-603 Offline queue survives restarts
+  - [ ] S-604 Audit log usable
+  - [ ] S-605 Performance within targets
+
+- EP-07 Dashboard & Reporting
+  - [ ] S-701 Parent dashboard responsive
+  - [ ] S-702 Weekly report extension parity (±5%)
+  - [ ] S-703 Export (CSV/JSON) sanitized
+  - [ ] S-704 macOS dashboard parity
+
+- EP-08 Notifications
+  - [ ] S-801 Entitlement state change alerts
+  - [ ] S-802 Weekly summary opt-in
+  - [ ] S-803 Redemption success (child local)
+  - [ ] S-804 Time expiring alerts (rate-limited)
+
+- EP-09 Privacy, Security, Compliance
+  - [ ] S-901 Parental consent & disclosures
+  - [ ] S-902 Data export/delete complete
+  - [ ] S-903 Privacy policy finalized
+  - [ ] S-904 Kids/parental-control checklist pass
+  - [ ] S-905 Secrets/encryption verified
+
+- EP-10 Accessibility & Localization
+  - [ ] S-1001 Dynamic Type
+  - [ ] S-1002 VoiceOver
+  - [ ] S-1003 Contrast & targets
+  - [ ] S-1004 Strings externalized
+
+- EP-11 Monetization (Optional MVP)
+  - [ ] S-1101 Purchase
+  - [ ] S-1102 Restore
+  - [ ] S-1103 Family plan
+  - [ ] S-1104 Feature gating
+
+- EP-12 Learning Depth (Post-MVP)
+  - [ ] S-1201 Subject multipliers
+  - [ ] S-1202 Adaptive difficulty
+  - [ ] S-1203 Family competitions (privacy controls)
+  - [ ] S-1204 Real-world rewards (flagged)
+  - [ ] S-1205 Advanced analytics (aggregated)
+
+- EP-13 macOS Enhancements
+  - [ ] S-1301 Onboarding parity
+  - [ ] S-1302 Menu bar status (post-MVP)
+  - [ ] S-1303 macOS notifications
+
+- EP-14 DevEx & QA Infra
+  - [ ] S-1401 Modular project
+  - [ ] S-1402 CI/CD pipeline
+  - [ ] S-1403 Unit tests coverage
+  - [ ] S-1404 UI tests critical flows
+  - [ ] S-1405 Fixtures/test data
+
+## 17) Definition of Ready (DoR) Per Story
+- [ ] Clear user story and acceptance criteria in PRD
+- [ ] Design mock(s) or wireframes attached (if UI)
+- [ ] API/entitlement needs identified and feasible
+- [ ] Data model impact assessed (docs/data-model.md updated if needed)
+- [ ] Telemetry/QA notes captured (if applicable)
+
+## 18) Definition of Done (DoD) Per Story
+- [ ] Code merged with tests (unit/UI as applicable)
+- [ ] Accessibility pass for UI stories
+- [ ] Privacy/security checklist satisfied
+- [ ] Checklist items in this doc ticked for the story’s epic
+- [ ] Demoed to product; documentation updated

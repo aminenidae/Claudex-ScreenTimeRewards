@@ -276,3 +276,99 @@ Note: No analytics in child-facing surfaces beyond essential local logic; teleme
 - Exemption: Temporary allowance window where shielded apps are permitted.
 - Child Context: Opaque identifier representing an authorized child managed via Screen Time APIs.
 
+## 23. Epics & Stories (Full Development Phase)
+
+Each epic lists user stories with concise acceptance criteria and phase labels. MVP indicates must-have for initial release; Post-MVP indicates Phase 2+.
+
+EP-01 Screen Time Foundations (Entitlements & Authorization) — Phase: MVP
+- S-101 Entitlement Request Package: Draft and submit Family Controls entitlement docs (purpose, flows, screenshots). Acceptance: Apple-ready packet produced and tracked.
+- S-102 Authorization Prompt & State: Request authorization behind parental gate; persist and reflect state. Acceptance: Denied/revoked handled with retry.
+- S-103 Child Selection UI: Present Apple system UI to select child; store opaque context. Acceptance: Multiple children added via repeated flow.
+- S-104 Revocation/Edge Cases: Handle authorization revocation, no-family group, and restricted devices. Acceptance: Clear messaging and safe fallback.
+- S-105 macOS Parent Authorization: Parity authorization flow on macOS. Acceptance: Works with same constraints as iOS.
+
+EP-02 Pairing & Family Association — Phase: MVP
+- S-201 Pairing Code Generation: Parent generates short-lived code/deep link. Acceptance: Code TTL, one-time use, rate-limited.
+- S-202 Child Link: Child app enters code or deep link to associate app instance to child context. Acceptance: <2 minutes; invalid/expired handled.
+- S-203 Unlink/Re-pair: Parent can revoke and re-pair child device. Acceptance: Previous link invalidated; new link active.
+- S-204 Multi-Child Management: Manage multiple children in UI. Acceptance: Clear selection; no cross-leakage.
+- S-205 Parent Multi-Device: Parent can sign in on multiple devices. Acceptance: Sync parity; audit preserved.
+
+EP-03 App Categorization & Rules — Phase: MVP
+- S-301 Category Defaults: Choose default categories for learning/reward. Acceptance: Persisted.
+- S-302 Manual Overrides: Set per-app overrides. Acceptance: Override > default.
+- S-303 Conflict Resolution: Deterministic rule precedence and UI explanation. Acceptance: Tests cover edge cases.
+- S-304 Rule Sync: Changes reflect across devices in <2s online. Acceptance: Verified.
+- S-305 Rule Audits: Record who/when/what for changes. Acceptance: Audit entries stored.
+
+EP-04 Points Engine & Integrity — Phase: MVP
+- S-401 Foreground Accrual: Points accrue for foreground, unlocked learning usage. Acceptance: Matches DeviceActivity within ±5%.
+- S-402 Idle Timeout: Pause accrual after N minutes of inactivity. Acceptance: Configurable N; tests.
+- S-403 Daily Caps & Rate Limits: Enforce per-child caps and rate limits. Acceptance: Caps respected; clear messages.
+- S-404 Ledger: Persist accrual/redemption entries with timestamps. Acceptance: Queryable and exportable.
+- S-405 Clock Integrity: Use monotonic timers for sessions; detect clock changes. Acceptance: No negative/duplicate accruals.
+- S-406 Admin Adjustments: Parent can add/remove points with audit. Acceptance: Tracked and reversible.
+
+EP-05 Redemption & Shielding — Phase: MVP
+- S-501 Redemption UX: Convert points to time with min/max and ratio. Acceptance: Validation and feedback.
+- S-502 Start Timed Exemption: Begin exemption for reward apps/categories. Acceptance: Immediate effect.
+- S-503 Extend/Stack Rules: Controlled extension of active exemption (policy-defined). Acceptance: No infinite stacking; upper bound.
+- S-504 Re-lock Enforcement: Re-lock ≤5s at expiry; resume shield. Acceptance: Works after restart.
+- S-505 Per-App vs Category: Support both; category wins unless app override set. Acceptance: Tested precedence.
+
+EP-06 Sync & Multi-Parent — Phase: MVP
+- S-601 CloudKit Schema: Implement record types and indexes (see docs/data-model.md). Acceptance: Migration script and tests.
+- S-602 Conflict Resolution: Last-writer-wins with server timestamps. Acceptance: Deterministic outcomes.
+- S-603 Offline Queue: Local queue and replay. Acceptance: Survives app restarts.
+- S-604 Audit Log: Append-only audit for admin changes. Acceptance: Visible and filterable.
+- S-605 Performance: Typical operations complete <200 ms locally; sync <2s online. Acceptance: Benchmarks recorded.
+
+EP-07 Dashboard & Reporting — Phase: MVP
+- S-701 Parent Dashboard: Points, learning time, redemptions, shields state. Acceptance: Refresh ≤1s.
+- S-702 Weekly Report Extension: DeviceActivityReport summarizes week. Acceptance: Matches dashboard ±5%.
+- S-703 Export Data: Parent can export summary CSV/JSON. Acceptance: Sanitized; no raw timelines.
+- S-704 macOS Dashboard: Parity on macOS. Acceptance: Functional equivalence.
+
+EP-08 Notifications — Phase: MVP
+- S-801 Entitlement State: Notify on revoked/changed authorization. Acceptance: Actionable, rate-limited.
+- S-802 Weekly Summary: Parent weekly digest. Acceptance: Opt-in, schedulable.
+- S-803 Redemption Success: Child receives local notification when redemption begins. Acceptance: Immediate.
+- S-804 Time Expiring: Alerts near expiry (e.g., 1 minute remaining). Acceptance: Not spammy; once per window.
+
+EP-09 Privacy, Security, Compliance — Phase: MVP
+- S-901 Parental Consent: Gate sensitive actions; inform data usage. Acceptance: Copy approved.
+- S-902 Data Export/Delete: Family-level export and deletion. Acceptance: Completes within SLA; audit entry.
+- S-903 Policy & Disclosures: Privacy policy and in-app disclosures. Acceptance: Links accessible; content approved.
+- S-904 Kids/Parental-Control Compliance: Review checklist pass. Acceptance: Internal sign-off.
+- S-905 Secrets & Storage: Keychain, encryption, least privilege. Acceptance: Security review passed.
+
+EP-10 Accessibility & Localization — Phase: MVP
+- S-1001 Dynamic Type & Layout: Scales across sizes. Acceptance: No clipping.
+- S-1002 VoiceOver: Labels and hints. Acceptance: Navigable.
+- S-1003 Contrast & Targets: Meets guidelines. Acceptance: Verified.
+- S-1004 Localizable Strings: Strings externalized; English shipped. Acceptance: Build passes with base localization.
+
+EP-11 Monetization & Paywall — Phase: Optional for MVP
+- S-1101 Purchase: Subscription product purchase. Acceptance: Sandbox tested.
+- S-1102 Restore: Restore purchases across devices. Acceptance: Reliable.
+- S-1103 Family Plan: Family sharing for subscription if applicable. Acceptance: Verified.
+- S-1104 Feature Gating: Premium flag gates advanced features. Acceptance: Non-premium path usable.
+
+EP-12 Learning Depth & Engagement — Phase: Post-MVP
+- S-1201 Subject Multipliers: Different point rates per subject. Acceptance: Configurable; analytics tracked.
+- S-1202 Adaptive Difficulty: Adjust accrual or goals based on history. Acceptance: Safeguards and transparency.
+- S-1203 Family Competitions: Opt-in leaderboards with privacy controls. Acceptance: Private by default.
+- S-1204 Real-World Rewards: Partner integration scaffolding. Acceptance: Feature-flagged; parental approval.
+- S-1205 Advanced Analytics: Trends and insights (parent-only). Acceptance: Aggregated; privacy-compliant.
+
+EP-13 macOS Enhancements — Phase: MVP/Post-MVP
+- S-1301 Onboarding Parity: macOS onboarding matches iOS. Acceptance: Completed for MVP.
+- S-1302 Menu Bar Status: Quick status and actions. Acceptance: Post-MVP.
+- S-1303 macOS Notifications: Native notification tuning. Acceptance: MVP.
+
+EP-14 Dev Experience & QA Infrastructure — Phase: MVP
+- S-1401 Modular Project Setup: Targets and frameworks. Acceptance: Builds locally and CI.
+- S-1402 CI/CD: Lint, build, unit tests on PR. Acceptance: Green pipeline.
+- S-1403 Unit Tests: Core modules coverage targets (≥60% for engine). Acceptance: Threshold met.
+- S-1404 UI Tests: Critical flows (onboarding, redemption). Acceptance: Stable.
+- S-1405 Fixtures & Test Data: Deterministic seeds. Acceptance: Shared in repo.
