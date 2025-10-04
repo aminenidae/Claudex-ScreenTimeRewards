@@ -53,6 +53,10 @@ P0 = must prove before building MVP core; P1 = important but can follow immediat
 - Goal: Exercise the authorization flow and app selection UI; document entitlement request requirements.
 - Method: Implement authorization prompts in the spike (parent mode on iPhone/iPad); attempt to compile/run with the entitlement in a development team context; if blocked, prepare entitlement request materials.
 - Validate: Authorization UI appears; selected apps/categories are persisted and readable by the app; document any gating that requires Apple approval.
+- Spike log (S-102):
+  - Device(s) used: TODO
+  - Result: TODO
+  - Notes: Capture screenshots for entitlement dossier (authorization banner + system picker).
 
 ### P0-4: Child/Parent Pairing & Roles
 - Goal: Prove a basic pairing flow and role separation (Parent vs Child).
