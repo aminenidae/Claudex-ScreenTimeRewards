@@ -1,5 +1,4 @@
 import SwiftUI
-import ScreenTimeService
 
 @main
 struct ClaudexScreenTimeRewardsApp: App {
