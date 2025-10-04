@@ -189,13 +189,13 @@ A comprehensive family digital wellness platform that:
 
 ### Platform Requirements
 
-- **Target Platforms:** iOS (iPhone and iPad)
-- **Browser/OS Support:** iOS 14.0 and above
-- **Performance Requirements:** <5% battery impact, <100MB storage
+- **Target Platforms:** Parent app on iOS/iPadOS and macOS; Child app on iOS only
+- **OS Support:** iOS/iPadOS 16.0+ and macOS 13.0+ (Screen Time APIs requirement)
+- **Performance Requirements:** <5% battery impact (mobile), <100MB storage
 
 ### Technology Preferences
 
-- **Frontend:** Swift with UIKit or SwiftUI
+- **Frontend:** SwiftUI-first multi-platform; UIKit on iOS where needed; AppKit on macOS where needed
 - **Backend:** Firebase or similar cloud-based solution
 - **Database:** Cloud Firestore or similar NoSQL solution
 - **Hosting/Infrastructure:** Cloud-based services (AWS, Google Cloud, or Apple Cloud)
@@ -211,7 +211,7 @@ A comprehensive family digital wellness platform that:
 
 ### Apple Screen Time API Requirements
 
-- **Frameworks:** Use Apple’s Screen Time APIs (iOS 16+): `FamilyControls`, `ManagedSettings`, and `DeviceActivity`.
+- **Frameworks:** Use Apple’s Screen Time APIs (iOS/iPadOS 16+; macOS 13+): `FamilyControls`, `ManagedSettings`, and `DeviceActivity`.
 - **Entitlements:** Request the Family Controls entitlement from Apple with a clear justification of parental-control use cases.
 - **Extensions:** Implement a `DeviceActivityReport` extension to power reporting/summaries for parents.
 - **Authorization Flow:** Parent authorization for monitoring/controls; pair child devices and request the required scopes.

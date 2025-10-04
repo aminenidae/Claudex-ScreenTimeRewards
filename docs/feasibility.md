@@ -10,17 +10,17 @@ This document outlines the technical feasibility checks, spikes, and acceptance 
 
 ## Assumptions & Constraints
 
-- Platform: iOS 16+; optimize for iOS 17+.
+- Platform scope: Parent app on iOS/iPadOS 16+ and macOS 13+; Child app on iOS 16+ only. Optimize for iOS/iPadOS 17+ and macOS 14+.
 - Official APIs only: FamilyControls, ManagedSettings, DeviceActivity, DeviceActivityReport extension.
 - Family Controls entitlement is required and must be requested from Apple with justification.
 - No use of MDM or private APIs.
 
 ## Apple Screen Time APIs Overview
 
-- FamilyControls: Authorization and selection of applications/categories to supervise; pairing/authorization flow.
-- ManagedSettings: Apply shields to apps/categories and grant temporary exemptions (earned time windows).
-- DeviceActivity: Define schedules and events to observe usage of selected apps/categories; provides metrics for reporting.
-- DeviceActivityReport Extension: Supplies summarized usage data and UI for parental reports.
+- FamilyControls: Authorization and selection of applications/categories to supervise; pairing/authorization flow. Available on iOS/iPadOS 16+ and macOS 13+.
+- ManagedSettings: Apply shields to apps/categories and grant temporary exemptions (earned time windows). Available on iOS/iPadOS 16+ and macOS 13+.
+- DeviceActivity: Define schedules and events to observe usage of selected apps/categories; provides metrics for reporting. Available on iOS/iPadOS 16+ and macOS 13+.
+- DeviceActivityReport Extension: Supplies summarized usage data and UI for parental reports. Available on iOS/iPadOS 16+ and macOS 13+.
 
 Key review considerations:
 - Kids Category and parental controls guidelines compliance.
@@ -51,12 +51,12 @@ P0 = must prove before building MVP core; P1 = important but can follow immediat
 
 ### P0-3: Authorization & Entitlement Flow (FamilyControls)
 - Goal: Exercise the authorization flow and app selection UI; document entitlement request requirements.
-- Method: Implement authorization prompts in the spike; attempt to compile/run with the entitlement in a development team context; if blocked, prepare entitlement request materials.
+- Method: Implement authorization prompts in the spike (parent on iOS and macOS); attempt to compile/run with the entitlement in a development team context; if blocked, prepare entitlement request materials.
 - Validate: Authorization UI appears; selected apps/categories are persisted and readable by the app; document any gating that requires Apple approval.
 
 ### P0-4: Child/Parent Pairing & Roles
 - Goal: Prove a basic pairing flow and role separation (Parent vs Child).
-- Method: Implement a simple pairing code or Family Sharing lookup; restrict configuration to Parent mode; Child can only view points and request redemptions.
+- Method: Implement a simple pairing code or Family Sharing lookup; restrict configuration to Parent mode (on iOS and macOS); Child can only view points and request redemptions (iOS only).
 - Validate: Two-device flow completes under 2 minutes; role-based access enforced.
 
 ### P0-5: Anti-Abuse Guardrails
@@ -66,7 +66,7 @@ P0 = must prove before building MVP core; P1 = important but can follow immediat
 
 ### P0-6: Real-Time Decrement of Earned Time
 - Goal: Ensure earned time decrements while a reward app is in use and re-locks when depleted.
-- Method: Start an exemption for X minutes, open reward app, verify live countdown and enforced re-lock.
+- Method: Start an exemption for X minutes from the parent (iOS/macOS), open reward app on the child (iOS), verify live countdown and enforced re-lock.
 - Validate: Countdown accuracy within ±5 seconds; re-lock enforces promptly when time reaches zero.
 
 ### P0-7: Reporting (DeviceActivityReport Extension)
@@ -86,7 +86,7 @@ P0 = must prove before building MVP core; P1 = important but can follow immediat
 
 ## Test Harness & Measurement
 
-- Two physical devices recommended (Parent and Child) on iOS 17+.
+- Two physical devices recommended: one Parent (iOS or macOS) and one Child (iOS) on current OS versions.
 - Logging: Structured logs with timestamps for events (activity observed, shield applied/expired, exemption start/stop).
 - Manual validation sheets for each spike with expected vs. observed timings.
 
@@ -124,4 +124,3 @@ P0 = must prove before building MVP core; P1 = important but can follow immediat
 - Spike app code with togglable modules for monitoring, shielding, exemptions, and reporting.
 - Logs and validation sheets for each spike with measured results.
 - Entitlement request draft and review checklist.
-
