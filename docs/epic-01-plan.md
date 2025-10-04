@@ -6,7 +6,7 @@ This plan breaks down execution for Stories S-101 through S-105.
 
 | Story | Title | Owner | Status | Notes |
 | --- | --- | --- | --- | --- |
-| S-101 | Entitlement Request Package | | Not started | Finalize submission doc (`docs/entitlement-request.md`) and link artifacts. |
+| S-101 | Entitlement Request Package | | In progress | Submission doc scaffolded; add rationale, privacy narrative, artefact links. |
 | S-102 | Authorization Prompt & State | | Not started | Spike to request FamilyControls authorization and capture state handling. |
 | S-103 | Child Selection via System UI | | Not started | Validate multi-child selection and persistence of opaque IDs. |
 | S-104 | Revocation & Edge Cases | | Not started | Enumerate failure cases and UX copy. |
@@ -58,4 +58,3 @@ This plan breaks down execution for Stories S-101 through S-105.
 - Work in feature branches per story; merge back once DoR/DoD satisfied (`docs/checklists.md`).
 - Share spike findings via short Loom/QuickTime clips when helpful.
 - Flag any API limitations immediately; adjust PRD if necessary.
-
