@@ -9,7 +9,7 @@ public enum ScreenTimeAuthorizationState: Equatable {
     case approved
     case denied
     case restricted
-    case error(Error)
+    case error(String)
 
     init(from status: AuthorizationCenter.AuthorizationStatus) {
         switch status {
@@ -39,7 +39,7 @@ public final class ScreenTimeAuthorizationCoordinator: ObservableObject {
             let status = await authorizationCenter.authorizationStatus
             state = ScreenTimeAuthorizationState(from: status)
         } catch {
-            state = .error(error)
+            state = .error(String(describing: error))
         }
     }
 
