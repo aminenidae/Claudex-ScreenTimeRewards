@@ -1,0 +1,94 @@
+name: ClaudexScreenTimeRewards
+options:
+  deploymentTarget:
+    iOS: "16.0"
+    macOS: "13.0"
+
+settings:
+  base:
+    SWIFT_VERSION: 5.9
+
+packages:
+  ClaudexScreenTimeRewards:
+    path: ../
+
+targets:
+  ParentiOS:
+    type: application
+    platform: iOS
+    sources: [../apps/ParentiOS]
+    dependencies:
+      - package: ClaudexScreenTimeRewards
+        product: Core
+      - package: ClaudexScreenTimeRewards
+        product: ScreenTimeService
+      - package: ClaudexScreenTimeRewards
+        product: PointsEngine
+      - package: ClaudexScreenTimeRewards
+        product: SyncKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudex.parent.ios
+    entitlements: ../entitlements/Parent.entitlements
+    info:
+      path: ../plist/ParentiOS-Info.plist
+
+  ParentmacOS:
+    type: application
+    platform: macOS
+    sources: [../apps/ParentmacOS]
+    dependencies:
+      - package: ClaudexScreenTimeRewards
+        product: Core
+      - package: ClaudexScreenTimeRewards
+        product: ScreenTimeService
+      - package: ClaudexScreenTimeRewards
+        product: PointsEngine
+      - package: ClaudexScreenTimeRewards
+        product: SyncKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudex.parent.macos
+    entitlements: ../entitlements/Parent.entitlements
+    info:
+      path: ../plist/ParentmacOS-Info.plist
+
+  ChildiOS:
+    type: application
+    platform: iOS
+    sources: [../apps/ChildiOS]
+    dependencies:
+      - package: ClaudexScreenTimeRewards
+        product: Core
+      - package: ClaudexScreenTimeRewards
+        product: PointsEngine
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudex.child.ios
+    entitlements: ../entitlements/Child.entitlements
+    info:
+      path: ../plist/ChildiOS-Info.plist
+
+  DeviceActivityReportExtension:
+    type: app-extension
+    platform: iOS
+    sources: [../extensions/DeviceActivityReportExtension]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.claudex.parent.ios.reportext
+        INFOPLIST_FILE: ../plist/DeviceActivityReportExtension-Info.plist
+        LD_RUNPATH_SEARCH_PATHS: "@executable_path/Frameworks @executable_path/../../Frameworks"
+    dependencies:
+      - target: ParentiOS
+
+schemes:
+  Claudex-iOS:
+    build:
+      targets:
+        ParentiOS: all
+        DeviceActivityReportExtension: all
+  Claudex-macOS:
+    build:
+      targets:
+        ParentmacOS: all
+
