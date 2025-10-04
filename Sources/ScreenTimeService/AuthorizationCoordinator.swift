@@ -10,17 +10,6 @@ public enum ScreenTimeAuthorizationState: Equatable {
     case denied
     case restricted
     case error(String)
-
-    init(from status: AuthorizationCenter.AuthorizationStatus) {
-        switch status {
-        case .notDetermined: self = .notDetermined
-        case .approved: self = .approved
-        case .denied: self = .denied
-        case .restricted: self = .restricted
-        @unknown default:
-            self = .restricted
-        }
-    }
 }
 
 @available(iOS 16.0, *)
@@ -37,7 +26,18 @@ public final class ScreenTimeAuthorizationCoordinator: ObservableObject {
     public func refreshStatus() async {
         do {
             let status = await authorizationCenter.authorizationStatus
-            state = ScreenTimeAuthorizationState(from: status)
+            switch status {
+            case .notDetermined:
+                state = .notDetermined
+            case .approved:
+                state = .approved
+            case .denied:
+                state = .denied
+            case .restricted:
+                state = .restricted
+            @unknown default:
+                state = .error("Unknown authorization status")
+            }
         } catch {
             state = .error(String(describing: error))
         }
@@ -49,7 +49,7 @@ public final class ScreenTimeAuthorizationCoordinator: ObservableObject {
             try await authorizationCenter.requestAuthorization(for: .family)
             await refreshStatus()
         } catch {
-            state = .error(error)
+            state = .error(String(describing: error))
         }
     }
 }
