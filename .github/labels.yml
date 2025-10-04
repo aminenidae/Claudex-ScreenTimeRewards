@@ -1,0 +1,97 @@
+# Label definitions for GitHub label sync
+
+- name: type: epic
+  color: '#b60205'
+  description: Large body of work spanning multiple stories
+
+- name: type: story
+  color: '#1d76db'
+  description: User story that can be completed within a sprint
+
+- name: type: task
+  color: '#7f8c8d'
+  description: Small technical task or chore
+
+- name: type: bug
+  color: '#d73a4a'
+  description: Defect or regression
+
+- name: phase: mvp
+  color: '#0e8a16'
+  description: Required for MVP
+
+- name: phase: post-mvp
+  color: '#c2e0c6'
+  description: Planned after MVP
+
+- name: platform: ios
+  color: '#fbca04'
+  description: iOS/iPadOS related
+
+- name: platform: macos
+  color: '#0b5394'
+  description: macOS related
+
+- name: role: parent
+  color: '#5319e7'
+  description: Parent-facing work
+
+- name: role: child
+  color: '#e99695'
+  description: Child-facing work
+
+- name: priority: p0
+  color: '#b60205'
+  description: Must-have, block release
+
+- name: priority: p1
+  color: '#d93f0b'
+  description: Important, next up
+
+- name: priority: p2
+  color: '#e4e669'
+  description: Nice-to-have or later
+
+# Epic identifiers (EP-01..EP-14)
+- name: epic: ep-01
+  color: '#0366d6'
+  description: EP-01 Screen Time Foundations
+- name: epic: ep-02
+  color: '#0366d6'
+  description: EP-02 Pairing & Family Association
+- name: epic: ep-03
+  color: '#0366d6'
+  description: EP-03 App Categorization & Rules
+- name: epic: ep-04
+  color: '#0366d6'
+  description: EP-04 Points Engine & Integrity
+- name: epic: ep-05
+  color: '#0366d6'
+  description: EP-05 Redemption & Shielding
+- name: epic: ep-06
+  color: '#0366d6'
+  description: EP-06 Sync & Multi-Parent
+- name: epic: ep-07
+  color: '#0366d6'
+  description: EP-07 Dashboard & Reporting
+- name: epic: ep-08
+  color: '#0366d6'
+  description: EP-08 Notifications
+- name: epic: ep-09
+  color: '#0366d6'
+  description: EP-09 Privacy, Security, Compliance
+- name: epic: ep-10
+  color: '#0366d6'
+  description: EP-10 Accessibility & Localization
+- name: epic: ep-11
+  color: '#0366d6'
+  description: EP-11 Monetization & Paywall
+- name: epic: ep-12
+  color: '#0366d6'
+  description: EP-12 Learning Depth & Engagement
+- name: epic: ep-13
+  color: '#0366d6'
+  description: EP-13 macOS Enhancements
+- name: epic: ep-14
+  color: '#0366d6'
+  description: EP-14 Dev Experience & QA Infra

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Product Requirements (PRD)
+    url: https://github.com/aminenidae/Claudex-ScreenTimeRewards/blob/main/PRD.md
+    about: Review PRD for story scope and acceptance criteria.
