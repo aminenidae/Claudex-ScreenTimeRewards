@@ -1,6 +1,4 @@
 import SwiftUI
-import Core
-import PointsEngine
 import ScreenTimeService
 
 @main
