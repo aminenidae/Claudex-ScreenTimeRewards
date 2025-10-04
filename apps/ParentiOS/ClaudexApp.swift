@@ -93,7 +93,7 @@ private struct AuthorizationStatusBanner: View {
 
     private var needsAction: Bool {
         switch state {
-        case .notDetermined, .denied, .restricted:
+        case .notDetermined, .denied:
             return true
         default:
             return false
@@ -108,8 +108,6 @@ private struct AuthorizationStatusBanner: View {
             return "Authorization required"
         case .denied:
             return "Authorization denied"
-        case .restricted:
-            return "Authorization restricted"
         case .error:
             return "Authorization error"
         }
@@ -123,10 +121,8 @@ private struct AuthorizationStatusBanner: View {
             return "Parents must grant Family Controls access before linking child devices."
         case .denied:
             return "Authorization was declined. Open Settings → Screen Time → Apps to grant access."
-        case .restricted:
-            return "Family Controls is restricted (Screen Time/MDM policy). Resolve in Settings then retry."
         case .error(let error):
-            return "Error requesting access: \(error.localizedDescription)"
+            return "Error requesting access: \(error)"
         }
     }
 
@@ -138,8 +134,6 @@ private struct AuthorizationStatusBanner: View {
             return "exclamationmark.circle"
         case .denied:
             return "xmark.octagon"
-        case .restricted:
-            return "lock.circle"
         case .error:
             return "exclamationmark.triangle"
         }

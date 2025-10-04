@@ -8,7 +8,6 @@ public enum ScreenTimeAuthorizationState: Equatable {
     case notDetermined
     case approved
     case denied
-    case restricted
     case error(String)
 }
 
@@ -33,8 +32,6 @@ public final class ScreenTimeAuthorizationCoordinator: ObservableObject {
                 state = .approved
             case .denied:
                 state = .denied
-            case .restricted:
-                state = .restricted
             @unknown default:
                 state = .error("Unknown authorization status")
             }
@@ -46,7 +43,7 @@ public final class ScreenTimeAuthorizationCoordinator: ObservableObject {
     @MainActor
     public func requestAuthorization() async {
         do {
-            try await authorizationCenter.requestAuthorization(for: .family)
+            try await authorizationCenter.requestAuthorization(for: .individual)
             await refreshStatus()
         } catch {
             state = .error(String(describing: error))
