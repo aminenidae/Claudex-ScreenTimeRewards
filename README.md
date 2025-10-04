@@ -26,16 +26,14 @@ Reward-based screen time management for families using Apple Screen Time APIs.
 
 ## Xcode Project Scaffold
 
-- Modules are defined via Swift Package `Package.swift` (Core, ScreenTimeService, PointsEngine, SyncKit).
-- App targets and the DeviceActivityReport extension are defined via XcodeGen spec at `.xcodegen/project.yml`.
-- Generate the Xcode project:
-  - Install XcodeGen: `brew install xcodegen`
-  - Run: `bash scripts/bootstrap_xcodeproj.sh`
-  - Open: `.xcodegen/ClaudexScreenTimeRewards.xcodeproj`
+- `ClaudexScreenTimeRewards.xcodeproj` lives at the repo root and includes:
+  - ParentiOS (iOS app), ParentmacOS (macOS app), ChildiOS (iOS app)
+  - DeviceActivityReportExtension (iOS app extension)
+- Swift sources under `Sources/` are shared across targets (pending modularization).
+- Entitlement files (`entitlements/`) are placeholders; add Family Controls entitlement after approval.
+- Info plists are minimal placeholders in `plist/`.
 
-Notes
-- Entitlements are placeholders in `entitlements/`. Request and add Family Controls entitlement for parent apps.
-- Plists are minimal placeholders under `plist/`.
+> If you prefer to regenerate via XcodeGen, the spec remains in `.xcodegen/project.yml` with `scripts/bootstrap_xcodeproj.sh`.
 
 ## Notes
 
