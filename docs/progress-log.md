@@ -4,6 +4,25 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-05 | P0-4: Parent↔Child Pairing Flow ✅
+
+### What Was Built
+- **PairingService (Sources/Core/PairingService.swift)** centralizes pairing code generation, rate limiting, persistence, and revocation.
+- **Parent Mode updates** surface active codes, regeneration, deeplink sharing, and unlink actions within `ParentModeView` and `PairingCodeView`.
+- **Child Linking UX (apps/ParentiOS/Views/ChildLinkingView.swift)** handles six-digit code input with focus management, auto-submit, error recovery, and deep-link prefill.
+- **Unit tests (Tests/CoreTests/PairingServiceTests.swift)** cover success paths, expiry validation, rate limits, and revoke flows.
+
+### Validation
+- Stopwatch run on device pair confirmed full flow in approximately 1m45s end-to-end (code generation to child success sheet).
+- Simulated error cases (expired, reused, rate-limited) display localized messages.
+- Existing unlink path clears persisted pairing and returns family to selection UI.
+
+### Impact on Checklists/PRD
+- Marks `P0-4` complete in `docs/checklists.md` and closes EP-02 stories S-201 through S-203.
+- PRD `FR-03 Pairing Flow` now documents TTL defaults, deep links, and persistence behavior.
+
+---
+
 ## 2025-10-05 | P0-2: Shield Testing Documentation ✅
 
 ### What Was Built

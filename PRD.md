@@ -6,7 +6,7 @@ Version: 1.0 (MVP)
 
 Owners: Product + Engineering
 
-Last Updated: YYYY-MM-DD
+Last Updated: 2025-10-05
 
 ## 1. Overview
 
@@ -97,8 +97,9 @@ FR-02 Child Selection via System UI
 - No programmatic enumeration of family roster; flow must be initiated by parent.
 
 FR-03 Pairing Flow
-- Generate pairing code or deep link to associate child app instance with a child context.
-- Support re-pairing and revocation.
+- Parents generate six-digit pairing codes (default 15-minute TTL, rate limited) or share deep links to associate a child app instance.
+- Child mode accepts prefilled codes/deep links and guides through <2 minute pairing, including auto-submit when all digits entered.
+- Support re-pairing, revocation, and device-local persistence of the active pairing.
 
 FR-04 App Categorization & Rules
 - Category defaults for “learning” and “reward”; manual overrides per app.
