@@ -24,7 +24,8 @@
 		08D6754CB3974B63BB5D7FD2 /* RedemptionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6075ADFFD2904E07AF741291 /* RedemptionsCard.swift */; };
 		8FEBEEDA189E40919E08B934 /* ShieldStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BF4E45F21A54E7EA0FA115F /* ShieldStatusCard.swift */; };
 		6D28F1A6090F4DB9839CDE78 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E67DA07E9E4804A4A5151A /* ExportView.swift */; };
-		C7687F500A96443693F21C1C /* DataExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */; };
+	C7687F500A96443693F21C1C /* DataExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */; };
+	A10000352B6D000000000002 /* AuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000352B6D000000000001 /* AuditLog.swift */; };
 		AF74CC913F4642C88C9AB017 /* PointsLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B3A0A871F6497DA90A3104 /* PointsLedger.swift */; };
 		4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4D89FB4BB9434E9541282E /* RedemptionService.swift */; };
 		62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */; };
@@ -55,7 +56,8 @@
 		6075ADFFD2904E07AF741291 /* RedemptionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionsCard.swift; sourceTree = "<group>"; };
 		0BF4E45F21A54E7EA0FA115F /* ShieldStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldStatusCard.swift; sourceTree = "<group>"; };
 		A1E67DA07E9E4804A4A5151A /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
-		5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExporter.swift; sourceTree = "<group>"; };
+	5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExporter.swift; sourceTree = "<group>"; };
+	A10000352B6D000000000001 /* AuditLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditLog.swift; sourceTree = "<group>"; };
 		23B3A0A871F6497DA90A3104 /* PointsLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointsLedger.swift; sourceTree = "<group>"; };
 		1A4D89FB4BB9434E9541282E /* RedemptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionService.swift; sourceTree = "<group>"; };
 		D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExemptionManager.swift; sourceTree = "<group>"; };
@@ -145,6 +147,7 @@
 			children = (
 				A10000122B6D000000000001 /* AppModels.swift */,
 				5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */,
+				A10000352B6D000000000001 /* AuditLog.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -277,6 +280,7 @@
 			files = (
 				A10000192B6D000000000001 /* SyncService.swift in Sources */,
 				A10000172B6D000000000001 /* ScreenTimeService.swift in Sources */,
+				A10000352B6D000000000002 /* AuditLog.swift in Sources */,
 				A10000302B6D000000000001 /* AuthorizationCoordinator.swift in Sources */,
 				A10000312B6D000000000002 /* LearningSessionCoordinator.swift in Sources */,
 				A10000322B6D000000000002 /* RewardCoordinator.swift in Sources */,

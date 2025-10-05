@@ -6,8 +6,11 @@ import Core
 public final class PointsLedger: PointsLedgerProtocol {
     private var entries: [PointsLedgerEntry] = []
     private let queue = DispatchQueue(label: "com.claudex.pointsledger", attributes: .concurrent)
+    private let auditLog: AuditLogProtocol?
 
-    public init() {}
+    public init(auditLog: AuditLogProtocol? = nil) {
+        self.auditLog = auditLog
+    }
 
     // MARK: - Recording Transactions
 
@@ -33,6 +36,7 @@ public final class PointsLedger: PointsLedgerProtocol {
         )
         queue.async(flags: .barrier) {
             self.entries.append(entry)
+            self.logAudit(action: "redemption", childId: childId, points: -abs(points), timestamp: timestamp, extra: nil)
         }
         return entry
     }
@@ -46,6 +50,13 @@ public final class PointsLedger: PointsLedgerProtocol {
         )
         queue.async(flags: .barrier) {
             self.entries.append(entry)
+            self.logAudit(
+                action: "adjustment",
+                childId: childId,
+                points: points,
+                timestamp: timestamp,
+                extra: ["reason": reason]
+            )
         }
         return entry
     }
@@ -124,5 +135,23 @@ public final class PointsLedger: PointsLedgerProtocol {
         queue.async(flags: .barrier) {
             self.entries.removeAll()
         }
+    }
+}
+
+// MARK: - Audit Helpers
+
+private extension PointsLedger {
+    func logAudit(
+        action: String,
+        childId: ChildID,
+        points: Int,
+        timestamp: Date,
+        extra: [String: String]?
+    ) {
+        guard let auditLog else { return }
+        var details = extra ?? [:]
+        details["points"] = String(points)
+        let entry = AuditEntry(childId: childId, action: action, timestamp: timestamp, details: details)
+        auditLog.record(entry: entry)
     }
 }

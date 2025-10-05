@@ -76,8 +76,8 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 - S-404: Ledger persistence — File storage, CloudKit-ready
 - S-405: Monotonic timing/clock change handling — Session timestamps
 
-⏳ **Partially Complete**
-- S-406: Admin adjustments audited — Ledger supports adjustments, audit log integration pending
+✅ **Additional Story Closure**
+- S-406: Admin adjustments audited — PointsLedger now records audit entries for redemptions/adjustments via AuditLog service
 
 ✅ **EP-14 Dev Infrastructure**
 - S-1401: Modular project structure
@@ -96,10 +96,11 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
    - Prevents false positives when sessions end without activity updates
    - Configurable threshold (default 3 minutes)
 
-3. **Persistence Strategy**
+3. **Persistence Strategy + Audit Trail**
    - File-based JSON for MVP (local, simple, testable)
    - Designed for easy CloudKit migration (EP-06)
    - Thread-safe with concurrent queue for performance
+   - Optional `AuditLog` captures redemption/adjustment actions for audit trail
 
 4. **Conditional Compilation**
    - `#if canImport(Core)` allows dual build modes
@@ -676,4 +677,3 @@ Each entry should include:
 - Technical Decisions
 - Known Limitations & Next Steps
 - Dependencies
-

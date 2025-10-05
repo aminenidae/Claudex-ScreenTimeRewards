@@ -5,10 +5,12 @@ import XCTest
 final class PointsLedgerTests: XCTestCase {
     var ledger: PointsLedger!
     var childId: ChildID!
+    var auditLog: MockAuditLog!
 
     override func setUp() {
         super.setUp()
-        ledger = PointsLedger()
+        auditLog = MockAuditLog()
+        ledger = PointsLedger(auditLog: auditLog)
         childId = ChildID("test-child-456")
     }
 
@@ -16,6 +18,7 @@ final class PointsLedgerTests: XCTestCase {
         ledger.clear()
         ledger = nil
         childId = nil
+        auditLog = nil
         super.tearDown()
     }
 
@@ -190,5 +193,50 @@ final class PointsLedgerTests: XCTestCase {
 
         XCTAssertEqual(ledger.getBalance(childId: childId), 0)
         XCTAssertEqual(ledger.getEntries(childId: childId).count, 0)
+    }
+
+    // MARK: - Audit Log
+
+    func testAuditLogRecordsRedemptionsAndAdjustments() {
+        let redemption = ledger.recordRedemption(childId: childId, points: 40)
+        let adjustment = ledger.recordAdjustment(childId: childId, points: 15, reason: "Bonus")
+
+        // Ensure ledger still stores entries
+        XCTAssertEqual(redemption.type, .redemption)
+        XCTAssertEqual(adjustment.type, .adjustment)
+
+        let entries = auditLog.entries(for: childId)
+        XCTAssertEqual(entries.count, 2)
+
+        let redemptionAudit = entries.first { $0.action == "redemption" }
+        XCTAssertNotNil(redemptionAudit)
+        XCTAssertEqual(redemptionAudit?.details?["points"], "-40")
+
+        let adjustmentAudit = entries.first { $0.action == "adjustment" }
+        XCTAssertNotNil(adjustmentAudit)
+        XCTAssertEqual(adjustmentAudit?.details?["points"], "15")
+        XCTAssertEqual(adjustmentAudit?.details?["reason"], "Bonus")
+    }
+}
+
+// MARK: - Helpers
+
+final class MockAuditLog: AuditLogProtocol {
+    private(set) var recorded: [AuditEntry] = []
+
+    func record(entry: AuditEntry) {
+        recorded.append(entry)
+    }
+
+    func entries(for childId: ChildID) -> [AuditEntry] {
+        recorded.filter { $0.childId == childId }
+    }
+
+    func allEntries() -> [AuditEntry] {
+        recorded
+    }
+
+    func clear() {
+        recorded.removeAll()
     }
 }

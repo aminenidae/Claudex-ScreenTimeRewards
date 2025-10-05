@@ -120,7 +120,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [x] S-403 Caps and rate limits — Daily caps enforced with tests
   - [x] S-404 Ledger persistence — PointsLedger with file storage, CloudKit-ready
   - [x] S-405 Monotonic timing/clock change handling — Session timestamps protect against manipulation
-  - [ ] S-406 Admin adjustments audited — Ledger supports adjustments, audit integration pending
+- [x] S-406 Admin adjustments audited — Ledger writes audit entries for redemptions/adjustments
 
 - EP-05 Redemption & Shielding
   - [x] S-501 Redemption UX with validation — RedemptionService with min/max/balance validation
