@@ -12,6 +12,7 @@ import ScreenTimeService
 @available(iOS 16.0, *)
 struct ParentModeView: View {
     @EnvironmentObject private var authorizationCoordinator: ScreenTimeAuthorizationCoordinator
+    @EnvironmentObject private var pairingService: PairingService
     @StateObject private var childrenManager: ChildrenManager
     @StateObject private var rulesManager: CategoryRulesManager
 #if canImport(DeviceActivity) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
@@ -21,6 +22,7 @@ struct ParentModeView: View {
     @StateObject private var rewardCoordinator: RewardCoordinator
 #endif
     private let ledger: PointsLedger
+    @State private var showingPairingSheet = false
 
     init() {
         let ledger = PointsLedger()
@@ -99,6 +101,34 @@ struct ParentModeView: View {
         }
         .navigationTitle("Parent Mode")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingPairingSheet = true
+                } label: {
+                    Label("Link Child Device", systemImage: "qrcode")
+                }
+                .disabled(selectedChild == nil)
+            }
+        }
+        .sheet(isPresented: $showingPairingSheet) {
+            if let child = selectedChild {
+                PairingCodeView(
+                    childId: child.id,
+                    childDisplayName: child.name,
+                    onDismiss: { showingPairingSheet = false }
+                )
+                .environmentObject(pairingService)
+            }
+        }
+    }
+}
+
+@available(iOS 16.0, *)
+private extension ParentModeView {
+    var selectedChild: ChildProfile? {
+        guard let selectedId = childrenManager.selectedChildId else { return nil }
+        return childrenManager.children.first(where: { $0.id == selectedId })
     }
 }
 
@@ -106,5 +136,6 @@ struct ParentModeView: View {
     NavigationStack {
         ParentModeView()
             .environmentObject(ScreenTimeAuthorizationCoordinator())
+            .environmentObject(PairingService())
     }
 }

@@ -22,9 +22,9 @@
 		5C88686AC522427197256D46 /* AppCategorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */; };
 		62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */; };
 		64658F53A12048CBB3347791 /* LearningTimeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A5A13C21542C79E447C5B /* LearningTimeCard.swift */; };
+		66A679F598DD4497903C277E /* PairingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B1985C2240B42F0A30A0AAA /* PairingService.swift */; };
 		6A2DA29E8CBC420699994D28 /* DashboardCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F68595205A864E8394A52EDD /* DashboardCard.swift */; };
 		6D28F1A6090F4DB9839CDE78 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E67DA07E9E4804A4A5151A /* ExportView.swift */; };
-		765B5241AB40484687BA1034 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB9CA365776C42E3ACA0BDF7 /* DashboardView.swift */; };
 		8FEBEEDA189E40919E08B934 /* ShieldStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BF4E45F21A54E7EA0FA115F /* ShieldStatusCard.swift */; };
 		A10000112B6D000000000001 /* ClaudexApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000102B6D000000000001 /* ClaudexApp.swift */; };
 		A10000132B6D000000000001 /* AppModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000122B6D000000000001 /* AppModels.swift */; };
@@ -38,6 +38,8 @@
 		A10000362B6D000000000004 /* AddChildSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000362B6D000000000003 /* AddChildSheet.swift */; };
 		A10000372B6D000000000005 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000372B6D000000000004 /* FeatureFlags.swift */; };
 		AF74CC913F4642C88C9AB017 /* PointsLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B3A0A871F6497DA90A3104 /* PointsLedger.swift */; };
+		912614E6AB404A9A80FF88C8 /* ChildLinkingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9198F97EF27D4025801FDA78 /* ChildLinkingView.swift */; };
+		EA86DFC2F35341E89D55A024 /* PairingCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12920D839D1A42189337E9DB /* PairingCodeView.swift */; };
 		C7687F500A96443693F21C1C /* DataExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */; };
 		E0C89EBCDC374C4586984060 /* PointsBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9172FD87BC4A44F6B24E0CE0 /* PointsBalanceCard.swift */; };
 /* End PBXBuildFile section */
@@ -49,6 +51,7 @@
 		1A4D89FB4BB9434E9541282E /* RedemptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionService.swift; sourceTree = "<group>"; };
 		23B3A0A871F6497DA90A3104 /* PointsLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointsLedger.swift; sourceTree = "<group>"; };
 		34B90601D2FA400C847505DA /* ParentModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentModeView.swift; sourceTree = "<group>"; };
+		12920D839D1A42189337E9DB /* PairingCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingCodeView.swift; sourceTree = "<group>"; };
 		432A8A9C2E92C7DC00E03796 /* RedemptionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionCoordinator.swift; sourceTree = "<group>"; };
 		432A8A9E2E92C7F000E03796 /* ChildRedemptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildRedemptionView.swift; sourceTree = "<group>"; };
 		432A8AA02E92CCE600E03796 /* CloudKitMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitMapper.swift; sourceTree = "<group>"; };
@@ -59,6 +62,8 @@
 		6A98C0711BAE449B807EB55F /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		7D4EA94DCDE0464AB8F9F8F1 /* CategoryRulesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryRulesManager.swift; sourceTree = "<group>"; };
 		9172FD87BC4A44F6B24E0CE0 /* PointsBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointsBalanceCard.swift; sourceTree = "<group>"; };
+		9198F97EF27D4025801FDA78 /* ChildLinkingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildLinkingView.swift; sourceTree = "<group>"; };
+		9B1985C2240B42F0A30A0AAA /* PairingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingService.swift; sourceTree = "<group>"; };
 		A10000012B6D000000000001 /* ParentiOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ParentiOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000102B6D000000000001 /* ClaudexApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudexApp.swift; sourceTree = "<group>"; };
 		A10000122B6D000000000001 /* AppModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModels.swift; sourceTree = "<group>"; };
@@ -78,7 +83,6 @@
 		E2D509F5020B4151859084D6 /* MultiChildDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiChildDashboardView.swift; sourceTree = "<group>"; };
 		E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCategorizationView.swift; sourceTree = "<group>"; };
 		F68595205A864E8394A52EDD /* DashboardCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCard.swift; sourceTree = "<group>"; };
-		FB9CA365776C42E3ACA0BDF7 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -98,9 +102,10 @@
 				432A8AA42E92CF8A00E03796 /* DashboardView.swift */,
 				432A8A9E2E92C7F000E03796 /* ChildRedemptionView.swift */,
 				E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */,
-				FB9CA365776C42E3ACA0BDF7 /* DashboardView.swift */,
 				E2D509F5020B4151859084D6 /* MultiChildDashboardView.swift */,
 				34B90601D2FA400C847505DA /* ParentModeView.swift */,
+				9198F97EF27D4025801FDA78 /* ChildLinkingView.swift */,
+				12920D839D1A42189337E9DB /* PairingCodeView.swift */,
 				F716BC1A5FC64DA68EB6E2C4 /* Components */,
 			);
 			path = Views;
@@ -188,6 +193,7 @@
 			children = (
 				A10000122B6D000000000001 /* AppModels.swift */,
 				5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */,
+				9B1985C2240B42F0A30A0AAA /* PairingService.swift */,
 				A10000352B6D000000000001 /* AuditLog.swift */,
 				A10000372B6D000000000004 /* FeatureFlags.swift */,
 			);
@@ -315,14 +321,16 @@
 				0DA412D2A02C44A195DF93B0 /* ChildrenManager.swift in Sources */,
 				41682CBFDC404BF29C96053E /* MultiChildDashboardView.swift in Sources */,
 				C7687F500A96443693F21C1C /* DataExporter.swift in Sources */,
+				66A679F598DD4497903C277E /* PairingService.swift in Sources */,
 				432A8AA32E92CF7700E03796 /* CountdownTimerView.swift in Sources */,
 				432A8AA12E92CCE600E03796 /* CloudKitMapper.swift in Sources */,
 				AF74CC913F4642C88C9AB017 /* PointsLedger.swift in Sources */,
 				4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */,
 				62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */,
 				19B34F3A9B3046EFAD7A7ABE /* DashboardViewModel.swift in Sources */,
-				765B5241AB40484687BA1034 /* DashboardView.swift in Sources */,
 				1BEAD5F5331545D99E1B143F /* ParentModeView.swift in Sources */,
+				912614E6AB404A9A80FF88C8 /* ChildLinkingView.swift in Sources */,
+				EA86DFC2F35341E89D55A024 /* PairingCodeView.swift in Sources */,
 				6A2DA29E8CBC420699994D28 /* DashboardCard.swift in Sources */,
 				E0C89EBCDC374C4586984060 /* PointsBalanceCard.swift in Sources */,
 				432A8A9D2E92C7DC00E03796 /* RedemptionCoordinator.swift in Sources */,
