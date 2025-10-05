@@ -4,6 +4,93 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-05 | P0-2: Shield Testing Documentation ✅
+
+### What Was Built
+
+**Shield Testing Guide (docs/shield-testing-guide.md)**
+- Comprehensive manual testing procedures for ManagedSettings shields
+- 7 detailed test scenarios covering all shield behaviors
+- Critical P0-2 requirement validation: re-lock ≤5s after expiry
+
+**Test Scenarios:**
+1. Initial Shield Application - verify shields apply on configuration
+2. Exemption on Redemption - verify shields lift when child redeems points
+3. **Re-lock on Expiry (Critical)** - verify ≤5s re-lock requirement
+4. Restart Resiliency - shields persist after app restart
+5. Device Restart Resiliency - shields persist after device reboot
+6. Multiple Redemptions - exemption stacking policy validation
+7. Concurrent Shields - multi-app shield consistency
+
+**Timing Measurement Tools:**
+- Screen recording with stopwatch overlay (60fps for frame accuracy)
+- Logging timestamps in ExemptionManager expiry callback
+- Manual stopwatch methodology (5 trials, averaged)
+
+**Pass Criteria:**
+- Re-lock occurs ≤5 seconds in 90%+ of tests
+- Average re-lock time <3 seconds
+- Shields persist across app/device restarts
+- No false positives (early shield application)
+
+### Technical Implementation
+
+**Existing Shield Architecture (Reviewed):**
+- ShieldController: applyShields(), grantExemption(), revokeExemption()
+- ExemptionManager: timer-based expiry with callback mechanism
+- RewardCoordinator: automatic shield revoke on timer expiry
+- Persistence: active exemptions survive app restart
+
+**Key Constraint: Physical Device Required**
+- ManagedSettings API does NOT work in iOS Simulator
+- Must test on real iPhone/iPad with Family Controls entitlement
+- Device must be signed with provisioning profile containing entitlement
+
+**Results Reporting Template:**
+```markdown
+## Test Date: 2025-10-05
+**Device**: iPhone 14 Pro, iOS 17.5
+**Build**: Debug, ParentiOS target
+
+### Test 3: Re-lock Timing (5 trials)
+1. 2.3s ✅
+2. 3.1s ✅
+3. 4.2s ✅
+4. 2.8s ✅
+5. 3.5s ✅
+
+**Average**: 3.18s
+**Max**: 4.2s
+**Pass/Fail**: PASS ✅
+```
+
+### Files Modified
+- **Created**: docs/shield-testing-guide.md (348 lines)
+  - Prerequisites (device, entitlement, app config)
+  - 7 test scenarios with steps and expected behavior
+  - Timing measurement instructions
+  - Troubleshooting guide
+  - Success criteria and reporting template
+
+### Impact on PRD/Checklists
+- P0-2 testing guide complete (physical device testing pending)
+- Provides clear validation path for ≤5s re-lock requirement
+- Documents ManagedSettings API limitations and constraints
+
+### Known Limitations
+- Apple ManagedSettings inherent latency: 1-3 seconds typical
+- Shield application is asynchronous (no completion callback)
+- Background timers may be delayed if app backgrounded
+- Simulator testing not possible for shields
+
+### Next Steps
+1. Perform physical device testing following guide
+2. Document test results in docs/test-results/shield-testing-results.md
+3. Mark P0-2 complete in checklists.md if tests pass
+4. Consider preemptive shield (1-2s before expiry) if timing inconsistent
+
+---
+
 ## 2025-10-05 | P0-6: Real-time Countdown UI ✅
 
 ### What Was Built

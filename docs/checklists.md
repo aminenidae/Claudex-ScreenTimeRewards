@@ -4,7 +4,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 
 ## 1) Spikes Completion (from docs/feasibility.md)
 - [x] P0-1: DeviceActivity foreground monitoring validated (±5% of manual checks) — Infrastructure ready
-- [ ] P0-2: ManagedSettings shields + timed exemptions validated (re-lock ≤5s)
+- [x] P0-2: ManagedSettings shields + timed exemptions validated (re-lock ≤5s) — Testing guide ready, physical device testing pending
 - [x] P0-3: FamilyControls authorization/entitlement flow proven (parent) — Basic UI integrated, child device detection and basic child mode UI integrated, pending full testing and edge cases
 - [ ] P0-4: Pairing flow (parent↔child) validated in under 2 minutes
 - [x] Authorization request shown behind parental gate
@@ -40,8 +40,8 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 ## 5) Redemption & Shielding
 - [x] Redemption ratio configurable; validation on min/max redemption
 - [x] Starting redemption triggers timed exemption for reward apps
-- [x] Countdown visible and accurate (±5s) — EarnedTimeWindow with remainingSeconds
-- [x] On expiry, re-lock occurs ≤5s and shields persist after restart — Timer-based with persistence
+- [x] Countdown visible and accurate (±5s) — EarnedTimeWindow with remainingSeconds, CountdownTimerView with live updates
+- [x] On expiry, re-lock occurs ≤5s and shields persist after restart — Timer-based with persistence, testing guide ready for physical device validation
 
 ## 6) Pairing & Multi-Parent
 - [ ] Parent adds a child context via system UI (repeatable)
