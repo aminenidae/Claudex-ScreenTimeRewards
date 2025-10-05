@@ -4,7 +4,7 @@
 
 | Story | Title | Status | Notes |
 | --- | --- | --- | --- |
-| S-601 | CloudKit Schema Implementation | Not started | Map existing models (ChildContext, AppRule, PointsLedgerEntry, AuditEntry) to CKRecord types. |
+| S-601 | CloudKit Schema Implementation | In progress | Mapper helpers for ChildContext, PointsLedgerEntry, AuditEntry added; AppRule mapping pending. |
 | S-602 | Conflict Strategy (LWW with Timestamps) | Not started | Define merge policy and test multi-parent edits. |
 | S-603 | Offline Queue & Replay | Not started | Prototype local queue for offline updates. |
 | S-604 | Audit Log Usability | Not started | Surface audit trail UI using new AuditLog data. |
@@ -14,11 +14,11 @@
 
 ### P0-A: CloudKit Record Prototyping
 - Goal: Round-trip CKRecords for `ChildContext`, `AppRule`, `PointsLedgerEntry`, `AuditEntry`.
-- Tasks:
-  - Create CKContainer in dev environment.
-  - Prototype save/fetch/delete calls for each record type.
-  - Validate serialization of FamilyActivitySelection tokens (binary Data fields).
-- Outputs: Notes in `docs/feasibility.md`, sample code under `Spikes/CloudKit`.
+- Status: ChildContext/PointsLedgerEntry/AuditEntry helpers implemented in `Sources/SyncKit/CloudKitMapper.swift` with unit tests. AppRule serialization TBD.
+- Next tasks:
+  - Add mapping for AppRule/ShieldPolicy selections.
+  - Validate data round-trip with simulated CKRecord references.
+- Outputs: Code in SyncKit mapper, tests in `CloudKitMapperTests`. Update feasibility doc after AppRule mapping.
 
 ### P0-B: Conflict Resolution Strategy
 - Goal: Verify last-writer-wins with timestamp comparison works for multi-parent edits.
@@ -57,4 +57,3 @@
 - `docs/data-model.md` — Record definitions & uniqueness constraints.
 - `docs/checklists.md` — EP-06 checklist items.
 - `docs/progress-log.md` — Prior work on points/redemption (dependencies for sync).
-

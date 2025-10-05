@@ -128,3 +128,10 @@ P0 = must prove before building MVP core; P1 = important but can follow immediat
 - Spike app code with togglable modules for monitoring, shielding, exemptions, and reporting.
 - Logs and validation sheets for each spike with measured results.
 - Entitlement request draft and review checklist.
+
+## CloudKit Spike Notes (2025-10-05)
+
+- Implemented `CloudKitMapper` helper in SyncKit for ChildContextPayload, PointsLedgerEntry, and AuditEntry → CKRecord conversions.
+- Added unit tests to validate round-trip serialization without making network calls.
+- AppRule/ShieldPolicy mapping still pending; will be added once schema finalized.
+- Actual CloudKit operations deferred until container/entitlements are configured.
