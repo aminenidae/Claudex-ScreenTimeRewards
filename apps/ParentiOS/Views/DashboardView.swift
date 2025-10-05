@@ -73,7 +73,10 @@ struct DashboardView: View {
         RedemptionsCard(
             recentRedemptions: viewModel.recentRedemptions,
             activeWindow: viewModel.activeWindow,
-            remainingTime: viewModel.remainingExemptionTime
+            remainingTime: viewModel.remainingExemptionTime,
+            onRedeem: {
+                viewModel.redeemMinimum()
+            }
         )
 
         ShieldStatusCard(

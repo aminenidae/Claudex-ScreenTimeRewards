@@ -124,6 +124,10 @@ public final class ShieldController: ShieldControllerProtocol {
     public func isExemptionActive(for childId: ChildID) -> Bool {
         activeExemptions.contains(childId)
     }
+
+    public func clearAllShields(for childId: ChildID) {
+        activeExemptions.remove(childId)
+    }
 }
 
 #endif

@@ -7,6 +7,7 @@ struct RedemptionsCard: View {
     let recentRedemptions: [PointsLedgerEntry]
     let activeWindow: EarnedTimeWindow?
     let remainingTime: String
+    let onRedeem: (() -> Void)?
 
     var body: some View {
         DashboardCard(title: "Redemptions", systemImage: "clock.fill") {
@@ -73,6 +74,16 @@ struct RedemptionsCard: View {
                         }
                     }
                 }
+
+                if let onRedeem {
+                    Button(action: onRedeem) {
+                        HStack {
+                            Image(systemName: "gift.fill")
+                            Text("Redeem time")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
             }
         }
     }
@@ -92,7 +103,8 @@ struct RedemptionsCard: View {
     RedemptionsCard(
         recentRedemptions: sampleRedemptions,
         activeWindow: nil,
-        remainingTime: "No active time"
+        remainingTime: "No active time",
+        onRedeem: nil
     )
     .padding()
 }

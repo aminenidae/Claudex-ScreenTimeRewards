@@ -30,6 +30,7 @@ class DashboardViewModel: ObservableObject {
     private let ledger: PointsLedger
     private let engine: PointsEngine
     private let exemptionManager: ExemptionManager?
+    private let rewardCoordinator: RewardCoordinatorProtocol?
     private let childId: ChildID
 
     // Refresh timer
@@ -40,12 +41,14 @@ class DashboardViewModel: ObservableObject {
         childId: ChildID,
         ledger: PointsLedger,
         engine: PointsEngine,
-        exemptionManager: ExemptionManager? = nil
+        exemptionManager: ExemptionManager? = nil,
+        rewardCoordinator: RewardCoordinatorProtocol? = nil
     ) {
         self.childId = childId
         self.ledger = ledger
         self.engine = engine
         self.exemptionManager = exemptionManager
+        self.rewardCoordinator = rewardCoordinator
     }
 
     // MARK: - Data Loading
@@ -129,6 +132,48 @@ class DashboardViewModel: ObservableObject {
             return "\(minutes)m \(seconds)s"
         } else {
             return "\(seconds)s"
+        }
+    }
+
+    // MARK: - Redemption Actions
+
+    func redeemMinimum() {
+        let config = RedemptionConfiguration.default
+        redeem(points: config.minRedemptionPoints, config: config)
+    }
+
+    private func redeem(points: Int, config: RedemptionConfiguration) {
+        guard let coordinator = rewardCoordinator else {
+            errorMessage = "Redemption service unavailable."
+            return
+        }
+
+        switch coordinator.canRedeem(childId: childId, points: points, config: config) {
+        case .failure(let error):
+            errorMessage = message(for: error)
+            return
+        case .success:
+            break
+        }
+
+        switch coordinator.redeem(childId: childId, points: points, config: config) {
+        case .success:
+            refresh()
+        case .failure(let error):
+            errorMessage = message(for: error)
+        }
+    }
+
+    private func message(for error: RedemptionError) -> String {
+        switch error {
+        case .insufficientBalance(let available, let required):
+            return "Need \(required) points, only \(available) available."
+        case .belowMinimum(let points, let minimum):
+            return "Redemptions require at least \(minimum) points (attempted \(points))."
+        case .aboveMaximum(let points, let maximum):
+            return "Cannot redeem more than \(maximum) points at once (attempted \(points))."
+        case .childNotFound:
+            return "Child profile unavailable."
         }
     }
 

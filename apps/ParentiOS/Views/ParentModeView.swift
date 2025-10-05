@@ -13,6 +13,9 @@ struct ParentModeView: View {
     @StateObject private var rulesManager: CategoryRulesManager
 #if canImport(DeviceActivity) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
     @StateObject private var learningCoordinator: LearningSessionCoordinator
+#if canImport(ManagedSettings)
+    @StateObject private var rewardCoordinator: RewardCoordinator
+#endif
 #endif
     private let ledger: PointsLedger
 
@@ -23,7 +26,27 @@ struct ParentModeView: View {
         let engine = PointsEngine()
         let exemptionManager = ExemptionManager()
 
-        let manager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager)
+
+#if canImport(ManagedSettings) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
+        let shieldController = ShieldController()
+        let redemptionService = RedemptionService(ledger: ledger)
+        let rewardCoordinatorConcrete = RewardCoordinator(
+            rulesManager: rulesManager,
+            redemptionService: redemptionService,
+            shieldController: shieldController,
+            exemptionManager: exemptionManager
+        )
+        let rewardCoordinatorInstance: RewardCoordinatorProtocol? = rewardCoordinatorConcrete
+#else
+        let rewardCoordinatorInstance: RewardCoordinatorProtocol? = nil
+#endif
+
+        let manager = ChildrenManager(
+            ledger: ledger,
+            engine: engine,
+            exemptionManager: exemptionManager,
+            rewardCoordinator: rewardCoordinatorInstance
+        )
         manager.loadDemoChildren()
 
         let rulesManager = CategoryRulesManager()
@@ -34,6 +57,9 @@ struct ParentModeView: View {
             pointsLedger: ledger
         )
         _learningCoordinator = StateObject(wrappedValue: learningCoordinator)
+#if canImport(ManagedSettings)
+        _rewardCoordinator = StateObject(wrappedValue: rewardCoordinatorConcrete)
+#endif
 #endif
 
         self.ledger = ledger

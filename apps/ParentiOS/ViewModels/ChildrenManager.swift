@@ -28,14 +28,16 @@ class ChildrenManager: ObservableObject {
     private let ledger: PointsLedger
     private let engine: PointsEngine
     private let exemptionManager: ExemptionManager
+    private let rewardCoordinator: RewardCoordinatorProtocol?
 
     // Cache of view models (one per child)
     private var viewModels: [ChildID: DashboardViewModel] = [:]
 
-    init(ledger: PointsLedger, engine: PointsEngine, exemptionManager: ExemptionManager) {
+    init(ledger: PointsLedger, engine: PointsEngine, exemptionManager: ExemptionManager, rewardCoordinator: RewardCoordinatorProtocol? = nil) {
         self.ledger = ledger
         self.engine = engine
         self.exemptionManager = exemptionManager
+        self.rewardCoordinator = rewardCoordinator
     }
 
     /// Get or create a view model for a specific child
@@ -48,7 +50,8 @@ class ChildrenManager: ObservableObject {
             childId: childId,
             ledger: ledger,
             engine: engine,
-            exemptionManager: exemptionManager
+            exemptionManager: exemptionManager,
+            rewardCoordinator: rewardCoordinator
         )
         viewModels[childId] = vm
         return vm

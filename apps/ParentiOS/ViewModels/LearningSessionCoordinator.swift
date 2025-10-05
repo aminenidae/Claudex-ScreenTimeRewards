@@ -3,6 +3,7 @@ import Foundation
 import Combine
 import DeviceActivity
 import FamilyControls
+import PointsEngine
 #if canImport(Core)
 import Core
 #endif
