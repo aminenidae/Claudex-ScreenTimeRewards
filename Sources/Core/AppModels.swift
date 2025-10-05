@@ -5,6 +5,25 @@ public struct ChildID: Hashable, Codable { public let rawValue: String; public i
 
 public enum AppClassification: String, Codable { case learning, reward }
 
+public struct ChildContextPayload: Codable, Equatable {
+    public let id: ChildID
+    public let childOpaqueId: String
+    public let displayName: String?
+    public let pairedDeviceIds: [String]
+
+    public init(
+        id: ChildID,
+        childOpaqueId: String,
+        displayName: String? = nil,
+        pairedDeviceIds: [String] = []
+    ) {
+        self.id = id
+        self.childOpaqueId = childOpaqueId
+        self.displayName = displayName
+        self.pairedDeviceIds = pairedDeviceIds
+    }
+}
+
 public struct PointsLedgerEntry: Codable, Identifiable {
     public enum EntryType: String, Codable { case accrual, redemption, adjustment }
     public let id: UUID
@@ -121,4 +140,3 @@ public protocol PointsLedgerProtocol {
     func getEntries(childId: ChildID, limit: Int?) -> [PointsLedgerEntry]
     func getEntriesInRange(childId: ChildID, from: Date, to: Date) -> [PointsLedgerEntry]
 }
-

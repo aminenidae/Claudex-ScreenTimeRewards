@@ -18,6 +18,6 @@ let package = Package(
         .target(name: "ScreenTimeService", dependencies: ["Core"], path: "Sources/ScreenTimeService"),
         .target(name: "PointsEngine", dependencies: ["Core"], path: "Sources/PointsEngine"),
         .target(name: "SyncKit", dependencies: ["Core"], path: "Sources/SyncKit"),
-        .testTarget(name: "CoreTests", dependencies: ["Core", "PointsEngine"], path: "Tests/CoreTests")
+        .testTarget(name: "CoreTests", dependencies: ["Core", "PointsEngine", "SyncKit"], path: "Tests/CoreTests")
     ]
 )
