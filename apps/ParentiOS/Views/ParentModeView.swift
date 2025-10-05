@@ -11,6 +11,9 @@ struct ParentModeView: View {
     // Services (should be dependency-injected in production)
     @StateObject private var childrenManager: ChildrenManager
     @StateObject private var rulesManager: CategoryRulesManager
+#if canImport(DeviceActivity) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
+    @StateObject private var learningCoordinator: LearningSessionCoordinator
+#endif
     private let ledger: PointsLedger
 
     init() {
@@ -24,6 +27,14 @@ struct ParentModeView: View {
         manager.loadDemoChildren()
 
         let rulesManager = CategoryRulesManager()
+#if canImport(DeviceActivity) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
+        let learningCoordinator = LearningSessionCoordinator(
+            rulesManager: rulesManager,
+            pointsEngine: engine,
+            pointsLedger: ledger
+        )
+        _learningCoordinator = StateObject(wrappedValue: learningCoordinator)
+#endif
 
         self.ledger = ledger
         _childrenManager = StateObject(wrappedValue: manager)
