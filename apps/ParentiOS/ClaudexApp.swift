@@ -9,12 +9,18 @@ import PointsEngine
 @main
 struct ClaudexScreenTimeRewardsApp: App {
     @StateObject private var authorizationCoordinator = ScreenTimeAuthorizationCoordinator()
-    @StateObject private var childrenManager = ChildrenManager(
-        ledger: PointsLedger(), // Assuming PointsLedger is initialized here or passed in
-        engine: PointsEngine(),
-        exemptionManager: ExemptionManager(),
-        rewardCoordinator: nil // RewardCoordinator will be passed later if needed
-    )
+    @StateObject private var childrenManager = {
+        let ledger = PointsLedger()
+        let engine = PointsEngine()
+        let exemptionManager = ExemptionManager()
+        let redemptionService = RedemptionService(ledger: ledger)
+        return ChildrenManager(
+            ledger: ledger,
+            engine: engine,
+            exemptionManager: exemptionManager,
+            redemptionService: redemptionService
+        )
+    }()
 
     var body: some Scene {
         WindowGroup {

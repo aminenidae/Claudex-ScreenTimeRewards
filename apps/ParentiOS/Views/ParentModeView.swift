@@ -27,13 +27,12 @@ struct ParentModeView: View {
         let engine = PointsEngine()
         let exemptionManager = ExemptionManager()
         let rulesManager = CategoryRulesManager()
+        let redemptionService = RedemptionService(ledger: ledger)
 
         var rewardCoordinatorConcrete: RewardCoordinator?
-        var rewardCoordinatorProtocol: RewardCoordinatorProtocol?
 
 #if canImport(ManagedSettings) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
         let shieldController = ShieldController()
-        let redemptionService = RedemptionService(ledger: ledger)
         let coordinator = RewardCoordinator(
             rulesManager: rulesManager,
             redemptionService: redemptionService,
@@ -41,14 +40,13 @@ struct ParentModeView: View {
             exemptionManager: exemptionManager
         )
         rewardCoordinatorConcrete = coordinator
-        rewardCoordinatorProtocol = coordinator
 #endif
 
         let manager = ChildrenManager(
             ledger: ledger,
             engine: engine,
             exemptionManager: exemptionManager,
-            rewardCoordinator: rewardCoordinatorProtocol
+            redemptionService: redemptionService
         )
 
 #if DEBUG

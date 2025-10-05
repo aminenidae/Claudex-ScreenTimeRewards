@@ -368,8 +368,24 @@ EP-13 Parent & Child Mode Experience — Phase: MVP
 - S-1303 Fast Parent Toggle: Allow parent to re-enter parent mode quickly after authentication (e.g., shortcut). Acceptance: Flow <3 steps.
 
 EP-14 Dev Experience & QA Infrastructure — Phase: MVP
-- S-1401 Modular Project Setup: Targets and frameworks. Acceptance: Builds locally and CI.
+- S-1401 Modular Project Setup: Targets and frameworks. Acceptance: Builds locally and CI. ✅ **DONE** - Swift Package + Xcode dual structure, debug build succeeds
 - S-1402 CI/CD: Lint, build, unit tests on PR. Acceptance: Green pipeline.
-- S-1403 Unit Tests: Core modules coverage targets (≥60% for engine). Acceptance: Threshold met.
+- S-1403 Unit Tests: Core modules coverage targets (≥60% for engine). Acceptance: Threshold met. ✅ **DONE** - 54 tests passing, PointsEngine >60% coverage
 - S-1404 UI Tests: Critical flows (onboarding, redemption). Acceptance: Stable.
-- S-1405 Fixtures & Test Data: Deterministic seeds. Acceptance: Shared in repo.
+- S-1405 Fixtures & Test Data: Deterministic seeds. Acceptance: Shared in repo. ✅ **DONE** - Test fixtures for PointsEngine and Ledger
+
+## 24. Implementation Status (as of 2025-10-05)
+
+**Completed Epics:**
+- ✅ EP-04: Points Engine & Integrity - Full implementation with session-based accrual, idle timeout, daily caps, ledger persistence with MainActor isolation
+- ✅ EP-05: Redemption & Shielding - RedemptionService, ShieldController, ExemptionManager with timer-based expiry and persistence
+- ✅ EP-07: Dashboard & Reporting - DashboardViewModel, 5 card components, DataExporter (CSV/JSON), multi-child navigation with horizontal swipe
+
+**Partially Completed:**
+- 🔄 EP-03: App Categorization - CategoryRulesManager with per-child Learning/Reward classification, FamilyActivityPicker integration complete, conflict resolution pending
+
+**Build Status:**
+- ✅ Debug build succeeds on iOS Simulator (iPhone 17, iOS 26.0)
+- ✅ 54 unit tests passing (0 failures)
+- ✅ MainActor isolation fixes applied for thread-safe UI updates
+- ⚠️ Warnings present (non-Sendable types, unused return values in preview code)

@@ -27,11 +27,11 @@ class DashboardViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     // Dependencies
-    private let ledger: PointsLedger
-    private let engine: PointsEngine
-    private let exemptionManager: ExemptionManager?
-    private let rewardCoordinator: RewardCoordinatorProtocol?
-    private let childId: ChildID
+    let ledger: PointsLedger
+    let engine: PointsEngine
+    let exemptionManager: ExemptionManager?
+    let redemptionService: RedemptionServiceProtocol
+    let childId: ChildID
 
     // Refresh timer
     private var refreshTimer: Timer?
@@ -42,13 +42,13 @@ class DashboardViewModel: ObservableObject {
         ledger: PointsLedger,
         engine: PointsEngine,
         exemptionManager: ExemptionManager? = nil,
-        rewardCoordinator: RewardCoordinatorProtocol? = nil
+        redemptionService: RedemptionServiceProtocol
     ) {
         self.childId = childId
         self.ledger = ledger
         self.engine = engine
         self.exemptionManager = exemptionManager
-        self.rewardCoordinator = rewardCoordinator
+        self.redemptionService = redemptionService
     }
 
     // MARK: - Data Loading
@@ -143,24 +143,13 @@ class DashboardViewModel: ObservableObject {
     }
 
     private func redeem(points: Int, config: RedemptionConfiguration) {
-        guard let coordinator = rewardCoordinator else {
-            errorMessage = "Redemption service unavailable."
-            return
-        }
-
-        switch coordinator.canRedeem(childId: childId, points: points, config: config) {
-        case .failure(let error):
-            errorMessage = message(for: error)
-            return
-        case .success:
-            break
-        }
-
-        switch coordinator.redeem(childId: childId, points: points, config: config) {
-        case .success:
+        do {
+            let _ = try redemptionService.redeem(childId: childId, points: points, config: config)
             refresh()
-        case .failure(let error):
+        } catch let error as RedemptionError {
             errorMessage = message(for: error)
+        } catch {
+            errorMessage = "An unknown error occurred."
         }
     }
 
@@ -190,13 +179,14 @@ extension DashboardViewModel {
     static func mock(childId: ChildID = ChildID("preview-child")) -> DashboardViewModel {
         let ledger = PointsLedger()
         let engine = PointsEngine()
+        let redemptionService = RedemptionService(ledger: ledger)
 
         // Add mock data
         _ = ledger.recordAccrual(childId: childId, points: 150, timestamp: Date())
         _ = ledger.recordRedemption(childId: childId, points: 50, timestamp: Date().addingTimeInterval(-3600))
         _ = ledger.recordAccrual(childId: childId, points: 100, timestamp: Date().addingTimeInterval(-7200))
 
-        let vm = DashboardViewModel(childId: childId, ledger: ledger, engine: engine)
+        let vm = DashboardViewModel(childId: childId, ledger: ledger, engine: engine, redemptionService: redemptionService)
         vm.refresh()
         return vm
     }

@@ -4,6 +4,57 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-05 | Build System & MainActor Thread Safety ✅
+
+### What Was Fixed
+
+**MainActor Isolation for Thread Safety**
+- Added `@MainActor` to `PointsLedgerProtocol` to ensure all ledger operations run on the main thread
+- Updated `RedemptionServiceProtocol` with `@MainActor` to align with ledger requirements
+- Applied `@MainActor` to `DataExporter.createExportData()` for thread-safe ledger access
+- Marked `DashboardView` with `@MainActor` for proper isolation with RedemptionCoordinator
+- Fixed `RedemptionService.canRedeem()` and `RedemptionService.redeem()` with `@MainActor`
+
+**Missing Files Added to Xcode Project**
+- Added `RedemptionCoordinator.swift` to ParentiOS target (was on disk but not in project)
+- Added `ChildRedemptionView.swift` to ParentiOS target
+- Fixed missing PointsEngine import in `RedemptionCoordinator.swift`
+
+**ChildrenManager Initialization**
+- Fixed incorrect parameter name: `rewardCoordinator` → `redemptionService`
+- Updated `ClaudexApp.swift` to properly initialize `RedemptionService` and pass to `ChildrenManager`
+- Fixed `ParentModeView` initialization to use `redemptionService` instead of `rewardCoordinator`
+- Updated `MultiChildDashboardView` preview to include proper initialization
+
+### Build Status
+- ✅ Debug build succeeds on iOS Simulator (iPhone 17, iOS 26.0)
+- ✅ All Swift compilation successful
+- ⚠️ Non-critical warnings present (non-Sendable types, unused return values in preview code)
+
+### Technical Details
+**Thread Safety Pattern:**
+- All UI-facing services now use `@MainActor` isolation
+- PointsLedger, RedemptionService, and ExemptionManager coordinate on main thread
+- Prevents data races and ensures UI updates happen synchronously
+
+**Files Modified:**
+- `Sources/Core/AppModels.swift` - Protocol with @MainActor
+- `Sources/PointsEngine/PointsLedger.swift` - Already @MainActor on methods
+- `Sources/PointsEngine/RedemptionService.swift` - Protocol + methods with @MainActor
+- `Sources/Core/DataExporter.swift` - createExportData with @MainActor
+- `apps/ParentiOS/ClaudexApp.swift` - Fixed initialization
+- `apps/ParentiOS/Views/ParentModeView.swift` - Fixed initialization
+- `apps/ParentiOS/Views/MultiChildDashboardView.swift` - Fixed preview, removed explicit return
+- `apps/ParentiOS/Views/DashboardView.swift` - Added @MainActor
+- `apps/ParentiOS/ViewModels/RedemptionCoordinator.swift` - Added PointsEngine import
+
+### Next Steps
+- Address non-Sendable warnings by conforming ChildID and PointsLedgerEntry to Sendable
+- Run on physical device to test full functionality
+- Test authorization flow end-to-end
+
+---
+
 ## 2025-10-05 | EP-04 Points Engine & Integrity — PointsLedger Observable ✅
 
 ### What Was Built

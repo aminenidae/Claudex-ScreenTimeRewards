@@ -61,6 +61,7 @@ public final class DataExporter {
 
     // MARK: - Full Export
 
+    @MainActor
     public func createExportData(
         childIds: [ChildID],
         ledger: PointsLedgerProtocol

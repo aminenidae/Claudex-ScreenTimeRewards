@@ -131,6 +131,7 @@ public enum ExemptionStackingPolicy: String, Codable {
 
 // MARK: - Protocols
 
+@MainActor
 public protocol PointsLedgerProtocol {
     func recordAccrual(childId: ChildID, points: Int, timestamp: Date) -> PointsLedgerEntry
     func recordRedemption(childId: ChildID, points: Int, timestamp: Date) -> PointsLedgerEntry

@@ -6,9 +6,20 @@ import Core
 import PointsEngine
 #endif
 
+@MainActor
 struct DashboardView: View {
     @StateObject var viewModel: DashboardViewModel
     @Environment(\.horizontalSizeClass) var sizeClass
+    @State private var showingRedemptionSheet = false
+
+    private var redemptionCoordinator: RedemptionCoordinator? {
+        guard let exemptionManager = viewModel.exemptionManager else { return nil }
+        return RedemptionCoordinator(
+            childId: viewModel.childId,
+            redemptionService: viewModel.redemptionService,
+            exemptionManager: exemptionManager
+        )
+    }
 
     var body: some View {
         ScrollView {
@@ -34,6 +45,15 @@ struct DashboardView: View {
         }
         .onDisappear {
             viewModel.stopAutoRefresh()
+        }
+        .sheet(isPresented: $showingRedemptionSheet) {
+            if let redemptionCoordinator = redemptionCoordinator {
+                ChildRedemptionView(
+                    redemptionCoordinator: redemptionCoordinator,
+                    pointsBalance: viewModel.balance,
+                    config: .default
+                )
+            }
         }
     }
 
@@ -75,7 +95,7 @@ struct DashboardView: View {
             activeWindow: viewModel.activeWindow,
             remainingTime: viewModel.remainingExemptionTime,
             onRedeem: {
-                viewModel.redeemMinimum()
+                showingRedemptionSheet = true
             }
         )
 

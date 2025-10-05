@@ -10,6 +10,7 @@ public enum RedemptionError: Error, Equatable {
     case childNotFound(ChildID)
 }
 
+@MainActor
 public protocol RedemptionServiceProtocol {
     func redeem(
         childId: ChildID,
@@ -33,6 +34,7 @@ public final class RedemptionService: RedemptionServiceProtocol {
 
     // MARK: - Validation
 
+    @MainActor
     public func canRedeem(
         childId: ChildID,
         points: Int,
@@ -59,6 +61,7 @@ public final class RedemptionService: RedemptionServiceProtocol {
 
     // MARK: - Redemption
 
+    @MainActor
     public func redeem(
         childId: ChildID,
         points: Int,

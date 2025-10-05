@@ -72,7 +72,8 @@ struct MultiChildDashboardView: View {
     let ledger = PointsLedger()
     let engine = PointsEngine()
     let exemptionManager = ExemptionManager()
-    let manager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager)
+    let redemptionService = RedemptionService(ledger: ledger)
+    let manager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager, redemptionService: redemptionService)
     manager.loadDemoChildren()
     return MultiChildDashboardView(childrenManager: manager)
 }

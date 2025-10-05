@@ -26,8 +26,8 @@ struct ChildProfile: Identifiable, Hashable, Codable {
 /// Manages the list of children and provides view models for each
 @MainActor
 class ChildrenManager: ObservableObject {
-    @Published var children: [ChildProfile] = [] {
-        didSet { persistChildren() }
+    @Published var children: [ChildProfile] = [] { 
+        didSet { persistChildren() } 
     }
     @Published var selectedChildId: ChildID?
 
@@ -35,18 +35,18 @@ class ChildrenManager: ObservableObject {
     private let ledger: PointsLedger
     private let engine: PointsEngine
     private let exemptionManager: ExemptionManager
-    private let rewardCoordinator: RewardCoordinatorProtocol?
+    private let redemptionService: RedemptionServiceProtocol
 
     private let storageURL: URL?
 
     // Cache of view models (one per child)
     private var viewModels: [ChildID: DashboardViewModel] = [:]
 
-    init(ledger: PointsLedger, engine: PointsEngine, exemptionManager: ExemptionManager, rewardCoordinator: RewardCoordinatorProtocol? = nil) {
+    init(ledger: PointsLedger, engine: PointsEngine, exemptionManager: ExemptionManager, redemptionService: RedemptionServiceProtocol) {
         self.ledger = ledger
         self.engine = engine
         self.exemptionManager = exemptionManager
-        self.rewardCoordinator = rewardCoordinator
+        self.redemptionService = redemptionService
 
         if FeatureFlags.enablesFamilyAuthorization {
             let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
@@ -75,12 +75,11 @@ class ChildrenManager: ObservableObject {
             ledger: ledger,
             engine: engine,
             exemptionManager: exemptionManager,
-            rewardCoordinator: rewardCoordinator
+            redemptionService: redemptionService
         )
         viewModels[childId] = vm
         return vm
     }
-
     /// Select child by index
     func selectChild(at index: Int) {
         guard index >= 0 && index < children.count else { return }

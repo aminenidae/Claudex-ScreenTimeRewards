@@ -6,13 +6,7 @@ import FamilyControls
 import Core
 #endif
 
-@available(iOS 16.0, *)
-public protocol ShieldControllerProtocol {
-    func applyShields(for childId: ChildID, rewardApps: FamilyActivitySelection)
-    func grantExemption(for childId: ChildID)
-    func revokeExemption(for childId: ChildID)
-    func isExemptionActive(for childId: ChildID) -> Bool
-}
+
 
 @available(iOS 16.0, *)
 public final class ShieldController: ShieldControllerProtocol {
@@ -96,12 +90,7 @@ import Foundation
 import Core
 #endif
 
-public protocol ShieldControllerProtocol {
-    func applyShields(for childId: ChildID, rewardApps: Any)
-    func grantExemption(for childId: ChildID)
-    func revokeExemption(for childId: ChildID)
-    func isExemptionActive(for childId: ChildID) -> Bool
-}
+
 
 public final class ShieldController: ShieldControllerProtocol {
     private var activeExemptions: Set<ChildID> = []

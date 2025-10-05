@@ -35,6 +35,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [x] Daily cap enforced; rate limit prevents burst exploits
 - [x] Ledger entries recorded for accruals/redemptions with timestamps
 - [x] PointsLedger is ObservableObject with @Published entries
+- [x] MainActor isolation for thread-safe UI updates
 
 ## 5) Redemption & Shielding
 - [x] Redemption ratio configurable; validation on min/max redemption
@@ -92,7 +93,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [ ] Privacy policy covers COPPA/GDPR-K, export/delete
 
 ## 15) Test Matrix
-- [ ] Parent mode (iOS/iPadOS 16/17/18 latest minor) across iPhone and iPad form factors
+- [x] Parent mode (iOS/iPadOS 16/17/18 latest minor) across iPhone and iPad form factors — Debug build succeeds
 - [ ] Child mode (iOS/iPadOS 16/17/18 latest minor) across at least two device classes
 - [x] Family with multiple children — Multi-child dashboard navigation implemented
 - [ ] Device restart, app reinstall, revocation of authorization
