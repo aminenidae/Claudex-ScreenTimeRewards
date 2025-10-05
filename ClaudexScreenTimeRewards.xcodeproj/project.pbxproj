@@ -28,6 +28,8 @@
 		62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */; };
 		0DA412D2A02C44A195DF93B0 /* ChildrenManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13DDA333D53741979BC786C8 /* ChildrenManager.swift */; };
 		41682CBFDC404BF29C96053E /* MultiChildDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D509F5020B4151859084D6 /* MultiChildDashboardView.swift */; };
+		2B8030B084B34D7A835EE402 /* CategoryRulesManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4EA94DCDE0464AB8F9F8F1 /* CategoryRulesManager.swift */; };
+		5C88686AC522427197256D46 /* AppCategorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -55,6 +57,8 @@
 		D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExemptionManager.swift; sourceTree = "<group>"; };
 		13DDA333D53741979BC786C8 /* ChildrenManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildrenManager.swift; sourceTree = "<group>"; };
 		E2D509F5020B4151859084D6 /* MultiChildDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiChildDashboardView.swift; sourceTree = "<group>"; };
+		7D4EA94DCDE0464AB8F9F8F1 /* CategoryRulesManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryRulesManager.swift; sourceTree = "<group>"; };
+		E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCategorizationView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -173,6 +177,7 @@
 			isa = PBXGroup;
 			children = (
 				6A98C0711BAE449B807EB55F /* DashboardViewModel.swift */,
+				7D4EA94DCDE0464AB8F9F8F1 /* CategoryRulesManager.swift */,
 				13DDA333D53741979BC786C8 /* ChildrenManager.swift */,
 			);
 			path = ViewModels;
@@ -181,6 +186,7 @@
 		13673F6094824ACBB7E8CBA4 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */,
 				FB9CA365776C42E3ACA0BDF7 /* DashboardView.swift */,
 				E2D509F5020B4151859084D6 /* MultiChildDashboardView.swift */,
 				34B90601D2FA400C847505DA /* ParentModeView.swift */,
@@ -269,6 +275,8 @@
 				A10000152B6D000000000001 /* PointsEngine.swift in Sources */,
 				A10000132B6D000000000001 /* AppModels.swift in Sources */,
 				A10000112B6D000000000001 /* ClaudexApp.swift in Sources */,
+				2B8030B084B34D7A835EE402 /* CategoryRulesManager.swift in Sources */,
+				5C88686AC522427197256D46 /* AppCategorizationView.swift in Sources */,
 				0DA412D2A02C44A195DF93B0 /* ChildrenManager.swift in Sources */,
 				41682CBFDC404BF29C96053E /* MultiChildDashboardView.swift in Sources */,
 				C7687F500A96443693F21C1C /* DataExporter.swift in Sources */,

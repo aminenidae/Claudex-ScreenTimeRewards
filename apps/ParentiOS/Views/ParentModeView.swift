@@ -10,6 +10,7 @@ import PointsEngine
 struct ParentModeView: View {
     // Services (should be dependency-injected in production)
     @StateObject private var childrenManager: ChildrenManager
+    @StateObject private var rulesManager: CategoryRulesManager
     private let ledger: PointsLedger
 
     init() {
@@ -22,8 +23,11 @@ struct ParentModeView: View {
         let manager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager)
         manager.loadDemoChildren()
 
+        let rulesManager = CategoryRulesManager()
+
         self.ledger = ledger
         _childrenManager = StateObject(wrappedValue: manager)
+        _rulesManager = StateObject(wrappedValue: rulesManager)
     }
 
     var body: some View {
@@ -41,7 +45,7 @@ struct ParentModeView: View {
                     Label("Export", systemImage: "square.and.arrow.up")
                 }
 
-            SettingsPlaceholderView()
+            AppCategorizationView(childrenManager: childrenManager, rulesManager: rulesManager)
                 .tabItem {
                     Label("Settings", systemImage: "gear")
                 }

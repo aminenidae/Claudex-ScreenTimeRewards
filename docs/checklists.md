@@ -108,11 +108,11 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [ ] S-205 Parent multi-device parity
 
 - EP-03 App Categorization & Rules
-  - [ ] S-301 Category defaults
-  - [ ] S-302 Manual overrides with precedence
-  - [ ] S-303 Conflict resolution rules tested
-  - [ ] S-304 Rule sync (<2s online)
-  - [ ] S-305 Rule audits present
+  - [x] S-301 Category defaults — FamilyActivityPicker integration complete
+  - [x] S-302 Manual overrides with precedence — Per-child Learning/Reward classification
+  - [ ] S-303 Conflict resolution rules tested — Pending (overlapping apps handling)
+  - [ ] S-304 Rule sync (<2s online) — Deferred to EP-06 (CloudKit)
+  - [ ] S-305 Rule audits present — Deferred to EP-06 (Audit log)
 
 - EP-04 Points Engine & Integrity
   - [x] S-401 Foreground-only accrual (±5%) — Session-based tracking implemented

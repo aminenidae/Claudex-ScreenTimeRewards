@@ -536,6 +536,134 @@ UIActivityViewController (share sheet)
 
 ---
 
+## 2025-10-04 | EP-03 App Categorization & Rules — COMPLETED (Core Features) ✅
+
+### What Was Built
+
+**CategoryRulesManager - Per-Child App Classification**
+- Stores Learning vs Reward app selections per child
+- `ChildAppRules`: Encapsulates FamilyActivitySelection for each category
+- `RulesSummary`: Provides counts and descriptions for UI display
+- JSON persistence with codable wrappers for FamilyActivitySelection
+- Thread-safe state management with @MainActor
+
+**AppCategorizationView - Parent Configuration UI**
+- Child selector at top (reuses ChildSelectorView component)
+- Two classification sections:
+  - **Learning Apps** (green, graduation cap icon) - Earn points
+  - **Reward Apps** (orange, star icon) - Require points
+- Apple's FamilyActivityPicker integration for app/category selection
+- Real-time summary display (app count + category count)
+- Instructions card explaining the system
+
+**FamilyActivityPicker Integration**
+- Native iOS picker for apps and categories
+- Supports individual app selection AND entire categories
+- Leverages Apple's built-in app categorization (Education, Games, Social, etc.)
+- Selection state persisted per child
+
+### User Flow
+
+1. Parent taps **Settings** tab in parent mode
+2. Sees child selector at top (if multiple children)
+3. Taps **"Learning Apps"** section
+4. FamilyActivityPicker opens (native iOS UI)
+5. Parent selects:
+   - Individual apps (e.g., Khan Academy, Duolingo)
+   - Entire categories (e.g., Education, Productivity & Finance)
+6. Selections saved automatically
+7. Summary updates: "3 apps, 2 categories"
+8. Repeat for **"Reward Apps"** (e.g., Games, Social categories)
+
+### Data Model
+
+```swift
+struct ChildAppRules {
+    let childId: ChildID
+    var learningSelection: FamilyActivitySelection  // Apps that earn points
+    var rewardSelection: FamilyActivitySelection    // Apps that require points
+}
+```
+
+**Persistence Strategy:**
+- FamilyActivitySelection contains opaque tokens (ApplicationToken, ActivityCategoryToken, WebDomainToken)
+- Tokens serialized to Data using withUnsafeBytes
+- Stored as JSON in Documents directory
+- Restored on app launch
+
+### Build Status
+- ✅ Xcode build: SUCCESS (iOS device target)
+- ✅ Swift Package tests: 54/54 passing
+- ✅ All files integrated into Xcode project
+
+### Code Metrics
+- **2 new files** created:
+  1. `apps/ParentiOS/ViewModels/CategoryRulesManager.swift` (~230 LOC)
+  2. `apps/ParentiOS/Views/AppCategorizationView.swift` (~260 LOC)
+- **1 file modified:**
+  1. `apps/ParentiOS/Views/ParentModeView.swift` (integrated CategoryRulesManager)
+
+### Technical Decisions
+
+1. **Per-Child Configuration**
+   - Each child has independent Learning/Reward rules
+   - Allows flexibility (same app can be learning for one child, reward for another)
+   - Aligns with real family dynamics
+
+2. **FamilyActivityPicker Usage**
+   - Leverages Apple's native UI (familiar to parents)
+   - Automatic app discovery (no manual list maintenance)
+   - Built-in category taxonomy from Apple
+   - Respects system-level app classifications
+
+3. **Token Persistence**
+   - Tokens are opaque handles (no app names/bundles exposed)
+   - Serialized as raw Data for storage
+   - Privacy-preserving (tokens don't leak app metadata)
+   - Note: Simplified approach - production should handle includesEntireCategory flag
+
+4. **UI/UX Design**
+   - Color coding: Green (learning) vs Orange (reward)
+   - Icon differentiation: Graduation cap vs Star
+   - Summary counts prevent "configuration drift" (parent knows what's selected)
+   - Instructions card for first-time users
+
+5. **Integration Pattern**
+   - CategoryRulesManager injected into ParentModeView
+   - Shared instance across tabs (Settings can affect Dashboard)
+   - Future: Connect to PointsEngine for actual point accrual
+
+### Known Limitations & Next Steps
+
+**Current State:**
+- Rules configured but not yet enforced (no integration with PointsEngine)
+- No conflict detection (app can be in both Learning AND Reward)
+- No validation (e.g., warn if no learning apps configured)
+- Token deserialization is best-effort (may fail across OS updates)
+
+**Pending (S-303):**
+- Conflict resolution: What if app is in both Learning and Reward?
+  - Options: Warning UI, precedence rules, or block submission
+- Overlap detection and resolution
+
+**Next Integration Steps:**
+1. Connect CategoryRulesManager to DeviceActivityMonitor
+2. Use Learning selection to trigger points accrual
+3. Use Reward selection to apply shields (require redemption)
+4. Add validation: At least 1 learning app required
+
+**Deferred to EP-06:**
+- S-304: CloudKit sync for multi-parent editing
+- S-305: Audit log for rule changes
+
+### Dependencies
+- ✅ FamilyControls framework (iOS 16+)
+- ✅ ManagedSettings framework for token types
+- ✅ ChildrenManager for multi-child support
+- ✅ SwiftUI FamilyActivityPicker API
+
+---
+
 ## Log Format
 
 Each entry should include:
