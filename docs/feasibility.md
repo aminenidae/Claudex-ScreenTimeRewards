@@ -54,9 +54,9 @@ P0 = must prove before building MVP core; P1 = important but can follow immediat
 - Method: Implement authorization prompts in the spike (parent mode on iPhone/iPad); attempt to compile/run with the entitlement in a development team context; if blocked, prepare entitlement request materials.
 - Validate: Authorization UI appears; selected apps/categories are persisted and readable by the app; document any gating that requires Apple approval.
 - Spike log (S-102):
-  - Device(s) used: TODO
-  - Result: TODO
-  - Notes: Capture screenshots for entitlement dossier (authorization banner + system picker).
+  - Device(s) used: iPhone 15 (iOS 18.6.2 build 22G100)
+  - Result: Authorization prompt displayed, approval succeeded; banner reflects state transitions; denial path verified by revoking in Settings.
+  - Notes: Screenshots captured (see `docs/assets/entitlement/authorization/notes.md`); FamilyActivityPicker opens successfully post-authorization.
 
 ### P0-4: Child/Parent Pairing & Roles
 - Goal: Prove a basic pairing flow and role separation (Parent vs Child).

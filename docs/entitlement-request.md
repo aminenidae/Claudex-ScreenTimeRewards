@@ -4,7 +4,7 @@
 - **Apple App ID:** `6753270211`
 - **App ID Prefix / Team ID:** `KQ5KZR3DQ5`
 - **Entitlement:** Family Controls (`com.apple.developer.family-controls`)
-- **Distribution Status:** Submitted – pending Apple approval (as of YYYY-MM-DD)
+- **Distribution Status:** Submitted – pending Apple approval (as of 2025-10-04)
 - **Development Status:** Active in Xcode for local builds
 
 ## Product Summary
@@ -31,12 +31,18 @@
 - **Parental controls compliance** – Parent gate required for configuration; child mode cannot modify controls. All sensitive views require Face ID / Touch ID / device passcode.
 - **COPPA/GDPR-K** – Parental consent collected during onboarding. Parents can export or delete family data inside the app.
 
+## Latest Testing Notes (2025-10-04)
+
+- Development build installed on iPhone 15 (iOS 18.6.2). Authorization prompt succeeded; revocation in Settings correctly transitions banner to "Authorization required".
+- FamilyActivityPicker launches post-authorization; learning/reward selections persist via `CategoryRulesManager`.
+- Screenshots/video captured for entitlement package (see `docs/assets/entitlement/authorization/notes.md` for storage details).
+
 ## Attachments & Artefacts
 
 | Artefact | Location | Status |
 | --- | --- | --- |
-| Authorization flow screenshots | `docs/assets/entitlement/authorization/` | TODO (capture during S-102) |
-| Child selection flow video | `docs/assets/entitlement/child-selection.mp4` | TODO |
+| Authorization flow screenshots | `docs/assets/entitlement/authorization/` | Captured 2025-10-04 (pending export to repo) |
+| Child selection flow video | Shared drive (`authorization-flow.mov`) | Captured 2025-10-04 |
 | Privacy copy & FAQ | `docs/ux-copy.md` | TODO |
 | App Review notes | `docs/review-notes.md` | TODO |
 
@@ -60,4 +66,3 @@
 - PRD §23 – EP-01 Screen Time Foundations (stories S-101 … S-105)
 - docs/feasibility.md – spike objectives for FamilyControls, ManagedSettings, DeviceActivity
 - docs/checklists.md – Definition of Ready / Done for EP-01 stories
-

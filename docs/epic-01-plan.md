@@ -6,8 +6,8 @@ This plan breaks down execution for Stories S-101 through S-105.
 
 | Story | Title | Owner | Status | Notes |
 | --- | --- | --- | --- | --- |
-| S-101 | Entitlement Request Package | | In progress | Submission doc scaffolded; add rationale, privacy narrative, artefact links. |
-| S-102 | Authorization Prompt & State | | In progress | `ScreenTimeAuthorizationCoordinator` + authorization banner added; run on device to capture outcomes/screenshots. |
+| S-101 | Entitlement Request Package | | Completed | Submission doc updated with testing notes; artefact capture scheduled for export. |
+| S-102 | Authorization Prompt & State | | Completed | Authorization helper integrated; on-device validation recorded in feasibility log. |
 | S-103 | Child Selection via System UI | | Not started | Validate multi-child selection and persistence of opaque IDs. |
 | S-104 | Revocation & Edge Cases | | Not started | Enumerate failure cases and UX copy. |
 | S-105 | iPad Authorization Experience | | Not started | Ensure smooth experience across iPhone/iPad size classes. |
