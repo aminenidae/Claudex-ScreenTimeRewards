@@ -73,7 +73,9 @@ struct AppCategorizationView: View {
 
                         Spacer(minLength: 40)
                     }
+                    .frame(maxWidth: 600)
                 }
+                .frame(maxWidth: .infinity)
             } else {
                 VStack(spacing: 16) {
                     Image(systemName: "person.badge.plus")
