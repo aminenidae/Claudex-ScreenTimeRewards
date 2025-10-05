@@ -1,7 +1,7 @@
+import Foundation
 #if canImport(CloudKit)
 import CloudKit
 #endif
-import Foundation
 #if canImport(Core)
 import Core
 #endif
@@ -15,6 +15,7 @@ public enum CloudKitRecordType {
     public static let appRule = "AppRule"
     public static let pointsLedgerEntry = "PointsLedgerEntry"
     public static let auditEntry = "AuditEntry"
+    public static let redemptionWindow = "RedemptionWindow"
 }
 
 public enum CloudKitMapperError: Error {
@@ -22,8 +23,149 @@ public enum CloudKitMapperError: Error {
     case invalidReference(String)
 }
 
-public struct CloudKitMapper {
 #if canImport(CloudKit)
+public struct CloudKitMapper {
+    // MARK: - Family
+
+    public static func familyRecord(for payload: FamilyPayload) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: payload.id.rawValue)
+        let record = CKRecord(recordType: CloudKitRecordType.family, recordID: recordID)
+        record["createdAt"] = payload.createdAt
+        record["parentDeviceIds"] = payload.parentDeviceIds
+        if let familyName = payload.familyName {
+            record["familyName"] = familyName
+        }
+        record["modifiedAt"] = payload.modifiedAt
+        return record
+    }
+
+    public static func familyPayload(from record: CKRecord) throws -> FamilyPayload {
+        guard let createdAt = record["createdAt"] as? Date else {
+            throw CloudKitMapperError.missingField("createdAt")
+        }
+        guard let modifiedAt = record["modifiedAt"] as? Date else {
+            throw CloudKitMapperError.missingField("modifiedAt")
+        }
+        let parentDeviceIds = record["parentDeviceIds"] as? [String] ?? []
+        let familyName = record["familyName"] as? String
+        let familyId = FamilyID(record.recordID.recordName)
+
+        return FamilyPayload(
+            id: familyId,
+            createdAt: createdAt,
+            parentDeviceIds: parentDeviceIds,
+            familyName: familyName,
+            modifiedAt: modifiedAt
+        )
+    }
+
+    // MARK: - App Rule
+
+    public static func appRuleRecord(
+        for payload: AppRulePayload,
+        familyID: CKRecord.ID
+    ) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: payload.id)
+        let record = CKRecord(recordType: CloudKitRecordType.appRule, recordID: recordID)
+        record["familyRef"] = CKRecord.Reference(recordID: familyID, action: .none)
+        record["childRef"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: payload.childId.rawValue), action: .none)
+        record["appToken"] = payload.appToken
+        record["classification"] = payload.classification.rawValue
+        record["isCategory"] = payload.isCategory
+        if let categoryId = payload.categoryId {
+            record["categoryId"] = categoryId
+        }
+        record["createdAt"] = payload.createdAt
+        record["modifiedAt"] = payload.modifiedAt
+        if let modifiedBy = payload.modifiedBy {
+            record["modifiedBy"] = modifiedBy
+        }
+        return record
+    }
+
+    public static func appRulePayload(from record: CKRecord) throws -> AppRulePayload {
+        guard let appToken = record["appToken"] as? String else {
+            throw CloudKitMapperError.missingField("appToken")
+        }
+        guard let classificationRaw = record["classification"] as? String,
+              let classification = AppClassification(rawValue: classificationRaw) else {
+            throw CloudKitMapperError.missingField("classification")
+        }
+        guard let isCategory = record["isCategory"] as? Bool else {
+            throw CloudKitMapperError.missingField("isCategory")
+        }
+        guard let createdAt = record["createdAt"] as? Date else {
+            throw CloudKitMapperError.missingField("createdAt")
+        }
+        guard let modifiedAt = record["modifiedAt"] as? Date else {
+            throw CloudKitMapperError.missingField("modifiedAt")
+        }
+
+        let childRef = (record["childRef"] as? CKRecord.Reference)?.recordID.recordName ?? "unknown"
+        let childId = ChildID(childRef)
+        let categoryId = record["categoryId"] as? String
+        let modifiedBy = record["modifiedBy"] as? String
+
+        return AppRulePayload(
+            id: record.recordID.recordName,
+            childId: childId,
+            appToken: appToken,
+            classification: classification,
+            isCategory: isCategory,
+            categoryId: categoryId,
+            createdAt: createdAt,
+            modifiedAt: modifiedAt,
+            modifiedBy: modifiedBy
+        )
+    }
+
+    // MARK: - Redemption Window
+
+    public static func redemptionWindowRecord(
+        for window: EarnedTimeWindow,
+        familyID: CKRecord.ID,
+        pointsSpent: Int,
+        deviceId: String
+    ) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: window.id.uuidString)
+        let record = CKRecord(recordType: CloudKitRecordType.redemptionWindow, recordID: recordID)
+        record["familyRef"] = CKRecord.Reference(recordID: familyID, action: .none)
+        record["childRef"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: window.childId.rawValue), action: .none)
+        record["startTime"] = window.startTime
+        record["durationSeconds"] = window.durationSeconds
+        record["expiresAt"] = window.endTime
+        record["pointsSpent"] = pointsSpent
+        record["isActive"] = !window.isExpired
+        record["deviceId"] = deviceId
+        record["createdAt"] = Date()
+        return record
+    }
+
+    public static func redemptionWindow(from record: CKRecord) throws -> (window: EarnedTimeWindow, pointsSpent: Int, deviceId: String) {
+        guard let startTime = record["startTime"] as? Date else {
+            throw CloudKitMapperError.missingField("startTime")
+        }
+        guard let durationSeconds = record["durationSeconds"] as? Double else {
+            throw CloudKitMapperError.missingField("durationSeconds")
+        }
+        guard let pointsSpent = record["pointsSpent"] as? Int else {
+            throw CloudKitMapperError.missingField("pointsSpent")
+        }
+        let deviceId = record["deviceId"] as? String ?? "unknown"
+
+        let childRef = (record["childRef"] as? CKRecord.Reference)?.recordID.recordName ?? "unknown"
+        let childId = ChildID(childRef)
+
+        let window = EarnedTimeWindow(
+            id: UUID(uuidString: record.recordID.recordName) ?? UUID(),
+            childId: childId,
+            durationSeconds: durationSeconds,
+            startTime: startTime
+        )
+
+        return (window, pointsSpent, deviceId)
+    }
+
     // MARK: - Child Context
 
     public static func childRecord(
@@ -138,5 +280,5 @@ public struct CloudKitMapper {
             details: metadataDict
         )
     }
-#endif
 }
+#endif

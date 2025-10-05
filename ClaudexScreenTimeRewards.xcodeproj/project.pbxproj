@@ -15,6 +15,7 @@
 		41682CBFDC404BF29C96053E /* MultiChildDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2D509F5020B4151859084D6 /* MultiChildDashboardView.swift */; };
 		432A8A9D2E92C7DC00E03796 /* RedemptionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A8A9C2E92C7DC00E03796 /* RedemptionCoordinator.swift */; };
 		432A8A9F2E92C7F000E03796 /* ChildRedemptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A8A9E2E92C7F000E03796 /* ChildRedemptionView.swift */; };
+		432A8AA12E92CCE600E03796 /* CloudKitMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A8AA02E92CCE600E03796 /* CloudKitMapper.swift */; };
 		4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4D89FB4BB9434E9541282E /* RedemptionService.swift */; };
 		5C88686AC522427197256D46 /* AppCategorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */; };
 		62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */; };
@@ -48,6 +49,7 @@
 		34B90601D2FA400C847505DA /* ParentModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentModeView.swift; sourceTree = "<group>"; };
 		432A8A9C2E92C7DC00E03796 /* RedemptionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionCoordinator.swift; sourceTree = "<group>"; };
 		432A8A9E2E92C7F000E03796 /* ChildRedemptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildRedemptionView.swift; sourceTree = "<group>"; };
+		432A8AA02E92CCE600E03796 /* CloudKitMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitMapper.swift; sourceTree = "<group>"; };
 		5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExporter.swift; sourceTree = "<group>"; };
 		6075ADFFD2904E07AF741291 /* RedemptionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionsCard.swift; sourceTree = "<group>"; };
 		6A98C0711BAE449B807EB55F /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
@@ -210,6 +212,7 @@
 		A10000262B6D000000000001 /* SyncKit */ = {
 			isa = PBXGroup;
 			children = (
+				432A8AA02E92CCE600E03796 /* CloudKitMapper.swift */,
 				A10000182B6D000000000001 /* SyncService.swift */,
 			);
 			path = SyncKit;
@@ -306,6 +309,7 @@
 				0DA412D2A02C44A195DF93B0 /* ChildrenManager.swift in Sources */,
 				41682CBFDC404BF29C96053E /* MultiChildDashboardView.swift in Sources */,
 				C7687F500A96443693F21C1C /* DataExporter.swift in Sources */,
+				432A8AA12E92CCE600E03796 /* CloudKitMapper.swift in Sources */,
 				AF74CC913F4642C88C9AB017 /* PointsLedger.swift in Sources */,
 				4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */,
 				62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */,

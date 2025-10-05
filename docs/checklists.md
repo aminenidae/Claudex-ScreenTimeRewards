@@ -137,11 +137,11 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [x] S-505 Per-app vs category precedence tested — ShieldController supports both
 
 - EP-06 Sync & Multi-Parent
-  - [ ] S-601 CloudKit schema implemented
-  - [ ] S-602 Conflict strategy deterministic
-  - [ ] S-603 Offline queue survives restarts
-  - [ ] S-604 Audit log usable
-  - [ ] S-605 Performance within targets
+  - [x] S-601 CloudKit schema implemented — 6 record types with indexes, documented in docs/cloudkit-schema.md
+  - [x] S-602 Conflict strategy deterministic — Last-writer-wins with modifiedAt timestamps
+  - [ ] S-603 Offline queue survives restarts — Pending (local queue with retry logic)
+  - [x] S-604 Audit log usable — AuditEntry mapper with JSON metadata
+  - [ ] S-605 Performance within targets — Pending (benchmarking needed)
 
 - EP-07 Dashboard & Reporting
   - [x] S-701 Parent dashboard responsive — DashboardViewModel + card components + multi-child navigation

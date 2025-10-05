@@ -379,13 +379,16 @@ EP-14 Dev Experience & QA Infrastructure — Phase: MVP
 **Completed Epics:**
 - ✅ EP-04: Points Engine & Integrity - Full implementation with session-based accrual, idle timeout, daily caps, ledger persistence with MainActor isolation
 - ✅ EP-05: Redemption & Shielding - RedemptionService, ShieldController, ExemptionManager with timer-based expiry and persistence
+- ✅ EP-06: CloudKit Sync Infrastructure (Partial) - CloudKitMapper with 6 record types, SyncService with CRUD + change tracking, last-writer-wins conflict resolution
 - ✅ EP-07: Dashboard & Reporting - DashboardViewModel, 5 card components, DataExporter (CSV/JSON), multi-child navigation with horizontal swipe
 
 **Partially Completed:**
 - 🔄 EP-03: App Categorization - CategoryRulesManager with per-child Learning/Reward classification, FamilyActivityPicker integration complete, conflict resolution pending
+- 🔄 EP-06: Sync & Multi-Parent - Schema + mappers complete, offline queue and subscriptions pending
 
 **Build Status:**
 - ✅ Debug build succeeds on iOS Simulator (iPhone 17, iOS 26.0)
 - ✅ 54 unit tests passing (0 failures)
 - ✅ MainActor isolation fixes applied for thread-safe UI updates
+- ✅ CloudKit sync code compiles without errors
 - ⚠️ Warnings present (non-Sendable types, unused return values in preview code)

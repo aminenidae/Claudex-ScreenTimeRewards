@@ -4,6 +4,106 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-05 | EP-06: CloudKit Sync Infrastructure ✅
+
+### What Was Built
+
+**CloudKit Schema Design**
+- Created comprehensive schema documentation (`docs/cloudkit-schema.md`)
+- Defined 6 record types: Family, ChildContext, AppRule, PointsLedgerEntry, AuditEntry, RedemptionWindow
+- Designed indexes for efficient queries (compound indexes on familyRef + childRef)
+- Documented last-writer-wins conflict resolution strategy with `modifiedAt` timestamps
+- Outlined custom zone strategy ("FamilyZone") for atomic batch operations
+
+**CloudKit Data Models**
+- Added `FamilyPayload` to `Sources/Core/AppModels.swift` with parent device tracking
+- Added `AppRulePayload` for per-child app categorization rules with metadata
+- Both models include `createdAt`/`modifiedAt` for sync tracking
+
+**CloudKitMapper (Bidirectional Record Mapping)**
+- `familyRecord` / `familyPayload` - Family root record with device IDs
+- `appRuleRecord` / `appRulePayload` - Learning/Reward classification per child
+- `childRecord` / `childPayload` - Child context with paired devices (already existed, enhanced)
+- `ledgerRecord` / `ledgerEntry` - Points transactions (already existed)
+- `auditRecord` / `auditEntry` - Admin action audit log (already existed)
+- `redemptionWindowRecord` / `redemptionWindow` - Active earned-time windows for multi-device coordination
+
+**SyncService Implementation**
+- Custom zone management with automatic zone creation (`FamilyZone`)
+- Family CRUD operations: `fetchFamily`, `saveFamily`
+- Child operations: `fetchChildren`, `saveChild` with family reference queries
+- App rule operations: `fetchAppRules` (with optional child filter), `saveAppRule`
+- Change tracking: `syncChanges` with `CKServerChangeToken` for incremental sync
+- Conflict resolution: `resolveConflict` using last-writer-wins based on `modifiedAt`
+
+**Architecture Highlights**
+- `@MainActor` isolation for thread-safe UI integration
+- Protocol-driven design: `SyncServiceProtocol` for testability
+- Conditional compilation (`#if canImport(CloudKit)`) for macOS/iOS compatibility
+- CKRecord.Reference for entity relationships (Family → Children → Rules/Ledger)
+
+### Build Status
+- ✅ Debug build succeeds on iOS Simulator (iPhone 17, iOS 26.0)
+- ✅ CloudKitMapper.swift added to Xcode project
+- ✅ All CloudKit code compiles without errors
+
+### Technical Details
+
+**Query Patterns:**
+```swift
+// Fetch all children for a family
+let predicate = NSPredicate(format: "familyRef == %@", familyRef)
+let query = CKQuery(recordType: "ChildContext", predicate: predicate)
+
+// Fetch app rules for specific child
+let predicate = NSPredicate(format: "familyRef == %@ AND childRef == %@", familyRef, childRef)
+```
+
+**Conflict Resolution:**
+```swift
+func resolveConflict(local: CKRecord, server: CKRecord) -> CKRecord {
+    let localModified = local["modifiedAt"] as? Date ?? Date.distantPast
+    let serverModified = server["modifiedAt"] as? Date ?? Date.distantPast
+    return serverModified > localModified ? server : local
+}
+```
+
+**Zone Strategy:**
+- Private database with custom `FamilyZone` for change tracking
+- Enables `CKFetchRecordZoneChangesOperation` for incremental sync
+- Supports atomic batch operations (future: save 400 records at once)
+
+### Known Limitations & Next Steps
+
+**Current Gaps:**
+- Offline queue not yet implemented (local changes queue with retry logic)
+- No unit tests for mappers or sync operations
+- `syncChanges` uses simplified async/await pattern (needs proper operation handling)
+- No subscription setup for push notifications of server changes
+- Account status checking not implemented (iCloud signed in/out handling)
+
+**Next Phase: Offline Queue & Testing**
+1. Implement SQLite-based offline queue for unsent changes
+2. Add retry logic with exponential backoff for failed operations
+3. Write unit tests for CloudKitMapper (bidirectional mapping correctness)
+4. Write integration tests for SyncService with mock CKContainer
+5. Add CKQuerySubscription for real-time change notifications
+6. Implement account status monitoring and graceful degradation
+
+### Dependencies
+- ✅ CloudKit framework (iOS 16+)
+- ✅ Core data models (FamilyID, ChildID, AppClassification)
+- ✅ PointsEngine models (PointsLedgerEntry, EarnedTimeWindow)
+
+### Files Added/Modified
+- **New:** `docs/cloudkit-schema.md` (comprehensive schema documentation)
+- **Modified:** `Sources/Core/AppModels.swift` (added FamilyPayload, AppRulePayload)
+- **Modified:** `Sources/SyncKit/CloudKitMapper.swift` (added Family, AppRule, RedemptionWindow mappers)
+- **Modified:** `Sources/SyncKit/SyncService.swift` (complete rewrite with CRUD + sync operations)
+- **Modified:** `ClaudexScreenTimeRewards.xcodeproj/project.pbxproj` (added CloudKitMapper to Xcode target)
+
+---
+
 ## 2025-10-05 | Build System & MainActor Thread Safety ✅
 
 ### What Was Fixed

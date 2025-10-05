@@ -5,6 +5,64 @@ public struct ChildID: Hashable, Codable { public let rawValue: String; public i
 
 public enum AppClassification: String, Codable { case learning, reward }
 
+// MARK: - CloudKit Sync Models
+
+public struct FamilyPayload: Codable, Equatable {
+    public let id: FamilyID
+    public let createdAt: Date
+    public let parentDeviceIds: [String]
+    public let familyName: String?
+    public let modifiedAt: Date
+
+    public init(
+        id: FamilyID,
+        createdAt: Date = Date(),
+        parentDeviceIds: [String] = [],
+        familyName: String? = nil,
+        modifiedAt: Date = Date()
+    ) {
+        self.id = id
+        self.createdAt = createdAt
+        self.parentDeviceIds = parentDeviceIds
+        self.familyName = familyName
+        self.modifiedAt = modifiedAt
+    }
+}
+
+public struct AppRulePayload: Codable, Equatable {
+    public let id: String // {childID}:{appToken}
+    public let childId: ChildID
+    public let appToken: String
+    public let classification: AppClassification
+    public let isCategory: Bool
+    public let categoryId: String?
+    public let createdAt: Date
+    public let modifiedAt: Date
+    public let modifiedBy: String? // Parent device ID
+
+    public init(
+        id: String,
+        childId: ChildID,
+        appToken: String,
+        classification: AppClassification,
+        isCategory: Bool = false,
+        categoryId: String? = nil,
+        createdAt: Date = Date(),
+        modifiedAt: Date = Date(),
+        modifiedBy: String? = nil
+    ) {
+        self.id = id
+        self.childId = childId
+        self.appToken = appToken
+        self.classification = classification
+        self.isCategory = isCategory
+        self.categoryId = categoryId
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+        self.modifiedBy = modifiedBy
+    }
+}
+
 public struct ChildContextPayload: Codable, Equatable {
     public let id: ChildID
     public let childOpaqueId: String
