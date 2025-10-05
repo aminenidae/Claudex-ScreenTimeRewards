@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(ScreenTimeService)
+import ScreenTimeService
+#endif
 
 @main
 struct ClaudexScreenTimeRewardsApp: App {
@@ -36,10 +39,7 @@ struct ModeSelectionView: View {
 
                 VStack(spacing: 16) {
                     NavigationLink {
-                        Text("Parent mode placeholder")
-                            .font(.headline)
-                            .navigationTitle("Parent Mode")
-                            .navigationBarTitleDisplayMode(.inline)
+                        ParentModeView()
                     } label: {
                         ModeButton(title: "Parent Mode", subtitle: "Configure rules, review points, approve redemptions")
                     }

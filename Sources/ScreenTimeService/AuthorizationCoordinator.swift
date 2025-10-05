@@ -1,7 +1,10 @@
-#if canImport(FamilyControls)
+#if canImport(FamilyControls) && !os(macOS)
 import Foundation
 import FamilyControls
 import Combine
+#if canImport(Core)
+import Core
+#endif
 
 @available(iOS 16.0, *)
 public enum ScreenTimeAuthorizationState: Equatable {

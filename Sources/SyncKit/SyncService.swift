@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(Core)
+import Core
+#endif
 
 public protocol SyncServiceProtocol {
     func ping() -> Bool
