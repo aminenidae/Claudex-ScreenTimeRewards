@@ -5,9 +5,13 @@ import Core
 #if canImport(PointsEngine)
 import PointsEngine
 #endif
+#if canImport(ScreenTimeService)
+import ScreenTimeService
+#endif
 
 @available(iOS 16.0, *)
 struct ParentModeView: View {
+    @EnvironmentObject private var authorizationCoordinator: ScreenTimeAuthorizationCoordinator
     @StateObject private var childrenManager: ChildrenManager
     @StateObject private var rulesManager: CategoryRulesManager
 #if canImport(DeviceActivity) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
@@ -73,18 +77,27 @@ struct ParentModeView: View {
     }
 
     var body: some View {
-        TabView {
-            MultiChildDashboardView(childrenManager: childrenManager)
-                .tabItem { Label("Dashboard", systemImage: "chart.bar.fill") }
+        VStack {
+            if authorizationCoordinator.state != .approved {
+                AuthorizationStatusBanner(state: authorizationCoordinator.state) {
+                    Task { await authorizationCoordinator.requestAuthorization() }
+                }
+                .padding(.horizontal)
+            }
 
-            ExportView(
-                childId: childrenManager.selectedChildId ?? ChildID("unknown"),
-                ledger: ledger
-            )
-            .tabItem { Label("Export", systemImage: "square.and.arrow.up") }
+            TabView {
+                MultiChildDashboardView(childrenManager: childrenManager)
+                    .tabItem { Label("Dashboard", systemImage: "chart.bar.fill") }
 
-            AppCategorizationView(childrenManager: childrenManager, rulesManager: rulesManager)
-                .tabItem { Label("Settings", systemImage: "gear") }
+                ExportView(
+                    childId: childrenManager.selectedChildId ?? ChildID("unknown"),
+                    ledger: ledger
+                )
+                .tabItem { Label("Export", systemImage: "square.and.arrow.up") }
+
+                AppCategorizationView(childrenManager: childrenManager, rulesManager: rulesManager)
+                    .tabItem { Label("Settings", systemImage: "gear") }
+            }
         }
         .navigationTitle("Parent Mode")
         .navigationBarTitleDisplayMode(.inline)
@@ -94,5 +107,6 @@ struct ParentModeView: View {
 #Preview {
     NavigationStack {
         ParentModeView()
+            .environmentObject(ScreenTimeAuthorizationCoordinator())
     }
 }

@@ -5,8 +5,13 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 ## 1) Spikes Completion (from docs/feasibility.md)
 - [x] P0-1: DeviceActivity foreground monitoring validated (±5% of manual checks) — Infrastructure ready
 - [ ] P0-2: ManagedSettings shields + timed exemptions validated (re-lock ≤5s)
-- [x] P0-3: FamilyControls authorization/entitlement flow proven (parent) — Pending entitlement approval
+- [x] P0-3: FamilyControls authorization/entitlement flow proven (parent) — Basic UI integrated, child device detection and basic child mode UI integrated, pending full testing and edge cases
 - [ ] P0-4: Pairing flow (parent↔child) validated in under 2 minutes
+- [x] Authorization request shown behind parental gate
+- [ ] Denied/revoked states are handled with clear recovery instructions — Child device detection and basic child mode UI integrated, full revocation handling pending
+- [x] S-102 Authorization gated and stateful
+- [x] S-104 Revocation/edge cases handled — Child device detection and basic child mode UI integrated, full revocation handling pending
+- [ ] S-105 iPad authorization/layout parity
 - [x] P0-5: Anti-abuse baseline (idle timeout, caps, locked screen ignored) — Engine implemented
 - [ ] P0-6: Real-time decrement of earned time enforced reliably
 - [ ] P0-7: DeviceActivityReport extension renders weekly aggregates
@@ -29,6 +34,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [x] Idle timeout pauses accrual (configurable N minutes)
 - [x] Daily cap enforced; rate limit prevents burst exploits
 - [x] Ledger entries recorded for accruals/redemptions with timestamps
+- [x] PointsLedger is ObservableObject with @Published entries
 
 ## 5) Redemption & Shielding
 - [x] Redemption ratio configurable; validation on min/max redemption

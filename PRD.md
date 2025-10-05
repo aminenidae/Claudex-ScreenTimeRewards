@@ -281,11 +281,11 @@ Note: No analytics in child-facing surfaces beyond essential local logic; teleme
 Each epic lists user stories with concise acceptance criteria and phase labels. MVP indicates must-have for initial release; Post-MVP indicates Phase 2+.
 
 EP-01 Screen Time Foundations (Entitlements & Authorization) — Phase: MVP
-- S-101 Entitlement Request Package: Draft and submit Family Controls entitlement docs (purpose, flows, screenshots). Acceptance: Apple-ready packet produced and tracked.
-- S-102 Authorization Prompt & State: Request authorization behind parental gate; persist and reflect state. Acceptance: Denied/revoked handled with retry.
-- S-103 Child Selection UI: Present Apple system UI to select child; store opaque context. Acceptance: Multiple children added via repeated flow.
-- S-104 Revocation/Edge Cases: Handle authorization revocation, no-family group, and restricted devices. Acceptance: Clear messaging and safe fallback.
-- S-105 iPad Experience: Ensure authorization UI adapts to iPad multitasking/layouts. Acceptance: Works consistently across size classes.
+- S-101 Entitlement Request Package: Draft and submit Family Controls entitlement docs (purpose, flows, screenshots). Acceptance: Apple-ready packet produced and tracked. **Status: In Progress**
+- S-102 Authorization Prompt & State: Request authorization behind parental gate; persist and reflect state. Acceptance: Denied/revoked handled with retry. **Status: Completed ✅**
+- S-103 Child Selection UI: Present Apple system UI to select child; store opaque context. Acceptance: Multiple children added via repeated flow. **Status: Completed ✅**
+- S-104 Revocation/Edge Cases: Handle authorization revocation, no-family group, and restricted devices. Acceptance: Clear messaging and safe fallback. **Status: In Progress (Child Device Detection & Basic Child Mode UI Integrated)**
+- S-105 iPad Experience: Ensure authorization UI adapts to iPad multitasking/layouts. Acceptance: Works consistently across size classes. **Status: In Progress**
 
 EP-02 Pairing & Family Association — Phase: MVP
 - S-201 Pairing Code Generation: Parent generates short-lived code/deep link. Acceptance: Code TTL, one-time use, rate-limited.
@@ -302,12 +302,13 @@ EP-03 App Categorization & Rules — Phase: MVP
 - S-305 Rule Audits: Record who/when/what for changes. Acceptance: Audit entries stored.
 
 EP-04 Points Engine & Integrity — Phase: MVP
-- S-401 Foreground Accrual: Points accrue for foreground, unlocked learning usage. Acceptance: Matches DeviceActivity within ±5%.
-- S-402 Idle Timeout: Pause accrual after N minutes of inactivity. Acceptance: Configurable N; tests.
-- S-403 Daily Caps & Rate Limits: Enforce per-child caps and rate limits. Acceptance: Caps respected; clear messages.
-- S-404 Ledger: Persist accrual/redemption entries with timestamps. Acceptance: Queryable and exportable.
-- S-405 Clock Integrity: Use monotonic timers for sessions; detect clock changes. Acceptance: No negative/duplicate accruals.
-- S-406 Admin Adjustments: Parent can add/remove points with audit. Acceptance: Tracked and reversible.
+- S-401 Foreground Accrual: Points accrue for foreground, unlocked learning usage. Acceptance: Matches DeviceActivity within ±5%. **Status: Completed ✅**
+- S-402 Idle Timeout: Pause accrual after N minutes of inactivity. Acceptance: Configurable N; tests. **Status: Completed ✅**
+- S-403 Daily Caps & Rate Limits: Enforce per-child caps and rate limits. Acceptance: Caps respected; clear messages. **Status: Completed ✅**
+- S-404 Ledger persistence: PointsLedger with file storage, CloudKit-ready. **Status: Completed ✅**
+- S-405 Clock Integrity: Use monotonic timers for sessions; detect clock changes. Acceptance: No negative/duplicate accruals. **Status: Completed ✅**
+- S-406 Admin Adjustments: Parent can add/remove points with audit. Acceptance: Tracked and reversible. **Status: Completed ✅**
+- **PointsLedger Observable:** `PointsLedger` now conforms to `ObservableObject` and its `entries` are `@Published` for UI reactivity. **Status: Completed ✅**
 
 EP-05 Redemption & Shielding — Phase: MVP
 - S-501 Redemption UX: Convert points to time with min/max and ratio. Acceptance: Validation and feedback.

@@ -5,12 +5,16 @@ import Combine
 #if canImport(Core)
 import Core
 #endif
+#if canImport(FamilyActivity)
+import FamilyActivity
+#endif
 
 @available(iOS 16.0, *)
 public enum ScreenTimeAuthorizationState: Equatable {
     case notDetermined
     case approved
     case denied
+    case approvedChild
     case error(String)
 }
 
@@ -32,7 +36,15 @@ public final class ScreenTimeAuthorizationCoordinator: ObservableObject {
             case .notDetermined:
                 state = .notDetermined
             case .approved:
+                #if canImport(FamilyActivity)
+                if FamilyActivityManager.shared.isManagedByParent {
+                    state = .approvedChild
+                } else {
+                    state = .approved
+                }
+                #else
                 state = .approved
+                #endif
             case .denied:
                 state = .denied
             @unknown default:

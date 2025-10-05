@@ -3,8 +3,8 @@ import Foundation
 import Core
 #endif
 
-public final class PointsLedger: PointsLedgerProtocol {
-    private var entries: [PointsLedgerEntry] = []
+public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
+    @Published private var entries: [PointsLedgerEntry] = []
     private let queue = DispatchQueue(label: "com.claudex.pointsledger", attributes: .concurrent)
     private let auditLog: AuditLogProtocol?
 
@@ -14,6 +14,7 @@ public final class PointsLedger: PointsLedgerProtocol {
 
     // MARK: - Recording Transactions
 
+    @MainActor
     public func recordAccrual(childId: ChildID, points: Int, timestamp: Date = Date()) -> PointsLedgerEntry {
         let entry = PointsLedgerEntry(
             childId: childId,
@@ -22,11 +23,14 @@ public final class PointsLedger: PointsLedgerProtocol {
             timestamp: timestamp
         )
         queue.async(flags: .barrier) {
-            self.entries.append(entry)
+            Task { @MainActor in
+                self.entries.append(entry)
+            }
         }
         return entry
     }
 
+    @MainActor
     public func recordRedemption(childId: ChildID, points: Int, timestamp: Date = Date()) -> PointsLedgerEntry {
         let entry = PointsLedgerEntry(
             childId: childId,
@@ -35,12 +39,15 @@ public final class PointsLedger: PointsLedgerProtocol {
             timestamp: timestamp
         )
         queue.async(flags: .barrier) {
-            self.entries.append(entry)
-            self.logAudit(action: "redemption", childId: childId, points: -abs(points), timestamp: timestamp, extra: nil)
+            Task { @MainActor in
+                self.entries.append(entry)
+                self.logAudit(action: "redemption", childId: childId, points: -abs(points), timestamp: timestamp, extra: nil)
+            }
         }
         return entry
     }
 
+    @MainActor
     public func recordAdjustment(childId: ChildID, points: Int, reason: String, timestamp: Date = Date()) -> PointsLedgerEntry {
         let entry = PointsLedgerEntry(
             childId: childId,
@@ -49,14 +56,16 @@ public final class PointsLedger: PointsLedgerProtocol {
             timestamp: timestamp
         )
         queue.async(flags: .barrier) {
-            self.entries.append(entry)
-            self.logAudit(
-                action: "adjustment",
-                childId: childId,
-                points: points,
-                timestamp: timestamp,
-                extra: ["reason": reason]
-            )
+            Task { @MainActor in
+                self.entries.append(entry)
+                self.logAudit(
+                    action: "adjustment",
+                    childId: childId,
+                    points: points,
+                    timestamp: timestamp,
+                    extra: ["reason": reason]
+                )
+            }
         }
         return entry
     }
@@ -121,19 +130,24 @@ public final class PointsLedger: PointsLedgerProtocol {
             .appendingPathComponent("points_ledger.json")
     }
 
+    @MainActor
     public func save() throws {
         let data = try JSONEncoder().encode(entries)
         try data.write(to: storageURL)
     }
 
+    @MainActor
     public func load() throws {
         let data = try Data(contentsOf: storageURL)
         entries = try JSONDecoder().decode([PointsLedgerEntry].self, from: data)
     }
 
+    @MainActor
     public func clear() {
         queue.async(flags: .barrier) {
-            self.entries.removeAll()
+            Task { @MainActor in
+                self.entries.removeAll()
+            }
         }
     }
 }

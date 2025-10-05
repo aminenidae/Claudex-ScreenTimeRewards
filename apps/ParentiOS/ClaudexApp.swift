@@ -2,13 +2,26 @@ import SwiftUI
 #if canImport(ScreenTimeService)
 import ScreenTimeService
 #endif
+#if canImport(PointsEngine)
+import PointsEngine
+#endif
 
 @main
 struct ClaudexScreenTimeRewardsApp: App {
+    @StateObject private var authorizationCoordinator = ScreenTimeAuthorizationCoordinator()
+    @StateObject private var childrenManager = ChildrenManager(
+        ledger: PointsLedger(), // Assuming PointsLedger is initialized here or passed in
+        engine: PointsEngine(),
+        exemptionManager: ExemptionManager(),
+        rewardCoordinator: nil // RewardCoordinator will be passed later if needed
+    )
+
     var body: some Scene {
         WindowGroup {
             if #available(iOS 16.0, *) {
                 ModeSelectionView()
+                    .environmentObject(authorizationCoordinator)
+                    .environmentObject(childrenManager)
             } else {
                 Text("iOS 16 or newer is required.")
                     .padding()
@@ -19,7 +32,9 @@ struct ClaudexScreenTimeRewardsApp: App {
 
 @available(iOS 16.0, *)
 struct ModeSelectionView: View {
-    @StateObject private var authorizationCoordinator = ScreenTimeAuthorizationCoordinator()
+    @EnvironmentObject private var authorizationCoordinator: ScreenTimeAuthorizationCoordinator
+    @EnvironmentObject private var childrenManager: ChildrenManager
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
@@ -40,15 +55,16 @@ struct ModeSelectionView: View {
                 VStack(spacing: 16) {
                     NavigationLink {
                         ParentModeView()
+                            .environmentObject(authorizationCoordinator)
+                            .environmentObject(childrenManager)
                     } label: {
                         ModeButton(title: "Parent Mode", subtitle: "Configure rules, review points, approve redemptions")
                     }
 
                     NavigationLink {
-                        Text("Child mode placeholder")
-                            .font(.headline)
-                            .navigationTitle("Child Mode")
-                            .navigationBarTitleDisplayMode(.inline)
+                        ChildModeView()
+                            .environmentObject(authorizationCoordinator)
+                            .environmentObject(childrenManager)
                     } label: {
                         ModeButton(title: "Child Mode", subtitle: "Earn points, see rewards, request more time")
                     }
@@ -63,7 +79,20 @@ struct ModeSelectionView: View {
 }
 
 @available(iOS 16.0, *)
-private struct AuthorizationStatusBanner: View {
+struct ChildModeView: View {
+    @EnvironmentObject private var authorizationCoordinator: ScreenTimeAuthorizationCoordinator
+    @EnvironmentObject private var childrenManager: ChildrenManager
+
+    var body: some View {
+        Text("Child Mode View Placeholder")
+            .font(.largeTitle)
+            .navigationTitle("Child Mode")
+            .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+@available(iOS 16.0, *)
+struct AuthorizationStatusBanner: View {
     let state: ScreenTimeAuthorizationState
     let requestAction: () async -> Void
 
@@ -108,6 +137,8 @@ private struct AuthorizationStatusBanner: View {
             return "Authorization required"
         case .denied:
             return "Authorization denied"
+        case .approvedChild:
+            return "Child device authorized"
         case .error:
             return "Authorization error"
         }
@@ -121,6 +152,8 @@ private struct AuthorizationStatusBanner: View {
             return "Parents must grant Family Controls access before linking child devices."
         case .denied:
             return "Authorization was declined. Open Settings → Screen Time → Apps to grant access."
+        case .approvedChild:
+            return "This device is authorized as a child device. Child mode is active."
         case .error(let error):
             return "Error requesting access: \(error)"
         }
@@ -134,13 +167,16 @@ private struct AuthorizationStatusBanner: View {
             return "exclamationmark.circle"
         case .denied:
             return "xmark.octagon"
+        case .approvedChild:
+            return "person.fill.checkmark"
         case .error:
             return "exclamationmark.triangle"
         }
     }
 }
 
-private struct ModeButton: View {
+@available(iOS 16.0, *)
+struct ModeButton: View {
     let title: String
     let subtitle: String
 

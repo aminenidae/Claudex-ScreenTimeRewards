@@ -4,6 +4,156 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-05 | EP-04 Points Engine & Integrity — PointsLedger Observable ✅
+
+### What Was Built
+
+**PointsLedger Observability**
+- `PointsLedger` now conforms to `ObservableObject`.
+- The `entries` property within `PointsLedger` is now `@Published`, allowing SwiftUI views to react to changes in the ledger.
+- Methods that modify the `entries` array (`recordAccrual`, `recordRedemption`, `recordAdjustment`, `clear`) are marked `@MainActor` and ensure updates to `entries` happen on the main actor, preventing potential data races and ensuring UI responsiveness.
+
+### Notes
+- This change is foundational for integrating real-time points display and redemption functionality into the `ChildModeView` and other UI components.
+
+### Build Status
+- ✅ Xcode project builds successfully for iOS simulator.
+
+### Known Limitations & Next Steps
+
+**Current Gaps:**
+- Thorough on-device testing of authorization flow (grant, deny, revoke, and child device scenarios).
+- Refining UI/UX of the authorization banner and its interaction with other UI elements, especially in child mode.
+- Implementing full Child Mode functionality based on the `.approvedChild` state. This will involve displaying points, rewards, and redemption options.
+- Enhancing error handling and user feedback for authorization failures.
+- Addressing iPad layout and multitasking for both parent and child modes.
+
+**Next Phase: Child Mode Functionality Implementation**
+1.  **Display Points Balance:** Modify `ChildModeView` to fetch and display the child's current points balance from `PointsLedger`.
+2.  **Show Rewards:** Implement logic to display available rewards to the child.
+3.  **Redemption Options:** Provide UI and logic for children to redeem points for screen time.
+
+### Dependencies
+- ✅ `PointsLedger` is now observable.
+
+---
+
+## 2025-10-05 | EP-01 Screen Time Foundations — Child Device Detection & Child Mode View Integrated ✅
+
+### What Was Built
+
+**Child Device Detection & Authorization State Refinement**
+- Introduced a new `ScreenTimeAuthorizationState.approvedChild` to explicitly differentiate between parent and child devices with approved Family Controls authorization.
+- Implemented logic in `ScreenTimeAuthorizationCoordinator.refreshStatus()` to use `FamilyActivityManager.shared.isManagedByParent` to detect if the current device is a child's device.
+- Updated `AuthorizationStatusBanner` to display specific messages and icons for the `.approvedChild` state.
+
+**Child Mode View Integration**
+- Created a placeholder `ChildModeView` and integrated it into the `ModeSelectionView` in `ClaudexApp.swift`.
+- The `ChildModeView` and its associated `ModeButton` are now defined directly within `ClaudexApp.swift` to resolve Xcode build issues related to file inclusion.
+
+### Notes
+- This enhances the app's ability to adapt its behavior and UI based on whether it's running on a parent's or child's device.
+- The `FamilyActivityManager.shared.isManagedByParent` property is available from iOS 16, aligning with the project's deployment target.
+
+### Build Status
+- ✅ Xcode project builds successfully for iOS simulator.
+
+### Known Limitations & Next Steps
+
+**Current Gaps:**
+- Thorough on-device testing of authorization flow (grant, deny, revoke, and child device scenarios).
+- Refining UI/UX of the banner and its interaction with other UI elements, especially in child mode.
+- Implementing full Child Mode functionality based on the `.approvedChild` state. This will involve displaying points, rewards, and redemption options.
+- Enhancing error handling and user feedback for authorization failures.
+- Addressing iPad layout and multitasking for both parent and child modes.
+
+**Next Phase: EP-01 Screen Time Foundations (Continued) & Child Mode Implementation**
+1.  **Testing:** Thoroughly test the authorization flow on a device, including scenarios where authorization is granted, denied, or revoked, and specifically test the `.approvedChild` state.
+2.  **Refining UI/UX:** Ensure the `AuthorizationStatusBanner` is clear and guides the user effectively.
+3.  **Handling Child Mode:** Implement the actual functionality and UI for the Child Mode, beyond just the placeholder. This will involve displaying points, rewards, and redemption options.
+4.  **Error Handling:** Improve error handling and user feedback for authorization failures.
+5.  **iPad Layout:** Visually inspect and test the app on an iPad simulator to ensure the UI adapts correctly.
+
+### Dependencies
+- ✅ `FamilyControls` framework for `FamilyActivityManager`.
+- ✅ `ScreenTimeAuthorizationCoordinator` correctly handles and publishes the new `.approvedChild` state.
+
+---
+
+## 2025-10-05 | EP-01 Screen Time Foundations — Child Device Detection & Authorization State Refinement ✅
+
+### What Was Built
+
+**Child Device Detection**
+- Introduced a new `ScreenTimeAuthorizationState.approvedChild` to explicitly differentiate between parent and child devices with approved Family Controls authorization.
+- Implemented logic in `ScreenTimeAuthorizationCoordinator.refreshStatus()` to use `FamilyActivityManager.shared.isManagedByParent` to detect if the current device is a child's device.
+- Updated `AuthorizationStatusBanner` to display specific messages and icons for the `.approvedChild` state.
+
+### Notes
+- This enhances the app's ability to adapt its behavior and UI based on whether it's running on a parent's or child's device.
+- The `FamilyActivityManager.shared.isManagedByParent` property is available from iOS 16, aligning with the project's deployment target.
+
+### Build Status
+- ✅ Xcode project builds successfully for iOS simulator.
+
+### Known Limitations & Next Steps
+
+**Current Gaps:**
+- Thorough on-device testing of authorization flow (grant, deny, revoke, and child device scenarios).
+- Refining UI/UX of the banner and its interaction with other UI elements, especially in child mode.
+- Implementing full Child Mode functionality based on the `.approvedChild` state.
+- Enhancing error handling and user feedback for authorization failures.
+- Addressing iPad layout and multitasking for both parent and child modes.
+
+**Next Phase: EP-01 Screen Time Foundations (Continued)**
+1.  **Testing:** Thoroughly test the authorization flow on a device, including scenarios where authorization is granted, denied, or revoked, and specifically test the `.approvedChild` state.
+2.  **Refining UI/UX:** Ensure the `AuthorizationStatusBanner` is clear and guides the user effectively.
+3.  **Handling Child Mode:** Implement similar authorization checks and UI for the Child Mode, as it also relies on Screen Time APIs.
+4.  **Error Handling:** Improve error handling and user feedback for authorization failures.
+5.  **iPad Layout:** Visually inspect and test the app on an iPad simulator to ensure the UI adapts correctly.
+
+### Dependencies
+- ✅ `FamilyControls` framework for `FamilyActivityManager`.
+- ✅ `ScreenTimeAuthorizationCoordinator` correctly handles and publishes the new `.approvedChild` state.
+
+---
+
+## 2025-10-05 | EP-01 Screen Time Foundations — Authorization Banner Integrated ✅
+
+### What Was Built
+
+**Authorization UI Integration**
+- Refactored `AuthorizationStatusBanner` and `ModeButton` from `ClaudexApp.swift` into a shared component within `ClaudexApp.swift` itself to resolve Xcode build issues related to file visibility.
+- `ScreenTimeAuthorizationCoordinator` is now passed as an `EnvironmentObject` from `ClaudexApp.swift` to `ModeSelectionView` and subsequently to `ParentModeView`.
+- `ParentModeView` now displays the `AuthorizationStatusBanner` prominently at the top when the `ScreenTimeAuthorizationState` is not `.approved`, guiding the parent to request authorization.
+
+### Notes
+- This change addresses the initial UI integration for authorization status visibility within the Parent Mode.
+- Further testing on device is required to validate the full authorization flow, including granting, denying, and revoking permissions.
+
+### Build Status
+- ✅ Xcode project builds successfully for iOS simulator.
+
+### Known Limitations & Next Steps
+
+**Current Gaps:**
+- Thorough on-device testing of authorization flow (grant, deny, revoke).
+- Refining UI/UX of the banner and its interaction with other UI elements.
+- Implementing similar authorization checks and UI for Child Mode.
+- Enhancing error handling and user feedback for authorization failures.
+
+**Next Phase: EP-01 Screen Time Foundations (Continued)**
+1.  **Testing:** Thoroughly test the authorization flow on a device, including scenarios where authorization is granted, denied, or revoked.
+2.  **Refining UI/UX:** Ensure the `AuthorizationStatusBanner` is clear and guides the user effectively. Consider if any other UI elements in `ParentModeView` should be disabled or altered based on the authorization status.
+3.  **Handling Child Mode:** Implement similar authorization checks and UI for the Child Mode, as it also relies on Screen Time APIs.
+4.  **Error Handling:** Improve error handling and user feedback for authorization failures.
+
+### Dependencies
+- ✅ `ScreenTimeAuthorizationCoordinator` is correctly passed and observed.
+- ✅ `AuthorizationStatusBanner` and `ModeButton` are accessible within the `ParentiOS` module.
+
+---
+
 ## 2025-10-05 | EP-01 Screen Time Foundations — S-103 Completed ✅
 
 ### What Was Built
