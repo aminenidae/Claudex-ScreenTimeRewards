@@ -16,6 +16,8 @@
 		432A8A9D2E92C7DC00E03796 /* RedemptionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A8A9C2E92C7DC00E03796 /* RedemptionCoordinator.swift */; };
 		432A8A9F2E92C7F000E03796 /* ChildRedemptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A8A9E2E92C7F000E03796 /* ChildRedemptionView.swift */; };
 		432A8AA12E92CCE600E03796 /* CloudKitMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A8AA02E92CCE600E03796 /* CloudKitMapper.swift */; };
+		432A8AA32E92CF7700E03796 /* CountdownTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A8AA22E92CF7700E03796 /* CountdownTimerView.swift */; };
+		432A8AA52E92CF8A00E03796 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 432A8AA42E92CF8A00E03796 /* DashboardView.swift */; };
 		4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4D89FB4BB9434E9541282E /* RedemptionService.swift */; };
 		5C88686AC522427197256D46 /* AppCategorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */; };
 		62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */; };
@@ -50,6 +52,8 @@
 		432A8A9C2E92C7DC00E03796 /* RedemptionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionCoordinator.swift; sourceTree = "<group>"; };
 		432A8A9E2E92C7F000E03796 /* ChildRedemptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildRedemptionView.swift; sourceTree = "<group>"; };
 		432A8AA02E92CCE600E03796 /* CloudKitMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitMapper.swift; sourceTree = "<group>"; };
+		432A8AA22E92CF7700E03796 /* CountdownTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownTimerView.swift; sourceTree = "<group>"; };
+		432A8AA42E92CF8A00E03796 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExporter.swift; sourceTree = "<group>"; };
 		6075ADFFD2904E07AF741291 /* RedemptionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionsCard.swift; sourceTree = "<group>"; };
 		6A98C0711BAE449B807EB55F /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
@@ -91,6 +95,7 @@
 		13673F6094824ACBB7E8CBA4 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				432A8AA42E92CF8A00E03796 /* DashboardView.swift */,
 				432A8A9E2E92C7F000E03796 /* ChildRedemptionView.swift */,
 				E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */,
 				FB9CA365776C42E3ACA0BDF7 /* DashboardView.swift */,
@@ -221,6 +226,7 @@
 		F716BC1A5FC64DA68EB6E2C4 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				432A8AA22E92CF7700E03796 /* CountdownTimerView.swift */,
 				F68595205A864E8394A52EDD /* DashboardCard.swift */,
 				9172FD87BC4A44F6B24E0CE0 /* PointsBalanceCard.swift */,
 				0F0A5A13C21542C79E447C5B /* LearningTimeCard.swift */,
@@ -309,6 +315,7 @@
 				0DA412D2A02C44A195DF93B0 /* ChildrenManager.swift in Sources */,
 				41682CBFDC404BF29C96053E /* MultiChildDashboardView.swift in Sources */,
 				C7687F500A96443693F21C1C /* DataExporter.swift in Sources */,
+				432A8AA32E92CF7700E03796 /* CountdownTimerView.swift in Sources */,
 				432A8AA12E92CCE600E03796 /* CloudKitMapper.swift in Sources */,
 				AF74CC913F4642C88C9AB017 /* PointsLedger.swift in Sources */,
 				4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */,
@@ -320,6 +327,7 @@
 				E0C89EBCDC374C4586984060 /* PointsBalanceCard.swift in Sources */,
 				432A8A9D2E92C7DC00E03796 /* RedemptionCoordinator.swift in Sources */,
 				64658F53A12048CBB3347791 /* LearningTimeCard.swift in Sources */,
+				432A8AA52E92CF8A00E03796 /* DashboardView.swift in Sources */,
 				08D6754CB3974B63BB5D7FD2 /* RedemptionsCard.swift in Sources */,
 				8FEBEEDA189E40919E08B934 /* ShieldStatusCard.swift in Sources */,
 				432A8A9F2E92C7F000E03796 /* ChildRedemptionView.swift in Sources */,

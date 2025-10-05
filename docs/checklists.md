@@ -13,7 +13,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [x] S-104 Revocation/edge cases handled — Child device detection and basic child mode UI integrated, full revocation handling pending
 - [ ] S-105 iPad authorization/layout parity
 - [x] P0-5: Anti-abuse baseline (idle timeout, caps, locked screen ignored) — Engine implemented
-- [ ] P0-6: Real-time decrement of earned time enforced reliably
+- [x] P0-6: Real-time decrement of earned time enforced reliably — CountdownTimerView with 1s updates, color-coded warnings
 - [ ] P0-7: DeviceActivityReport extension renders weekly aggregates
 - [ ] P1-1: CloudKit sync baseline; conflict handling; offline reconciliation
 - [ ] P1-2: Paywall (if included) purchase/restore flows validated

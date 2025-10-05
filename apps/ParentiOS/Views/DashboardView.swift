@@ -101,7 +101,8 @@ struct DashboardView: View {
 
         ShieldStatusCard(
             shieldState: viewModel.shieldState,
-            shieldedAppsCount: 0 // TODO: Get from ShieldController
+            shieldedAppsCount: 0, // TODO: Get from ShieldController
+            activeWindow: viewModel.activeWindow
         )
     }
 }

@@ -1,8 +1,12 @@
 import SwiftUI
+#if canImport(Core)
+import Core
+#endif
 
 struct ShieldStatusCard: View {
     let shieldState: ShieldState
     let shieldedAppsCount: Int
+    let activeWindow: EarnedTimeWindow?
 
     var body: some View {
         DashboardCard(title: "Shield Status", systemImage: "shield.fill") {
@@ -27,9 +31,13 @@ struct ShieldStatusCard: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     } else if shieldState == .exempted {
-                        Text("Reward apps accessible")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                        if let window = activeWindow {
+                            CountdownTimerView(window: window, style: .compact)
+                        } else {
+                            Text("Reward apps accessible")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
 
@@ -72,10 +80,39 @@ struct ShieldStatusCard: View {
     }
 }
 
-#Preview {
-    VStack(spacing: 16) {
-        ShieldStatusCard(shieldState: .active, shieldedAppsCount: 12)
-        ShieldStatusCard(shieldState: .exempted, shieldedAppsCount: 0)
-    }
+#Preview("Active Shield") {
+    ShieldStatusCard(
+        shieldState: .active,
+        shieldedAppsCount: 12,
+        activeWindow: nil
+    )
+    .padding()
+}
+
+#Preview("Exempted with Countdown") {
+    let window = EarnedTimeWindow(
+        childId: ChildID("preview"),
+        durationSeconds: 600,
+        startTime: Date()
+    )
+    return ShieldStatusCard(
+        shieldState: .exempted,
+        shieldedAppsCount: 0,
+        activeWindow: window
+    )
+    .padding()
+}
+
+#Preview("Exempted - Expiring Soon") {
+    let window = EarnedTimeWindow(
+        childId: ChildID("preview"),
+        durationSeconds: 60,
+        startTime: Date().addingTimeInterval(-30)
+    )
+    return ShieldStatusCard(
+        shieldState: .exempted,
+        shieldedAppsCount: 0,
+        activeWindow: window
+    )
     .padding()
 }

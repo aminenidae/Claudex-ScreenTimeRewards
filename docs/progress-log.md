@@ -4,6 +4,126 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-05 | P0-6: Real-time Countdown UI ✅
+
+### What Was Built
+
+**CountdownTimerView Component**
+- Three display styles: compact, expanded, minimal
+- Live 1-second timer with automatic stop on expiry
+- Color-coded time warnings (green > 3min, orange > 1min, red < 1min)
+- Circular progress ring for expanded view
+- Formatted time display (MM:SS) with monospaced digits
+
+**Compact Style:**
+- Clock icon + time remaining + "left" label
+- Color-coded background badge
+- Perfect for dashboard cards
+
+**Expanded Style:**
+- 200pt circular progress ring with animated trim
+- Large 48pt countdown display
+- Expiry time shown below
+- Ideal for full-screen child mode
+
+**Minimal Style:**
+- "5m 23s" format
+- Compact for inline display
+
+**ShieldStatusCard Enhancement**
+- Now displays live countdown when reward time is active
+- Shows "Reward Time Active" status with CountdownTimerView
+- Falls back to static text if no active window
+
+**ActiveRewardTimeView (Child Mode)**
+- Full-screen celebration view for active reward time
+- Large expanded countdown timer
+- Info card with start time, expiry time, and duration
+- Gradient background for visual appeal
+- "Got it" dismiss button
+
+**Dashboard Integration**
+- DashboardView passes activeWindow to ShieldStatusCard
+- RedemptionCoordinator already had 1-second timer updating activeWindow
+- Seamless reactive updates via @Published activeWindow property
+
+### Technical Implementation
+
+**Timer Management:**
+```swift
+@State private var timer: Timer?
+
+private func startTimer() {
+    timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        updateRemainingTime()
+        if remainingSeconds <= 0 {
+            stopTimer()
+        }
+    }
+}
+```
+
+**Color Coding:**
+```swift
+private var timeColor: Color {
+    if remainingSeconds < 60 { return .red }
+    else if remainingSeconds < 180 { return .orange }
+    else { return .green }
+}
+```
+
+**Progress Ring:**
+```swift
+Circle()
+    .trim(from: 0, to: progress)
+    .stroke(timeColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+    .rotationEffect(.degrees(-90))
+    .animation(.linear(duration: 0.5), value: progress)
+```
+
+### Build Status
+- ✅ Debug build succeeds on iOS Simulator (iPhone 17, iOS 26.0)
+- ✅ CountdownTimerView.swift added to Xcode project
+- ✅ All UI components compile without errors
+- ✅ Preview-driven development with 4 preview variants
+
+### User Experience
+
+**Parent Dashboard:**
+- Shield Status card shows "5:23 left" when reward time active
+- Countdown updates every second
+- Color changes as time expires (green → orange → red)
+
+**Child Mode (Future):**
+- ActiveRewardTimeView can be shown as sheet/fullscreen
+- Large countdown provides clear time awareness
+- Prevents surprise when time expires
+
+### Known Limitations & Next Steps
+
+**Current Gaps:**
+- ActiveRewardTimeView not yet integrated into ChildModeView
+- No audio/haptic alerts at 1-minute warning
+- No local notification at 30-second mark
+- Timer stops when app backgrounds (needs background task)
+
+**Future Enhancements:**
+1. Add "Extend Time" button (if points available)
+2. Countdown voice announcements at intervals
+3. Background timer continuation with NSBackgroundTask
+4. Animate countdown when < 10 seconds (pulse effect)
+5. Show notification when time expires
+
+### Files Added
+- apps/ParentiOS/Views/Components/CountdownTimerView.swift
+- apps/ParentiOS/Views/ActiveRewardTimeView.swift (created, not yet in project)
+
+### Files Modified
+- apps/ParentiOS/Views/Components/ShieldStatusCard.swift (added activeWindow parameter, countdown display)
+- apps/ParentiOS/Views/DashboardView.swift (pass activeWindow to ShieldStatusCard)
+
+---
+
 ## 2025-10-05 | EP-06: CloudKit Sync Infrastructure ✅
 
 ### What Was Built
