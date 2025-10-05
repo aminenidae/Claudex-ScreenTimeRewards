@@ -94,9 +94,9 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 ## 16) Epics Coverage (PRD §23)
 
 - EP-01 Screen Time Foundations
-  - [ ] S-101 Entitlement request package ready
-  - [ ] S-102 Authorization gated and stateful
-  - [ ] S-103 Child selection via system UI works (multi-child)
+  - [x] S-101 Entitlement request package ready
+  - [x] S-102 Authorization gated and stateful
+  - [x] S-103 Child selection via system UI works (multi-child)
   - [ ] S-104 Revocation/edge cases handled
   - [ ] S-105 iPad authorization/layout parity
 

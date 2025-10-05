@@ -8,48 +8,51 @@ import PointsEngine
 
 @available(iOS 16.0, *)
 struct ParentModeView: View {
-    // Services (should be dependency-injected in production)
     @StateObject private var childrenManager: ChildrenManager
     @StateObject private var rulesManager: CategoryRulesManager
 #if canImport(DeviceActivity) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
     @StateObject private var learningCoordinator: LearningSessionCoordinator
-#if canImport(ManagedSettings)
-    @StateObject private var rewardCoordinator: RewardCoordinator
 #endif
+#if canImport(ManagedSettings) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
+    @StateObject private var rewardCoordinator: RewardCoordinator
 #endif
     private let ledger: PointsLedger
 
     init() {
-        // For MVP, create services here
-        // In production, these would be injected via environment or DI container
         let ledger = PointsLedger()
         let engine = PointsEngine()
         let exemptionManager = ExemptionManager()
+        let rulesManager = CategoryRulesManager()
 
+        var rewardCoordinatorConcrete: RewardCoordinator?
+        var rewardCoordinatorProtocol: RewardCoordinatorProtocol?
 
 #if canImport(ManagedSettings) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
         let shieldController = ShieldController()
         let redemptionService = RedemptionService(ledger: ledger)
-        let rewardCoordinatorConcrete = RewardCoordinator(
+        let coordinator = RewardCoordinator(
             rulesManager: rulesManager,
             redemptionService: redemptionService,
             shieldController: shieldController,
             exemptionManager: exemptionManager
         )
-        let rewardCoordinatorInstance: RewardCoordinatorProtocol? = rewardCoordinatorConcrete
-#else
-        let rewardCoordinatorInstance: RewardCoordinatorProtocol? = nil
+        rewardCoordinatorConcrete = coordinator
+        rewardCoordinatorProtocol = coordinator
 #endif
 
         let manager = ChildrenManager(
             ledger: ledger,
             engine: engine,
             exemptionManager: exemptionManager,
-            rewardCoordinator: rewardCoordinatorInstance
+            rewardCoordinator: rewardCoordinatorProtocol
         )
-        manager.loadDemoChildren()
 
-        let rulesManager = CategoryRulesManager()
+#if DEBUG
+        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1", manager.children.isEmpty {
+            manager.loadDemoChildren()
+        }
+#endif
+
 #if canImport(DeviceActivity) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
         let learningCoordinator = LearningSessionCoordinator(
             rulesManager: rulesManager,
@@ -57,9 +60,11 @@ struct ParentModeView: View {
             pointsLedger: ledger
         )
         _learningCoordinator = StateObject(wrappedValue: learningCoordinator)
-#if canImport(ManagedSettings)
-        _rewardCoordinator = StateObject(wrappedValue: rewardCoordinatorConcrete)
 #endif
+#if canImport(ManagedSettings) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
+        if let rewardCoordinatorConcrete {
+            _rewardCoordinator = StateObject(wrappedValue: rewardCoordinatorConcrete)
+        }
 #endif
 
         self.ledger = ledger
@@ -70,46 +75,19 @@ struct ParentModeView: View {
     var body: some View {
         TabView {
             MultiChildDashboardView(childrenManager: childrenManager)
-                .tabItem {
-                    Label("Dashboard", systemImage: "chart.bar.fill")
-                }
+                .tabItem { Label("Dashboard", systemImage: "chart.bar.fill") }
 
             ExportView(
                 childId: childrenManager.selectedChildId ?? ChildID("unknown"),
                 ledger: ledger
             )
-                .tabItem {
-                    Label("Export", systemImage: "square.and.arrow.up")
-                }
+            .tabItem { Label("Export", systemImage: "square.and.arrow.up") }
 
             AppCategorizationView(childrenManager: childrenManager, rulesManager: rulesManager)
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
+                .tabItem { Label("Settings", systemImage: "gear") }
         }
         .navigationTitle("Parent Mode")
         .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct SettingsPlaceholderView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "gear")
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
-
-            Text("Settings")
-                .font(.title2)
-                .fontWeight(.semibold)
-
-            Text("Coming soon: App categorization, point rates, and family settings")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-        }
-        .padding()
     }
 }
 

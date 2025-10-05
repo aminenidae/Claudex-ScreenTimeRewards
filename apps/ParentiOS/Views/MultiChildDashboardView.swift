@@ -13,33 +13,68 @@ struct MultiChildDashboardView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Child selector at top
-            if childrenManager.children.count > 1 {
-                ChildSelectorView(
-                    children: childrenManager.children,
-                    selectedIndex: $selectedIndex
-                )
-                .padding(.horizontal)
-                .padding(.top, 8)
-            }
-
-            // Horizontal paging TabView for dashboards
-            TabView(selection: $selectedIndex) {
-                ForEach(Array(childrenManager.children.enumerated()), id: \.element.id) { index, child in
-                    let viewModel = childrenManager.getViewModel(for: child.id)
-                    DashboardView(viewModel: viewModel)
-                        .tag(index)
+            if childrenManager.children.isEmpty {
+                emptyState
+            } else {
+                if childrenManager.children.count > 1 {
+                    ChildSelectorView(
+                        children: childrenManager.children,
+                        selectedIndex: $selectedIndex
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                 }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never)) // Hide default page indicator
-            .onChange(of: selectedIndex) { newValue in
-                childrenManager.selectChild(at: newValue)
+
+                TabView(selection: $selectedIndex) {
+                    ForEach(Array(childrenManager.children.enumerated()), id: \.element.id) { index, child in
+                        let viewModel = childrenManager.getViewModel(for: child.id)
+                        DashboardView(viewModel: viewModel)
+                            .tag(index)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .onChange(of: selectedIndex) { newValue in
+                    childrenManager.selectChild(at: newValue)
+                }
             }
         }
         .onAppear {
             selectedIndex = childrenManager.selectedChildIndex
         }
+        .onReceive(childrenManager.$children) { children in
+            if children.isEmpty {
+                selectedIndex = 0
+            } else if selectedIndex >= children.count {
+                selectedIndex = max(0, children.count - 1)
+            }
+        }
     }
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 60))
+                .foregroundStyle(.secondary)
+            Text("No dashboards yet")
+                .font(.title2)
+                .fontWeight(.semibold)
+            Text("Add a child from the Settings tab to start tracking learning and rewards.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+        }
+        .padding()
+    }
+}
+
+#Preview("Multiple Children") {
+    let ledger = PointsLedger()
+    let engine = PointsEngine()
+    let exemptionManager = ExemptionManager()
+    let manager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager)
+    manager.loadDemoChildren()
+    return MultiChildDashboardView(childrenManager: manager)
 }
 
 /// Child selector with horizontal scrolling buttons
@@ -89,28 +124,4 @@ struct ChildSelectorButton: View {
         )
         .foregroundStyle(isSelected ? .white : .primary)
     }
-}
-
-#Preview("Single Child") {
-    let ledger = PointsLedger()
-    let engine = PointsEngine()
-    let exemptionManager = ExemptionManager()
-    let manager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager)
-
-    // Single child
-    manager.children = [ChildProfile(id: ChildID("child-1"), name: "Alice")]
-    manager.selectedChildId = manager.children.first?.id
-
-    return MultiChildDashboardView(childrenManager: manager)
-}
-
-#Preview("Multiple Children") {
-    let ledger = PointsLedger()
-    let engine = PointsEngine()
-    let exemptionManager = ExemptionManager()
-    let manager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager)
-
-    manager.loadDemoChildren()
-
-    return MultiChildDashboardView(childrenManager: manager)
 }

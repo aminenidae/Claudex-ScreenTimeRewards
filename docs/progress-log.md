@@ -4,6 +4,21 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-05 | EP-01 Screen Time Foundations — S-103 Completed ✅
+
+### What Was Built
+
+**Child Selection & Persistence**
+- Added `AddChildSheet` flow that prompts for a display name, invokes `AuthorizationCenter.shared.requestAuthorization(for: .child)`, and persists child profiles (`children.json`).
+- `ChildrenManager` now loads/saves linked children, maintains selection, and exposes real child profiles in dashboard/settings.
+- UI updates to handle empty state (no children) and dynamic additions; dashboard and categorization screens refresh automatically.
+- Learning and reward coordinators respond to new children so rules, shields, and accrual begin immediately after linking.
+
+### Notes
+- Screenshots/video of the authorization flow captured (see entitlement dossier).
+- Demo children only seed in DEBUG builds when no linked children exist.
+- Remaining EP-01 work: S-104 (revocation UX) and S-105 (iPad layout parity).
+
 ## 2025-10-04 | EP-04 Points Engine & Integrity — COMPLETED ✅
 
 ### What Was Built

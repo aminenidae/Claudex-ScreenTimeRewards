@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import FamilyControls
 #if canImport(Core)
 import Core
 #endif
@@ -7,21 +8,25 @@ import Core
 import PointsEngine
 #endif
 
-/// Simple data structure representing a child in the system
-struct ChildProfile: Identifiable, Hashable {
+/// Represents a managed child profile
+struct ChildProfile: Identifiable, Hashable, Codable {
     let id: ChildID
-    let name: String
+    var name: String
+    var storeName: String
 
-    init(id: ChildID, name: String) {
+    init(id: ChildID, name: String, storeName: String) {
         self.id = id
         self.name = name
+        self.storeName = storeName
     }
 }
 
 /// Manages the list of children and provides view models for each
 @MainActor
 class ChildrenManager: ObservableObject {
-    @Published var children: [ChildProfile] = []
+    @Published var children: [ChildProfile] = [] {
+        didSet { persistChildren() }
+    }
     @Published var selectedChildId: ChildID?
 
     // Shared services
@@ -29,6 +34,8 @@ class ChildrenManager: ObservableObject {
     private let engine: PointsEngine
     private let exemptionManager: ExemptionManager
     private let rewardCoordinator: RewardCoordinatorProtocol?
+
+    private let storageURL: URL
 
     // Cache of view models (one per child)
     private var viewModels: [ChildID: DashboardViewModel] = [:]
@@ -38,6 +45,15 @@ class ChildrenManager: ObservableObject {
         self.engine = engine
         self.exemptionManager = exemptionManager
         self.rewardCoordinator = rewardCoordinator
+
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
+        self.storageURL = documents.appendingPathComponent("children.json")
+
+        loadPersistedChildren()
+
+        if selectedChildId == nil {
+            selectedChildId = children.first?.id
+        }
     }
 
     /// Get or create a view model for a specific child
@@ -57,16 +73,20 @@ class ChildrenManager: ObservableObject {
         return vm
     }
 
-    /// Load demo children for MVP
+    /// Select child by index
+    func selectChild(at index: Int) {
+        guard index >= 0 && index < children.count else { return }
+        selectedChildId = children[index].id
+    }
+
+    /// Add demo data (used by previews/tests)
     func loadDemoChildren() {
-        // Create demo children
         children = [
-            ChildProfile(id: ChildID("child-1"), name: "Alice"),
-            ChildProfile(id: ChildID("child-2"), name: "Bob"),
-            ChildProfile(id: ChildID("child-3"), name: "Charlie")
+            ChildProfile(id: ChildID("child-1"), name: "Alice", storeName: "child-child-1"),
+            ChildProfile(id: ChildID("child-2"), name: "Bob", storeName: "child-child-2"),
+            ChildProfile(id: ChildID("child-3"), name: "Charlie", storeName: "child-child-3")
         ]
 
-        // Add demo data for each child
         for (index, child) in children.enumerated() {
             let basePoints = 200 + (index * 50)
             _ = ledger.recordAccrual(childId: child.id, points: basePoints, timestamp: Date())
@@ -74,11 +94,36 @@ class ChildrenManager: ObservableObject {
             _ = ledger.recordAccrual(childId: child.id, points: 100, timestamp: Date().addingTimeInterval(TimeInterval(-86400 * (index + 1))))
         }
 
-        // Select first child
         selectedChildId = children.first?.id
     }
 
-    /// Get the index of the currently selected child
+    // MARK: - Child Management
+
+    func addChild(named name: String) async -> Result<ChildProfile, Error> {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let displayName = trimmed.isEmpty ? "Child" : trimmed
+
+        do {
+            try await AuthorizationCenter.shared.requestAuthorization(for: .child)
+            let childId = ChildID(UUID().uuidString)
+            let storeName = "child-\(childId.rawValue)"
+            let profile = ChildProfile(id: childId, name: displayName, storeName: storeName)
+            children.append(profile)
+            selectedChildId = childId
+            return .success(profile)
+        } catch {
+            return .failure(error)
+        }
+    }
+
+    func removeChild(_ child: ChildProfile) {
+        children.removeAll { $0.id == child.id }
+        viewModels[child.id] = nil
+        if selectedChildId == child.id {
+            selectedChildId = children.first?.id
+        }
+    }
+
     var selectedChildIndex: Int {
         guard let selectedId = selectedChildId,
               let index = children.firstIndex(where: { $0.id == selectedId }) else {
@@ -87,9 +132,30 @@ class ChildrenManager: ObservableObject {
         return index
     }
 
-    /// Select child by index
-    func selectChild(at index: Int) {
-        guard index >= 0 && index < children.count else { return }
-        selectedChildId = children[index].id
+    // MARK: - Persistence
+
+    private func loadPersistedChildren() {
+        guard FileManager.default.fileExists(atPath: storageURL.path) else {
+            children = []
+            return
+        }
+
+        do {
+            let data = try Data(contentsOf: storageURL)
+            let decoded = try JSONDecoder().decode([ChildProfile].self, from: data)
+            children = decoded
+        } catch {
+            print("ChildrenManager: failed to load children: \(error)")
+            children = []
+        }
+    }
+
+    private func persistChildren() {
+        do {
+            let data = try JSONEncoder().encode(children)
+            try data.write(to: storageURL)
+        } catch {
+            print("ChildrenManager: failed to save children: \(error)")
+        }
     }
 }

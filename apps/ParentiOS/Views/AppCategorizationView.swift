@@ -12,15 +12,16 @@ struct AppCategorizationView: View {
     @State private var selectedChildIndex: Int = 0
     @State private var showingLearningPicker = false
     @State private var showingRewardPicker = false
+    @State private var showingAddChildSheet = false
 
     var selectedChild: ChildProfile? {
         guard !childrenManager.children.isEmpty else { return nil }
+        guard selectedChildIndex < childrenManager.children.count else { return nil }
         return childrenManager.children[selectedChildIndex]
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Child selector (if multiple children)
             if childrenManager.children.count > 1 {
                 ChildSelectorView(
                     children: childrenManager.children,
@@ -32,16 +33,13 @@ struct AppCategorizationView: View {
                 Divider()
             }
 
-            // Main content
             if let child = selectedChild {
                 ScrollView {
                     VStack(spacing: 20) {
-                        // Instructions
                         InstructionsCard()
                             .padding(.horizontal)
                             .padding(.top, 20)
 
-                        // Learning Apps Section
                         CategorySection(
                             title: "Learning Apps",
                             subtitle: "Earn points when used",
@@ -52,7 +50,6 @@ struct AppCategorizationView: View {
                         )
                         .padding(.horizontal)
 
-                        // Reward Apps Section
                         CategorySection(
                             title: "Reward Apps",
                             subtitle: "Require points to unlock",
@@ -67,26 +64,45 @@ struct AppCategorizationView: View {
                     }
                 }
             } else {
-                // No children state
                 VStack(spacing: 16) {
-                    Image(systemName: "person.2.slash")
+                    Image(systemName: "person.badge.plus")
                         .font(.system(size: 60))
                         .foregroundStyle(.secondary)
 
-                    Text("No Children")
+                    Text("No Children Linked")
                         .font(.title2)
                         .fontWeight(.semibold)
 
-                    Text("Add children to configure app categories")
+                    Text("Link a child to start configuring learning and reward apps.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+
+                    Button {
+                        showingAddChildSheet = true
+                    } label: {
+                        Label("Add Child", systemImage: "plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.horizontal, 40)
                 }
                 .padding()
             }
         }
         .navigationTitle("App Categories")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    showingAddChildSheet = true
+                } label: {
+                    Label("Add Child", systemImage: "plus")
+                }
+                .disabled(showingLearningPicker || showingRewardPicker)
+            }
+        }
         .familyActivityPicker(
             isPresented: $showingLearningPicker,
             selection: learningSelectionBinding
@@ -95,6 +111,21 @@ struct AppCategorizationView: View {
             isPresented: $showingRewardPicker,
             selection: rewardSelectionBinding
         )
+        .sheet(isPresented: $showingAddChildSheet) {
+            AddChildSheet { name in
+                await childrenManager.addChild(named: name)
+            } onSuccess: { profile in
+                rulesManager.getRules(for: profile.id)
+                if let idx = childrenManager.children.firstIndex(where: { $0.id == profile.id }) {
+                    selectedChildIndex = idx
+                }
+            }
+        }
+        .onReceive(childrenManager.$children) { newChildren in
+            if selectedChildIndex >= newChildren.count {
+                selectedChildIndex = max(0, newChildren.count - 1)
+            }
+        }
     }
 
     // MARK: - Bindings
@@ -130,65 +161,28 @@ struct AppCategorizationView: View {
     }
 }
 
-// MARK: - Supporting Views
+// MARK: - Supporting Views remain unchanged...
 
-struct InstructionsCard: View {
+@available(iOS 16.0, *)
+private struct InstructionsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(.blue)
-                Text("How It Works")
-                    .font(.headline)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                InstructionRow(
-                    icon: "graduationcap.fill",
-                    color: .green,
-                    text: "Learning apps earn points while your child uses them"
-                )
-
-                InstructionRow(
-                    icon: "star.fill",
-                    color: .orange,
-                    text: "Reward apps require points to unlock for limited time"
-                )
-
-                InstructionRow(
-                    icon: "app.badge",
-                    color: .blue,
-                    text: "Tap each section below to choose apps or categories"
-                )
-            }
+            Text("How it works")
+                .font(.headline)
+            Text("Learning apps earn points automatically. Reward apps stay blocked until children redeem their points for screen time.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
         )
     }
 }
 
-struct InstructionRow: View {
-    let icon: String
-    let color: Color
-    let text: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: icon)
-                .foregroundStyle(color)
-                .frame(width: 20)
-
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-    }
-}
-
-struct CategorySection: View {
+@available(iOS 16.0, *)
+private struct CategorySection: View {
     let title: String
     let subtitle: String
     let icon: String
@@ -197,84 +191,69 @@ struct CategorySection: View {
     let action: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundStyle(iconColor)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        Circle()
-                            .fill(iconColor.opacity(0.1))
-                    )
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(iconColor.opacity(0.15))
+                        .frame(width: 56, height: 56)
+                    Image(systemName: icon)
+                        .font(.system(size: 24))
+                        .foregroundStyle(iconColor)
+                }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.headline)
-
                     Text(subtitle)
-                        .font(.subheadline)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Text(summary)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
-                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.tertiary)
             }
-
-            // Summary of selected apps/categories
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(summary == "Not configured" ? Color.secondary : Color.green)
-                    .font(.system(size: 14))
-
-                Text(summary)
-                    .font(.subheadline)
-                    .foregroundStyle(summary == "Not configured" ? .secondary : .primary)
-
-                Spacer()
-            }
-            .padding(.leading, 52) // Align with title
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+            )
         }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.secondarySystemBackground))
-        )
-        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .onTapGesture {
-            action()
-        }
+        .buttonStyle(.plain)
     }
 }
 
-#Preview("Single Child") {
-    let ledger = PointsLedger()
-    let engine = PointsEngine()
-    let exemptionManager = ExemptionManager()
-    let childrenManager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager)
-    let rulesManager = CategoryRulesManager()
-
-    childrenManager.children = [ChildProfile(id: ChildID("child-1"), name: "Alice")]
-    childrenManager.selectedChildId = childrenManager.children.first?.id
-
-    return NavigationStack {
-        AppCategorizationView(childrenManager: childrenManager, rulesManager: rulesManager)
+private extension RulesSummary {
+    var learningDescription: String {
+        if learningAppsCount == 0 && learningCategoriesCount == 0 {
+            return "No learning apps selected yet"
+        }
+        var fragments: [String] = []
+        if learningAppsCount > 0 {
+            fragments.append("\(learningAppsCount) apps")
+        }
+        if learningCategoriesCount > 0 {
+            fragments.append("\(learningCategoriesCount) categories")
+        }
+        return fragments.joined(separator: ", ")
     }
-}
 
-#Preview("Multiple Children") {
-    let ledger = PointsLedger()
-    let engine = PointsEngine()
-    let exemptionManager = ExemptionManager()
-    let childrenManager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager)
-    let rulesManager = CategoryRulesManager()
-
-    childrenManager.loadDemoChildren()
-
-    return NavigationStack {
-        AppCategorizationView(childrenManager: childrenManager, rulesManager: rulesManager)
+    var rewardDescription: String {
+        if rewardAppsCount == 0 && rewardCategoriesCount == 0 {
+            return "No reward apps selected yet"
+        }
+        var fragments: [String] = []
+        if rewardAppsCount > 0 {
+            fragments.append("\(rewardAppsCount) apps")
+        }
+        if rewardCategoriesCount > 0 {
+            fragments.append("\(rewardCategoriesCount) categories")
+        }
+        return fragments.joined(separator: ", ")
     }
 }

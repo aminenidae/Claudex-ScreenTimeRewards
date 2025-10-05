@@ -13,6 +13,7 @@
 	A10000172B6D000000000001 /* ScreenTimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000162B6D000000000001 /* ScreenTimeService.swift */; };
 	A10000312B6D000000000002 /* LearningSessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000332B6D000000000002 /* LearningSessionCoordinator.swift */; };
 	A10000322B6D000000000002 /* RewardCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000342B6D000000000002 /* RewardCoordinator.swift */; };
+	A10000362B6D000000000004 /* AddChildSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000362B6D000000000003 /* AddChildSheet.swift */; };
 	A10000302B6D000000000001 /* AuthorizationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A100002F2B6D000000000001 /* AuthorizationCoordinator.swift */; };
 		A10000192B6D000000000001 /* SyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000182B6D000000000001 /* SyncService.swift */; };
 		19B34F3A9B3046EFAD7A7ABE /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A98C0711BAE449B807EB55F /* DashboardViewModel.swift */; };
@@ -43,6 +44,7 @@
 	A10000162B6D000000000001 /* ScreenTimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeService.swift; sourceTree = "<group>"; };
 	A10000332B6D000000000002 /* LearningSessionCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningSessionCoordinator.swift; sourceTree = "<group>"; };
 	A10000342B6D000000000002 /* RewardCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RewardCoordinator.swift; sourceTree = "<group>"; };
+	A10000362B6D000000000003 /* AddChildSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddChildSheet.swift; sourceTree = "<group>"; };
 	A100002F2B6D000000000001 /* AuthorizationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizationCoordinator.swift; sourceTree = "<group>"; };
 		A10000182B6D000000000001 /* SyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncService.swift; sourceTree = "<group>"; };
 		A100001B2B6D000000000001 /* ParentiOS-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "ParentiOS-Info.plist"; sourceTree = "<group>"; };
@@ -213,6 +215,7 @@
 				6075ADFFD2904E07AF741291 /* RedemptionsCard.swift */,
 				0BF4E45F21A54E7EA0FA115F /* ShieldStatusCard.swift */,
 				A1E67DA07E9E4804A4A5151A /* ExportView.swift */,
+				A10000362B6D000000000003 /* AddChildSheet.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -284,6 +287,7 @@
 				A10000302B6D000000000001 /* AuthorizationCoordinator.swift in Sources */,
 				A10000312B6D000000000002 /* LearningSessionCoordinator.swift in Sources */,
 				A10000322B6D000000000002 /* RewardCoordinator.swift in Sources */,
+				A10000362B6D000000000004 /* AddChildSheet.swift in Sources */,
 				A10000152B6D000000000001 /* PointsEngine.swift in Sources */,
 				A10000132B6D000000000001 /* AppModels.swift in Sources */,
 				A10000112B6D000000000001 /* ClaudexApp.swift in Sources */,
