@@ -1,8 +1,10 @@
 import Foundation
 import Combine
-import FamilyControls
 #if canImport(Core)
 import Core
+#endif
+#if canImport(FamilyControls)
+import FamilyControls
 #endif
 #if canImport(PointsEngine)
 import PointsEngine
@@ -35,7 +37,7 @@ class ChildrenManager: ObservableObject {
     private let exemptionManager: ExemptionManager
     private let rewardCoordinator: RewardCoordinatorProtocol?
 
-    private let storageURL: URL
+    private let storageURL: URL?
 
     // Cache of view models (one per child)
     private var viewModels: [ChildID: DashboardViewModel] = [:]
@@ -46,13 +48,19 @@ class ChildrenManager: ObservableObject {
         self.exemptionManager = exemptionManager
         self.rewardCoordinator = rewardCoordinator
 
-        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
-        self.storageURL = documents.appendingPathComponent("children.json")
-
-        loadPersistedChildren()
-
-        if selectedChildId == nil {
-            selectedChildId = children.first?.id
+        if FeatureFlags.enablesFamilyAuthorization {
+            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
+            self.storageURL = documents.appendingPathComponent("children.json")
+            loadPersistedChildren()
+            if selectedChildId == nil {
+                selectedChildId = children.first?.id
+            }
+            if children.isEmpty {
+                loadDemoChildren()
+            }
+        } else {
+            self.storageURL = nil
+            loadDemoChildren()
         }
     }
 
@@ -100,6 +108,10 @@ class ChildrenManager: ObservableObject {
     // MARK: - Child Management
 
     func addChild(named name: String) async -> Result<ChildProfile, Error> {
+        guard FeatureFlags.enablesFamilyAuthorization else {
+            return .failure(FamilyControlsError.unavailable)
+        }
+
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let displayName = trimmed.isEmpty ? "Child" : trimmed
 
@@ -135,7 +147,7 @@ class ChildrenManager: ObservableObject {
     // MARK: - Persistence
 
     private func loadPersistedChildren() {
-        guard FileManager.default.fileExists(atPath: storageURL.path) else {
+        guard let storageURL, FileManager.default.fileExists(atPath: storageURL.path) else {
             children = []
             return
         }
@@ -151,6 +163,8 @@ class ChildrenManager: ObservableObject {
     }
 
     private func persistChildren() {
+        guard let storageURL else { return }
+
         do {
             let data = try JSONEncoder().encode(children)
             try data.write(to: storageURL)

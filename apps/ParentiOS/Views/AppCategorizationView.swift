@@ -60,6 +60,17 @@ struct AppCategorizationView: View {
                         )
                         .padding(.horizontal)
 
+                        if FeatureFlags.enablesFamilyAuthorization {
+                            Button {
+                                showingAddChildSheet = true
+                            } label: {
+                                Label("Add Another Child", systemImage: "plus")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .padding(.horizontal)
+                        }
+
                         Spacer(minLength: 40)
                     }
                 }
@@ -79,14 +90,16 @@ struct AppCategorizationView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
 
-                    Button {
-                        showingAddChildSheet = true
-                    } label: {
-                        Label("Add Child", systemImage: "plus")
-                            .frame(maxWidth: .infinity)
+                    if FeatureFlags.enablesFamilyAuthorization {
+                        Button {
+                            showingAddChildSheet = true
+                        } label: {
+                            Label("Add Child", systemImage: "plus")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .padding(.horizontal, 40)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .padding(.horizontal, 40)
                 }
                 .padding()
             }
@@ -94,13 +107,15 @@ struct AppCategorizationView: View {
         .navigationTitle("App Categories")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    showingAddChildSheet = true
-                } label: {
-                    Label("Add Child", systemImage: "plus")
+            if FeatureFlags.enablesFamilyAuthorization {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingAddChildSheet = true
+                    } label: {
+                        Label("Add Child", systemImage: "plus")
+                    }
+                    .disabled(showingLearningPicker || showingRewardPicker)
                 }
-                .disabled(showingLearningPicker || showingRewardPicker)
             }
         }
         .familyActivityPicker(
@@ -112,12 +127,14 @@ struct AppCategorizationView: View {
             selection: rewardSelectionBinding
         )
         .sheet(isPresented: $showingAddChildSheet) {
-            AddChildSheet { name in
-                await childrenManager.addChild(named: name)
-            } onSuccess: { profile in
-                rulesManager.getRules(for: profile.id)
-                if let idx = childrenManager.children.firstIndex(where: { $0.id == profile.id }) {
-                    selectedChildIndex = idx
+            if FeatureFlags.enablesFamilyAuthorization {
+                AddChildSheet { name in
+                    await childrenManager.addChild(named: name)
+                } onSuccess: { profile in
+                    rulesManager.getRules(for: profile.id)
+                    if let idx = childrenManager.children.firstIndex(where: { $0.id == profile.id }) {
+                        selectedChildIndex = idx
+                    }
                 }
             }
         }
@@ -225,35 +242,5 @@ private struct CategorySection: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-private extension RulesSummary {
-    var learningDescription: String {
-        if learningAppsCount == 0 && learningCategoriesCount == 0 {
-            return "No learning apps selected yet"
-        }
-        var fragments: [String] = []
-        if learningAppsCount > 0 {
-            fragments.append("\(learningAppsCount) apps")
-        }
-        if learningCategoriesCount > 0 {
-            fragments.append("\(learningCategoriesCount) categories")
-        }
-        return fragments.joined(separator: ", ")
-    }
-
-    var rewardDescription: String {
-        if rewardAppsCount == 0 && rewardCategoriesCount == 0 {
-            return "No reward apps selected yet"
-        }
-        var fragments: [String] = []
-        if rewardAppsCount > 0 {
-            fragments.append("\(rewardAppsCount) apps")
-        }
-        if rewardCategoriesCount > 0 {
-            fragments.append("\(rewardCategoriesCount) categories")
-        }
-        return fragments.joined(separator: ", ")
     }
 }
