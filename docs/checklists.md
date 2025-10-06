@@ -50,7 +50,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [ ] Audit log entries created for settings changes
 
 ## 7) Reporting (Weekly)
-- [ ] DeviceActivityReport extension aggregates totals correctly
+- [ ] DeviceActivityReport extension aggregates totals correctly — Extension scaffolding now renders weekly minutes; awaiting entitlement data validation
 - [ ] Dashboard and report align within ±5%
 
 ## 8) Sync & Conflict Handling (CloudKit)

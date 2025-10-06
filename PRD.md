@@ -124,6 +124,7 @@ FR-08 Parent Dashboard
 
 FR-09 Weekly Reporting (DeviceActivityReport)
 - Provide weekly summaries of learning and reward usage; chart or table.
+- Extension must degrade gracefully when DeviceActivity data or shared container access is unavailable (e.g., simulator builds), surfacing a fallback message without crashing.
 
 FR-10 Multi-Parent & Audit
 - Cloud sync with last-writer-wins; audit entries for changes (who/when/what).
