@@ -10,7 +10,8 @@ final class RedemptionServiceTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        ledger = PointsLedger()
+        let auditLog = AuditLog()
+        ledger = PointsLedger(auditLog: auditLog)
         service = RedemptionService(ledger: ledger)
         childId = ChildID("test-child")
         config = RedemptionConfiguration(

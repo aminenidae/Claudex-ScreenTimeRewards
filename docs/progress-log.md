@@ -25,6 +25,23 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ## 2025-10-05 | P0-2: Shield Testing Documentation ✅
 
+---
+
+## 2025-10-05 | DeviceActivity Weekly Report + App-Group Fallback ✅
+
+### What Was Built
+- Implemented the DeviceActivity report scene (`WeeklySummaryReport`) to surface weekly learning minutes in the extension without relying on app-only views.
+- Added a lightweight SwiftUI wrapper (`WeeklyReportView`) that renders the summary and presents error messaging when DeviceActivity data cannot be fetched.
+- Updated ParentiOS bootstrap so `PointsLedger` gracefully falls back to the documents directory when the shared app-group container is unavailable (e.g., simulator builds), avoiding a launch-time crash.
+
+### Impact
+- Keeps EP-07 testing unblocked while the entitlement request is pending (extension loads and shows mocked data).
+- Ensures local development builds run without provisioning the app-group entitlement, so both Parent and Child flows remain interactive.
+
+### Follow-ups
+- Wire the report scene to real aggregated child learning vs reward breakdown once DeviceActivity metrics are available.
+- Add UI tests covering the new report card once XCTest support for extension previews stabilizes.
+
 ### What Was Built
 
 **Shield Testing Guide (docs/shield-testing-guide.md)**

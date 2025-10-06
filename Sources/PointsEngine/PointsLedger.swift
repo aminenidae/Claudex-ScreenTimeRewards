@@ -8,8 +8,20 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
     private let queue = DispatchQueue(label: "com.claudex.pointsledger", attributes: .concurrent)
     private let auditLog: AuditLogProtocol?
 
-    public init(auditLog: AuditLogProtocol? = nil) {
+    private let fileURL: URL
+
+    public init(fileURL: URL? = nil, auditLog: AuditLogProtocol? = nil) {
         self.auditLog = auditLog
+        if let fileURL = fileURL {
+            self.fileURL = fileURL
+        } else {
+            let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+            self.fileURL = paths[0].appendingPathComponent("points_ledger.json")
+        }
+
+        Task { @MainActor in
+            try? load()
+        }
     }
 
     // MARK: - Recording Transactions
@@ -132,14 +144,23 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
 
     @MainActor
     public func save() throws {
-        let data = try JSONEncoder().encode(entries)
-        try data.write(to: storageURL)
+        do {
+            let data = try JSONEncoder().encode(entries)
+            try data.write(to: fileURL)
+        } catch {
+            print("Error saving ledger: \(error)")
+        }
     }
 
     @MainActor
     public func load() throws {
-        let data = try Data(contentsOf: storageURL)
-        entries = try JSONDecoder().decode([PointsLedgerEntry].self, from: data)
+        do {
+            let data = try Data(contentsOf: fileURL)
+            entries = try JSONDecoder().decode([PointsLedgerEntry].self, from: data)
+        } catch {
+            print("Error loading ledger: \(error)")
+            entries = []
+        }
     }
 
     @MainActor

@@ -25,7 +25,14 @@ struct ParentModeView: View {
     @State private var showingPairingSheet = false
 
     init() {
-        let ledger = PointsLedger()
+        let ledger: PointsLedger
+        if let appGroupContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.ScreentimeRewards") {
+            let ledgerFileURL = appGroupContainerURL.appendingPathComponent("points_ledger.json")
+            let auditLog = AuditLog()
+            ledger = PointsLedger(fileURL: ledgerFileURL, auditLog: auditLog)
+        } else {
+            ledger = PointsLedger()
+        }
         let engine = PointsEngine()
         let exemptionManager = ExemptionManager()
         let rulesManager = CategoryRulesManager()

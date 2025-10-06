@@ -68,16 +68,6 @@ struct MultiChildDashboardView: View {
     }
 }
 
-#Preview("Multiple Children") {
-    let ledger = PointsLedger()
-    let engine = PointsEngine()
-    let exemptionManager = ExemptionManager()
-    let redemptionService = RedemptionService(ledger: ledger)
-    let manager = ChildrenManager(ledger: ledger, engine: engine, exemptionManager: exemptionManager, redemptionService: redemptionService)
-    manager.loadDemoChildren()
-    return MultiChildDashboardView(childrenManager: manager)
-}
-
 /// Child selector with horizontal scrolling buttons
 @available(iOS 16.0, *)
 struct ChildSelectorView: View {

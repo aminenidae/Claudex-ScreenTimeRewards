@@ -29,7 +29,18 @@ class ChildrenManager: ObservableObject {
     @Published var children: [ChildProfile] = [] { 
         didSet { persistChildren() } 
     }
-    @Published var selectedChildId: ChildID?
+    @Published var selectedChildId: ChildID? {
+        didSet {
+            let appGroupId = "group.com.claudex.ScreentimeRewards"
+            if let userDefaults = UserDefaults(suiteName: appGroupId) {
+                if let childId = selectedChildId {
+                    userDefaults.set(childId.rawValue, forKey: "com.claudex.pairedChildId")
+                } else {
+                    userDefaults.removeObject(forKey: "com.claudex.pairedChildId")
+                }
+            }
+        }
+    }
 
     // Shared services
     private let ledger: PointsLedger

@@ -15,18 +15,7 @@ import UIKit
 @main
 struct ClaudexScreenTimeRewardsApp: App {
     @StateObject private var authorizationCoordinator = ScreenTimeAuthorizationCoordinator()
-    @StateObject private var childrenManager = {
-        let ledger = PointsLedger()
-        let engine = PointsEngine()
-        let exemptionManager = ExemptionManager()
-        let redemptionService = RedemptionService(ledger: ledger)
-        return ChildrenManager(
-            ledger: ledger,
-            engine: engine,
-            exemptionManager: exemptionManager,
-            redemptionService: redemptionService
-        )
-    }()
+    @StateObject private var childrenManager = ClaudexScreenTimeRewardsApp.makeChildrenManager()
     @StateObject private var pairingService = PairingService()
     @State private var pendingPairingCode: String?
 
@@ -50,6 +39,32 @@ struct ClaudexScreenTimeRewardsApp: App {
 
 @available(iOS 16.0, *)
 private extension ClaudexScreenTimeRewardsApp {
+    static func makeChildrenManager() -> ChildrenManager {
+        let ledger: PointsLedger
+        let auditLog = AuditLog()
+
+        if let appGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.ScreentimeRewards") {
+            let ledgerFileURL = appGroupURL.appendingPathComponent("points_ledger.json")
+            ledger = PointsLedger(fileURL: ledgerFileURL, auditLog: auditLog)
+        } else {
+            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
+            let fallbackURL = documents.appendingPathComponent("points_ledger.json")
+            print("[Claudex] Warning: App group container unavailable; falling back to documents directory for PointsLedger persistence.")
+            ledger = PointsLedger(fileURL: fallbackURL, auditLog: auditLog)
+        }
+
+        let engine = PointsEngine()
+        let exemptionManager = ExemptionManager()
+        let redemptionService = RedemptionService(ledger: ledger)
+
+        return ChildrenManager(
+            ledger: ledger,
+            engine: engine,
+            exemptionManager: exemptionManager,
+            redemptionService: redemptionService
+        )
+    }
+
     func handleDeepLink(_ url: URL) {
         guard url.scheme?.lowercased() == "claudex" else { return }
 

@@ -7,7 +7,6 @@ struct LearningTimeCard: View {
     var body: some View {
         DashboardCard(title: "Learning Time", systemImage: "book.fill") {
             HStack(spacing: 32) {
-                // Today
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Today")
                         .font(.caption)
@@ -25,7 +24,6 @@ struct LearningTimeCard: View {
                 Divider()
                     .frame(height: 40)
 
-                // This Week
                 VStack(alignment: .leading, spacing: 4) {
                     Text("This Week")
                         .font(.caption)

@@ -96,12 +96,3 @@ struct ShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
-
-#Preview {
-    let ledger = PointsLedger()
-    let childId = ChildID("preview")
-    ledger.recordAccrual(childId: childId, points: 100, timestamp: Date())
-    ledger.recordRedemption(childId: childId, points: 50, timestamp: Date())
-
-    return ExportView(childId: childId, ledger: ledger)
-}

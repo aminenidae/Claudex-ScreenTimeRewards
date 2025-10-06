@@ -5,6 +5,9 @@ import FamilyControls
 #if canImport(Core)
 import Core
 #endif
+#if canImport(PointsEngine)
+import PointsEngine
+#endif
 
 
 
@@ -88,6 +91,9 @@ public final class ShieldController: ShieldControllerProtocol {
 import Foundation
 #if canImport(Core)
 import Core
+#endif
+#if canImport(PointsEngine)
+import PointsEngine
 #endif
 
 

@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// Reusable card container for dashboard components
 struct DashboardCard<Content: View>: View {
     let title: String
     let systemImage: String?
@@ -18,7 +17,6 @@ struct DashboardCard<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header
             HStack {
                 if let systemImage = systemImage {
                     Label(title, systemImage: systemImage)
@@ -32,7 +30,6 @@ struct DashboardCard<Content: View>: View {
                 Spacer()
             }
 
-            // Content
             content
         }
         .padding()

@@ -9,6 +9,7 @@ public protocol ExemptionManagerProtocol {
     func extendExemption(for childId: ChildID, additionalSeconds: TimeInterval, maxTotalMinutes: Int) -> EarnedTimeWindow?
     func cancelExemption(for childId: ChildID)
     func restoreFromPersistence()
+    func getAllActiveWindows() -> [EarnedTimeWindow]
 }
 
 public final class ExemptionManager: ExemptionManagerProtocol {
@@ -101,6 +102,10 @@ public final class ExemptionManager: ExemptionManagerProtocol {
         activeWindows[childId] = nil
         expiryCallbacks[childId] = nil
         save()
+    }
+
+    public func getAllActiveWindows() -> [EarnedTimeWindow] {
+        Array(activeWindows.values)
     }
 
     // MARK: - Timer Management

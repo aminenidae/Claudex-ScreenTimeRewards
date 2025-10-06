@@ -1,5 +1,13 @@
+#if canImport(BackgroundTasks) && !os(macOS)
 import Foundation
 import BackgroundTasks
+
+#if canImport(PointsEngine)
+import PointsEngine
+#else
+protocol ExemptionManagerProtocol {}
+protocol ShieldControllerProtocol {}
+#endif
 
 public enum BackgroundTaskIdentifier: String {
     case exemptionCheck = "com.claudex.app.exemptionCheck"
@@ -52,3 +60,4 @@ public class BackgroundTasks {
         task.setTaskCompleted(success: true)
     }
 }
+#endif

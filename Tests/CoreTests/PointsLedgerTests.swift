@@ -10,6 +10,7 @@ final class PointsLedgerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         auditLog = MockAuditLog()
+        let auditLog = AuditLog()
         ledger = PointsLedger(auditLog: auditLog)
         childId = ChildID("test-child-456")
     }
@@ -171,7 +172,8 @@ final class PointsLedgerTests: XCTestCase {
 
     func testSaveAndLoad() throws {
         // Use fresh ledgers to avoid test interference
-        let saveLedger = PointsLedger()
+        let auditLog = AuditLog()
+        let saveLedger = PointsLedger(auditLog: auditLog)
         saveLedger.recordAccrual(childId: childId, points: 100)
         saveLedger.recordRedemption(childId: childId, points: 30)
 
@@ -180,7 +182,8 @@ final class PointsLedgerTests: XCTestCase {
 
         try saveLedger.save()
 
-        let loadLedger = PointsLedger()
+        let auditLog = AuditLog()
+        let loadLedger = PointsLedger(auditLog: auditLog)
         try loadLedger.load()
 
         XCTAssertEqual(loadLedger.getBalance(childId: childId), 70)
