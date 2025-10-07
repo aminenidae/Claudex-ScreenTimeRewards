@@ -15,6 +15,7 @@ struct PairingCodeView: View {
     @State private var timeRemaining: TimeInterval = 0
     @State private var isExpired = false
     @State private var isGenerating = false
+    @State private var isSyncing = false
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -65,11 +66,82 @@ struct PairingCodeView: View {
             .onReceive(timer) { _ in
                 updateTimeRemaining()
             }
-            .onAppear(perform: loadActiveCode)
+            .onAppear(perform: onAppear)
             .onReceive(pairingService.objectWillChange) { _ in
                 loadActiveCode()
             }
         }
+    }
+
+    // MARK: - Lifecycle
+
+    private func onAppear() {
+        loadActiveCode()
+        Task {
+            await syncWithCloudKit()
+        }
+    }
+
+    private func syncWithCloudKit() async {
+        #if canImport(CloudKit)
+        guard !isSyncing else { 
+            print("Parent device: Sync already in progress, skipping")
+            return 
+        }
+        isSyncing = true
+        defer { 
+            isSyncing = false
+            print("Parent device: Finished CloudKit sync attempt")
+        }
+
+        do {
+            // Use the same family ID as the child device
+            let familyId = FamilyID("default-family")
+            print("Parent device: Attempting to sync pairing codes with CloudKit for family: \(familyId)")
+            
+            // First, try to fetch the family record to verify CloudKit is working
+            if let syncService = pairingService.syncService as? SyncService {
+                print("Parent device: Testing CloudKit connectivity...")
+                do {
+                    let family = try await syncService.fetchFamily(id: familyId)
+                    print("Parent device: Successfully fetched family record: \(family)")
+                } catch {
+                    print("Parent device: Failed to fetch family record: \(error)")
+                }
+            }
+
+            try await pairingService.syncWithCloudKit(familyId: familyId)
+            print("Parent device: Successfully synced pairing codes with CloudKit")
+            
+            // Add a small delay to ensure sync completes
+            print("Parent device: Waiting for sync to settle...")
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            
+            await MainActor.run {
+                loadActiveCode()
+            }
+        } catch let error as SyncError {
+            print("Parent device: CloudKit sync failed with SyncError: \(error)")
+            switch error {
+            case .notAuthenticated:
+                print("Parent device: iCloud not authenticated. Please check iCloud settings.")
+            case .networkUnavailable:
+                print("Parent device: Network unavailable. Please check internet connection.")
+            case .quotaExceeded:
+                print("Parent device: iCloud quota exceeded.")
+            case .serverError(let message):
+                print("Parent device: CloudKit server error: \(message)")
+            case .conflictResolutionFailed:
+                print("Parent device: Conflict resolution failed.")
+            case .invalidRecord(let message):
+                print("Parent device: Invalid record: \(message)")
+            }
+        } catch {
+            print("Parent device: CloudKit sync failed with unexpected error: \(error)")
+        }
+        #else
+        print("Parent device: CloudKit not available, skipping CloudKit sync")
+        #endif
     }
 
     // MARK: - Sections
@@ -95,6 +167,18 @@ struct PairingCodeView: View {
             }
             .padding(.horizontal)
             .disabled(isGenerating)
+
+            #if canImport(CloudKit)
+            if isSyncing {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Syncing with CloudKit...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            #endif
         }
     }
 
@@ -194,16 +278,29 @@ struct PairingCodeView: View {
     }
 
     private func generateCode() {
-        guard !isGenerating else { return }
+        guard !isGenerating else { 
+            print("Parent device: Code generation already in progress, skipping")
+            return 
+        }
         isGenerating = true
-        defer { isGenerating = false }
+        defer { 
+            isGenerating = false
+            print("Parent device: Finished code generation attempt")
+        }
 
         do {
             let code = try pairingService.generatePairingCode(for: childId, ttlMinutes: 15)
+            print("Parent device: Generated new pairing code: \(code.code) for child: \(childId)")
             pairingCode = code
             isExpired = false
             updateTimeRemaining()
+            
+            // Sync the new code with CloudKit
+            Task {
+                await syncWithCloudKit()
+            }
         } catch {
+            print("Parent device: Failed to generate pairing code: \(error)")
             self.error = error
         }
     }

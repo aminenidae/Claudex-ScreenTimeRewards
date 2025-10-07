@@ -31,7 +31,7 @@ class ChildrenManager: ObservableObject {
     }
     @Published var selectedChildId: ChildID? {
         didSet {
-            let appGroupId = "group.com.claudex.ScreentimeRewards"
+            let appGroupId = "group.com.claudex.screentimerewards"
             if let userDefaults = UserDefaults(suiteName: appGroupId) {
                 if let childId = selectedChildId {
                     userDefaults.set(childId.rawValue, forKey: "com.claudex.pairedChildId")

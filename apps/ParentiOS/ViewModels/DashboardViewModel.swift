@@ -177,7 +177,7 @@ class DashboardViewModel: ObservableObject {
 
 extension DashboardViewModel {
     static func mock(childId: ChildID = ChildID("preview-child")) -> DashboardViewModel {
-        guard let appGroupContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.ScreentimeRewards") else {
+        guard let appGroupContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.screentimerewards") else {
             fatalError("Failed to get app group container URL.")
         }
         let ledgerFileURL = appGroupContainerURL.appendingPathComponent("points_ledger.json")

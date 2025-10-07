@@ -145,6 +145,8 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
     @MainActor
     public func save() throws {
         do {
+            let directory = fileURL.deletingLastPathComponent()
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let data = try JSONEncoder().encode(entries)
             try data.write(to: fileURL)
         } catch {
@@ -158,8 +160,15 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
             let data = try Data(contentsOf: fileURL)
             entries = try JSONDecoder().decode([PointsLedgerEntry].self, from: data)
         } catch {
-            print("Error loading ledger: \(error)")
-            entries = []
+            if let nsError = error as NSError?,
+               nsError.domain == NSCocoaErrorDomain,
+               nsError.code == NSFileReadNoSuchFileError {
+                entries = []
+                try? save()
+            } else {
+                print("Error loading ledger: \(error)")
+                entries = []
+            }
         }
     }
 

@@ -26,7 +26,7 @@ struct ParentModeView: View {
 
     init() {
         let ledger: PointsLedger
-        if let appGroupContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.ScreentimeRewards") {
+        if let appGroupContainerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.screentimerewards") {
             let ledgerFileURL = appGroupContainerURL.appendingPathComponent("points_ledger.json")
             let auditLog = AuditLog()
             ledger = PointsLedger(fileURL: ledgerFileURL, auditLog: auditLog)
