@@ -46,15 +46,6 @@ struct DashboardView: View {
         .onDisappear {
             viewModel.stopAutoRefresh()
         }
-        .sheet(isPresented: $showingRedemptionSheet) {
-            if let redemptionCoordinator = redemptionCoordinator {
-                ChildRedemptionView(
-                    redemptionCoordinator: redemptionCoordinator,
-                    pointsBalance: viewModel.balance,
-                    config: .default
-                )
-            }
-        }
     }
 
     @ViewBuilder

@@ -4,6 +4,26 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-06 | CloudKit Pairing Sync & Unlink Hardening ✅
+
+### What Was Built
+- **CloudKit upsert for pairing codes**: `SyncService.savePairingCode` now fetches existing records and performs a modify call, eliminating `Server Record Changed` errors when a child re-syncs an already uploaded code.
+- **Pairing record deletion**: Added `PairingSyncServiceProtocol.deletePairingCode` plus a CloudKit implementation so unlinking removes the corresponding record from the public database.
+- **Child unlink UX**: Replaced the confirmation dialog with an alert-driven flow, stabilized device identifier persistence, and added logging to trace button taps, confirmations, and unlink success/error states.
+- **Entitlements alignment**: Parent/child targets now both declare the shared app group and CloudKit container, unblocking on-device CloudKit testing.
+
+### Validation
+- Parent ↔ child manual test: generate → sync → pair → unlink on real devices; parent re-sync shows zero active codes and CloudKit dashboard confirms record removal.
+- Re-link regression: immediate re-pair succeeds, confirming that unlink clears local persistence and remote records.
+- Console logs capture each unlink step, aiding future QA runs.
+
+### Impact on Checklists/PRD
+- Checklist “Family Controls entitlement profile present” marked complete; pairing sync baseline noted under EP-06.
+- PRD FR-03 (Child Pairing) updated with CloudKit sync/unlink acceptance criteria and new last-updated date.
+- Sets the stage for EP-13 Child Mode dashboard implementation.
+
+---
+
 ## 2025-10-05 | P0-4: Parent↔Child Pairing Flow ✅
 
 ### What Was Built

@@ -43,10 +43,10 @@ class ChildrenManager: ObservableObject {
     }
 
     // Shared services
-    private let ledger: PointsLedger
-    private let engine: PointsEngine
-    private let exemptionManager: ExemptionManager
-    private let redemptionService: RedemptionServiceProtocol
+    let ledger: PointsLedger
+    let engine: PointsEngine
+    let exemptionManager: ExemptionManager
+    let redemptionService: RedemptionServiceProtocol
 
     private let storageURL: URL?
 

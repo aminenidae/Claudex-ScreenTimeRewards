@@ -19,7 +19,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [ ] P1-2: Paywall (if included) purchase/restore flows validated
 
 ## 2) Authorization & Entitlements
-- [ ] Family Controls entitlement profile present in build settings
+- [x] Family Controls entitlement profiles present in build settings (parent + child targets)
 - [ ] Authorization request shown behind parental gate
 - [ ] Denied/revoked states are handled with clear recovery instructions
 - [ ] Child addition uses Apple system UI (no programmatic roster access)
@@ -45,7 +45,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 
 ## 6) Pairing & Multi-Parent
 - [ ] Parent adds a child context via system UI (repeatable)
-- [x] Parent↔Child pairing via code/deep link works; re-pair supported — Verified with new PairingService flows and child linking UI
+- [x] Parent↔Child pairing via code/deep link works; re-pair supported — Verified with new PairingService flows, CloudKit upsert/delete, and child linking UI
 - [ ] Parent A and Parent B changes sync within 2s online
 - [ ] Audit log entries created for settings changes
 

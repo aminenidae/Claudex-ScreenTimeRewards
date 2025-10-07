@@ -222,61 +222,77 @@ struct ChildModeView: View {
 
     private func pairedContent(for pairing: ChildDevicePairing) -> some View {
         let childProfile = childrenManager.children.first { $0.id == pairing.childId }
-
-        return ScrollView {
-            VStack(spacing: 24) {
-                Image(systemName: "person.fill.checkmark")
-                    .font(.system(size: 64))
-                    .foregroundStyle(.green)
-
-                Text("Device Linked")
-                    .font(.title)
-                    .fontWeight(.semibold)
-
-                if let childProfile {
-                    Text("You're paired as \(childProfile.name)")
-                        .font(.headline)
-                } else {
-                    Text("Paired child ID: \(pairing.childId.rawValue)")
-                        .font(.headline)
-                }
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Label("Device ID", systemImage: "iphone")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text(pairing.deviceId)
-                        .font(.footnote)
-                        .textSelection(.enabled)
-
-                    Label("Paired", systemImage: "clock")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Text(pairing.pairedAt.formatted(date: .abbreviated, time: .shortened))
-                        .font(.footnote)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(.secondarySystemBackground))
+        
+        return Group {
+            if let childProfile = childProfile {
+                ChildModeHomeView(
+                    childProfile: childProfile,
+                    ledger: childrenManager.ledger,
+                    exemptionManager: childrenManager.exemptionManager,
+                    redemptionService: childrenManager.redemptionService,
+                    onUnlinkRequest: {
+                        alertContext = .confirmUnlink
+                    }
                 )
-                .padding(.horizontal)
-
-                Button(role: .destructive) {
-                    print("Child Mode: unlink button tapped (primary)")
-                    alertContext = .confirmUnlink
-                } label: {
-                    Label("Unlink Device", systemImage: unlinkIconName)
-                        .font(.headline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Unlink") {
+                            alertContext = .confirmUnlink
+                        }
+                    }
                 }
-                .buttonStyle(.borderedProminent)
+            } else {
+                // Fallback to original view if child profile not found
+                ScrollView {
+                    VStack(spacing: 24) {
+                        Image(systemName: "person.fill.checkmark")
+                            .font(.system(size: 64))
+                            .foregroundStyle(.green)
 
-                Spacer(minLength: 20)
+                        Text("Device Linked")
+                            .font(.title)
+                            .fontWeight(.semibold)
+
+                        Text("Paired child ID: \(pairing.childId.rawValue)")
+                            .font(.headline)
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label("Device ID", systemImage: "iphone")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            Text(pairing.deviceId)
+                                .font(.footnote)
+                                .textSelection(.enabled)
+
+                            Label("Paired", systemImage: "clock")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            Text(pairing.pairedAt.formatted(date: .abbreviated, time: .shortened))
+                                .font(.footnote)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.secondarySystemBackground))
+                        )
+                        .padding(.horizontal)
+
+                        Button(role: .destructive) {
+                            alertContext = .confirmUnlink
+                        } label: {
+                            Label("Unlink Device", systemImage: unlinkIconName)
+                                .font(.headline)
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        Spacer(minLength: 20)
+                    }
+                    .padding(.vertical, 32)
+                }
             }
-            .padding(.vertical, 32)
         }
     }
 

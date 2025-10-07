@@ -6,7 +6,7 @@ Version: 1.0 (MVP)
 
 Owners: Product + Engineering
 
-Last Updated: 2025-10-05
+Last Updated: 2025-10-06
 
 ## 1. Overview
 
@@ -52,7 +52,7 @@ US-02 Add Child via System UI
 
 US-03 Child Pairing (App Instance)
 - As a parent/child, we can pair the child’s device app instance with the authorized child context (code or deep link).
-- Acceptance: Pairing completes under 2 minutes; incorrect code is handled; revocation supported.
+- Acceptance: Pairing completes under 2 minutes; incorrect code is handled; revocation supported; unlink removes CloudKit pairing record and local cache.
 
 US-04 App Categorization
 - As a parent, I can label apps as “learning” or “reward,” including category-based defaults and manual overrides.
@@ -100,6 +100,7 @@ FR-03 Pairing Flow
 - Parents generate six-digit pairing codes (default 15-minute TTL, rate limited) or share deep links to associate a child app instance.
 - Child mode accepts prefilled codes/deep links and guides through <2 minute pairing, including auto-submit when all digits entered.
 - Support re-pairing, revocation, and device-local persistence of the active pairing.
+- CloudKit mirrors code lifecycle: upload on generation, mark used on consumption, and delete on unlink without surfacing server-conflict errors.
 
 FR-04 App Categorization & Rules
 - Category defaults for “learning” and “reward”; manual overrides per app.
