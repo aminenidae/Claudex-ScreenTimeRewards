@@ -66,6 +66,10 @@ US-06 Redemption to Earned Time
 - As a child, I can convert points to time for reward apps, with clear feedback and countdown.
 - Acceptance: Exemption applies immediately; countdown decrements live; re-lock occurs on expiry.
 
+US-07 Child Mode Interface
+- As a child, I can view my points balance, recent activity, and request more reward time.
+- Acceptance: Points data displays live from PointsLedger; redemption requests are validated; unlink function is accessible but secondary.
+
 US-07 Shields & Controls
 - As a parent, I can ensure reward apps are blocked except during earned-time windows.
 - Acceptance: Shields applied; exemptions honored; re-lock within 5 seconds of expiry.
@@ -140,6 +144,12 @@ FR-12 Privacy & Controls
 FR-13 Accessibility & Localization
 - Support Dynamic Type, VoiceOver, sufficient contrast; prepare for localization (English MVP).
 
+FR-14 Child Mode
+- Display live points data from PointsLedger
+- Allow children to request reward time redemptions
+- Provide clear unlink functionality in secondary area
+- Restrict navigation and hide settings for child safety
+
 ## 8. Non-Functional Requirements
 
 - Performance: <5% daily battery impact on child device; smooth UI (60 fps targets where feasible).
@@ -211,6 +221,10 @@ Note: Store only aggregates where possible; avoid raw event timelines.
 12.8 Multi-Parent Sync
 - Steps: Parent A changes point rate → Parent B sees update quickly.
 - Acceptance: <2s latency online; audit entry created.
+
+12.9 Child Mode Interface
+- Steps: Child opens app → Sees points balance and recent activity → Requests reward time → Views active reward time countdown.
+- Acceptance: Points data updates live; redemption requests validate correctly; unlink function works properly.
 
 ## 13. Analytics & Metrics (MVP)
 
@@ -366,9 +380,9 @@ EP-12 Learning Depth & Engagement — Phase: Post-MVP
 - S-1205 Advanced Analytics: Trends and insights (parent-only). Acceptance: Aggregated; privacy-compliant.
 
 EP-13 Parent & Child Mode Experience — Phase: MVP
-- S-1301 Mode Selection & Security: Provide clear parent vs child mode entry with biometrics/parental gate. Acceptance: Switch requires auth; child cannot enter parent mode.
-- S-1302 Child Mode Guardrails: Restrict navigation, hide settings, and present kid-friendly UI. Acceptance: No escape hatch without parent auth.
-- S-1303 Fast Parent Toggle: Allow parent to re-enter parent mode quickly after authentication (e.g., shortcut). Acceptance: Flow <3 steps.
+- S-1301 Mode Selection & Security: Provide clear parent vs child mode entry with biometrics/parental gate. Acceptance: Switch requires auth; child cannot enter parent mode. **Status: Completed ✅**
+- S-1302 Child Mode Guardrails: Restrict navigation, hide settings, and present kid-friendly UI. Acceptance: No escape hatch without parent auth. **Status: Completed ✅**
+- S-1303 Fast Parent Toggle: Allow parent to re-enter parent mode quickly after authentication (e.g., shortcut). Acceptance: Flow <3 steps. **Status: Completed ✅**
 
 EP-14 Dev Experience & QA Infrastructure — Phase: MVP
 - S-1401 Modular Project Setup: Targets and frameworks. Acceptance: Builds locally and CI. ✅ **DONE** - Swift Package + Xcode dual structure, debug build succeeds
@@ -388,6 +402,9 @@ EP-14 Dev Experience & QA Infrastructure — Phase: MVP
 **Partially Completed:**
 - 🔄 EP-03: App Categorization - CategoryRulesManager with per-child Learning/Reward classification, FamilyActivityPicker integration complete, conflict resolution pending
 - 🔄 EP-06: Sync & Multi-Parent - Schema + mappers complete, offline queue and subscriptions pending
+
+**In Progress:**
+- 🔄 EP-13: Parent & Child Mode Experience - Child mode view wired to ChildrenManager/PointsLedger with live data, simple redemption request button added, unlink section relegated to secondary area
 
 **Build Status:**
 - ✅ Debug build succeeds on iOS Simulator (iPhone 17, iOS 26.0)

@@ -10,10 +10,13 @@ Reward-based screen time management for families using Apple Screen Time APIs.
 - See CloudKit schema draft: `docs/data-model.md`
 - Planning board guide: `docs/planning.md`
 - Story inventory (CSV): `docs/stories.csv`
+- Track implementation progress: `docs/progress-log.md`
 
 ## Platforms
 
 - Universal iOS/iPadOS 16+ app with parent and child modes
+- Child mode displays live points data and allows reward time requests
+- Parent mode provides configuration and management interface
 
 ## Planning Helpers
 

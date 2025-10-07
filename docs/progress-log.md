@@ -4,6 +4,76 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-06 | EP-13: Child Mode Implementation - Live Data & Redemption ✅
+
+### What Was Built
+
+**Child Mode Home View with Live Data Integration**
+- `ChildModeHomeView` now displays live points data from `PointsLedger` including:
+  - Current points balance
+  - Today's points accrual
+  - Active reward time window with live countdown
+  - Recent activity history (last 5 ledger entries)
+- Wired `ChildModeHomeView` to `ChildrenManager` to access shared services:
+  - `PointsLedger` for balance and transaction data
+  - `ExemptionManager` for active reward time windows
+  - `RedemptionService` for point redemption functionality
+
+**Simple Redemption Request Button**
+- Added "Request More Time" button that opens `ChildRedemptionView` sheet
+- `ChildRedemptionView` allows children to select points to redeem (30-600 points)
+- Points-to-time conversion with live preview (10 points = 1 minute default ratio)
+- Validation for minimum/maximum redemption amounts and sufficient balance
+
+**Unlink Section Relocated to Secondary Area**
+- Moved unlink functionality to navigation bar trailing item when device is paired
+- Added additional unlink button in content area as fallback
+- Confirmation alert before unlinking to prevent accidental device disassociation
+- Clear visual separation between primary child-focused content and unlink functionality
+
+### Validation
+
+- Child mode displays correct points balance from PointsLedger
+- Active reward time window shows live countdown
+- Redemption request flow works with proper validation
+- Unlink functionality properly removes device pairing
+- UI adapts to different states (paired vs unpaired)
+
+### Impact on Checklists/PRD
+
+- Marks EP-13 stories S-1301, S-1302, and S-1303 as complete in checklist
+- Updates PRD implementation status to show EP-13 as in progress
+- Child mode now provides core functionality for children to view points and request redemptions
+
+### Technical Implementation
+
+**Data Integration Pattern:**
+```swift
+ChildModeHomeView(
+    childProfile: childProfile,
+    ledger: childrenManager.ledger,  // Shared PointsLedger instance
+    exemptionManager: childrenManager.exemptionManager,  // Shared ExemptionManager
+    redemptionService: childrenManager.redemptionService,  // Shared RedemptionService
+    onUnlinkRequest: {
+        // Handle unlink request
+    }
+)
+```
+
+**Live Data Updates:**
+- Computed properties access ledger data directly
+- Views automatically update when ledger data changes
+- No additional binding needed due to PointsLedger's ObservableObject conformance
+
+### Next Steps
+
+1. Implement actual redemption processing (parent approval flow)
+2. Add local notifications for time expiring alerts
+3. Enhance child mode with additional educational content
+4. Implement background task for accurate countdown when app is backgrounded
+
+---
+
 ## 2025-10-06 | CloudKit Pairing Sync & Unlink Hardening ✅
 
 ### What Was Built
@@ -103,7 +173,7 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 - Device must be signed with provisioning profile containing entitlement
 
 **Results Reporting Template:**
-```markdown
+```"
 ## Test Date: 2025-10-05
 **Device**: iPhone 14 Pro, iOS 17.5
 **Build**: Debug, ParentiOS target

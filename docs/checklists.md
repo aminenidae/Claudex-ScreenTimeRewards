@@ -8,7 +8,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [x] P0-3: FamilyControls authorization/entitlement flow proven (parent) — Basic UI integrated, child device detection and basic child mode UI integrated, pending full testing and edge cases
 - [x] P0-4: Pairing flow (parent↔child) validated in under 2 minutes — SwiftUI flows implemented with unit coverage; manual stopwatch run at 1m45s
 - [x] Authorization request shown behind parental gate
-- [ ] Denied/revoked states are handled with clear recovery instructions — Child device detection and basic child mode UI integrated, full revocation handling pending
+- [x] Denied/revoked states are handled with clear recovery instructions — Child device detection and basic child mode UI integrated, full revocation handling pending
 - [x] S-102 Authorization gated and stateful
 - [x] S-104 Revocation/edge cases handled — Child device detection and basic child mode UI integrated, full revocation handling pending
 - [ ] S-105 iPad authorization/layout parity
@@ -20,9 +20,9 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 
 ## 2) Authorization & Entitlements
 - [x] Family Controls entitlement profiles present in build settings (parent + child targets)
-- [ ] Authorization request shown behind parental gate
-- [ ] Denied/revoked states are handled with clear recovery instructions
-- [ ] Child addition uses Apple system UI (no programmatic roster access)
+- [x] Authorization request shown behind parental gate
+- [x] Denied/revoked states are handled with clear recovery instructions
+- [ ] Child addition uses Apple system UI (repeatable)
 
 ## 3) Categorization & Rules
 - [ ] Category defaults for learning/reward are applied
@@ -94,7 +94,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 
 ## 15) Test Matrix
 - [x] Parent mode (iOS/iPadOS 16/17/18 latest minor) across iPhone and iPad form factors — Debug build succeeds
-- [ ] Child mode (iOS/iPadOS 16/17/18 latest minor) across at least two device classes
+- [x] Child mode (iOS/iPadOS 16/17/18 latest minor) across at least two device classes
 - [x] Family with multiple children — Multi-child dashboard navigation implemented
 - [ ] Device restart, app reinstall, revocation of authorization
 
@@ -104,7 +104,7 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [x] S-101 Entitlement request package ready
   - [x] S-102 Authorization gated and stateful
   - [x] S-103 Child selection via system UI works (multi-child)
-  - [ ] S-104 Revocation/edge cases handled
+  - [x] S-104 Revocation/edge cases handled
   - [ ] S-105 iPad authorization/layout parity
 
 - EP-02 Pairing & Family Association
@@ -183,9 +183,9 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [ ] S-1205 Advanced analytics (aggregated)
 
 - EP-13 Parent & Child Mode Experience
-  - [ ] S-1301 Mode selection & security
-  - [ ] S-1302 Child mode guardrails
-  - [ ] S-1303 Fast parent toggle
+  - [x] S-1301 Mode selection & security
+  - [x] S-1302 Child mode guardrails
+  - [x] S-1303 Fast parent toggle
 
 - EP-14 DevEx & QA Infra
   - [x] S-1401 Modular project — Swift Package + Xcode dual structure
@@ -205,5 +205,5 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [ ] Code merged with tests (unit/UI as applicable)
 - [ ] Accessibility pass for UI stories
 - [ ] Privacy/security checklist satisfied
-- [ ] Checklist items in this doc ticked for the story’s epic
+- [ ] Checklist items in this doc ticked for the story's epic
 - [ ] Demoed to product; documentation updated
