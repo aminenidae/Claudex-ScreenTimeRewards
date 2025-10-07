@@ -18,6 +18,7 @@ struct ChildLinkingView: View {
     @State private var error: Error?
     @State private var focusedIndex: Int
     @State private var shouldAutoSubmit: Bool
+    @State private var isSyncing = false
 
     var body: some View {
         VStack(spacing: 32) {
@@ -59,8 +60,22 @@ struct ChildLinkingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
-            .padding(.bottom, 32)
+            
+            // Sync status
+            #if canImport(CloudKit)
+            if isSyncing {
+                HStack {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                    Text("Syncing with CloudKit...")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            #endif
+            
         }
+        .padding(.bottom, 32)
         .padding()
         .navigationTitle("Link Device")
         .navigationBarTitleDisplayMode(.inline)
@@ -86,6 +101,9 @@ struct ChildLinkingView: View {
         }
         .onAppear {
             autoSubmitIfNeeded()
+            Task {
+                await syncWithCloudKit()
+            }
         }
     }
 
@@ -145,16 +163,97 @@ struct ChildLinkingView: View {
         }
     }
 
+    private func syncWithCloudKit() async {
+        #if canImport(CloudKit)
+        guard !isSyncing else { 
+            print("Child device: Sync already in progress, skipping")
+            return 
+        }
+        isSyncing = true
+        defer { 
+            isSyncing = false
+            print("Child device: Finished CloudKit sync attempt")
+        }
+
+        do {
+            // Use the same family ID as the parent device
+            let familyId = FamilyID("default-family")
+            print("Child device: Attempting to sync pairing codes with CloudKit for family: \(familyId)")
+            
+            // First, try to fetch the family record to verify CloudKit is working
+            if let syncService = pairingService.syncService as? SyncService {
+                print("Child device: Testing CloudKit connectivity...")
+                do {
+                    let family = try await syncService.fetchFamily(id: familyId)
+                    print("Child device: Successfully fetched family record: \(family)")
+                } catch {
+                    print("Child device: Failed to fetch family record: \(error)")
+                }
+            }
+            
+            try await pairingService.syncWithCloudKit(familyId: familyId)
+            print("Child device: Successfully synced pairing codes with CloudKit")
+            
+            // Add a small delay to ensure sync completes
+            print("Child device: Waiting for sync to settle...")
+            try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+            
+            // Print available codes after sync
+            await MainActor.run {
+                print("Child device: Available codes after sync: \(pairingService.activeCodes.keys)")
+                if pairingService.activeCodes.isEmpty {
+                    print("Child device: No pairing codes are currently available after sync. If this device is already paired, this is expected.")
+                }
+            }
+        } catch let error as SyncError {
+            print("Child device: CloudKit sync failed with SyncError: \(error)")
+            switch error {
+            case .notAuthenticated:
+                print("Child device: iCloud not authenticated. Please check iCloud settings.")
+            case .networkUnavailable:
+                print("Child device: Network unavailable. Please check internet connection.")
+            case .quotaExceeded:
+                print("Child device: iCloud quota exceeded.")
+            case .serverError(let message):
+                print("Child device: CloudKit server error: \(message)")
+            case .conflictResolutionFailed:
+                print("Child device: Conflict resolution failed.")
+            case .invalidRecord(let message):
+                print("Child device: Invalid record: \(message)")
+            }
+        } catch {
+            print("Child device: CloudKit sync failed with unexpected error: \(error)")
+        }
+        #else
+        print("Child device: CloudKit not available, skipping CloudKit sync")
+        #endif
+    }
+
     private func submitCode() {
-        guard isCodeComplete else { return }
+        guard isCodeComplete else { 
+            print("Child device: Code not complete, skipping submission")
+            return 
+        }
 
         isLoading = true
+        print("Child device: Attempting to submit pairing code: \(enteredCode)")
 
         Task {
+            // Add a small delay to ensure any ongoing sync completes
+            print("Child device: Waiting briefly to ensure sync completion...")
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
+            
             do {
                 let deviceId = await getDeviceIdentifier()
+                print("Child device: Attempting to pair with code: \(enteredCode) for device: \(deviceId)")
+                
+                // First, let's check what codes are available locally
+                await MainActor.run {
+                    print("Child device: Available local codes before consumption attempt: \(pairingService.activeCodes.keys)")
+                }
+                
                 let pairing = try await MainActor.run {
-                    try pairingService.consumePairingCode(enteredCode, deviceId: deviceId)
+                    return try pairingService.consumePairingCode(enteredCode, deviceId: deviceId)
                 }
 
                 // Store pairing locally
@@ -163,9 +262,11 @@ struct ChildLinkingView: View {
                 // Success
                 await MainActor.run {
                     isLoading = false
+                    print("Child device: Successfully paired with code \(enteredCode)")
                     onPairingComplete(pairing)
                 }
             } catch {
+                print("Child device: Pairing failed with error: \(error)")
                 await MainActor.run {
                     isLoading = false
                     self.error = error

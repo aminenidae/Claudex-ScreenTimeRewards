@@ -17,6 +17,9 @@ struct ClaudexScreenTimeRewardsApp: App {
     @StateObject private var authorizationCoordinator = ScreenTimeAuthorizationCoordinator()
     @StateObject private var childrenManager = ClaudexScreenTimeRewardsApp.makeChildrenManager()
     @StateObject private var pairingService = PairingService()
+    #if canImport(CloudKit)
+    @StateObject private var syncService = SyncService()
+    #endif
     @State private var pendingPairingCode: String?
 
     var body: some Scene {
@@ -26,8 +29,18 @@ struct ClaudexScreenTimeRewardsApp: App {
                     .environmentObject(authorizationCoordinator)
                     .environmentObject(childrenManager)
                     .environmentObject(pairingService)
+                    #if canImport(CloudKit)
+                    .environmentObject(syncService)
+                    #endif
                     .onOpenURL { url in
                         handleDeepLink(url)
+                    }
+                    .task {
+                        #if canImport(CloudKit)
+                        // Connect pairing service with sync service
+                        print("Connecting pairing service with sync service")
+                        pairingService.setSyncService(syncService)
+                        #endif
                     }
             } else {
                 Text("iOS 16 or newer is required.")
@@ -43,7 +56,7 @@ private extension ClaudexScreenTimeRewardsApp {
         let ledger: PointsLedger
         let auditLog = AuditLog()
 
-        if let appGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.ScreentimeRewards") {
+        if let appGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.screentimerewards") {
             let ledgerFileURL = appGroupURL.appendingPathComponent("points_ledger.json")
             ledger = PointsLedger(fileURL: ledgerFileURL, auditLog: auditLog)
         } else {
@@ -144,18 +157,25 @@ struct ChildModeView: View {
     @Binding var pendingPairingCode: String?
 
     @State private var currentPairing: ChildDevicePairing?
-    @State private var revokeError: Error?
-    @State private var showingUnlinkConfirmation = false
+    @State private var alertContext: AlertContext?
 
     private let deviceId: String
 
     init(pendingPairingCode: Binding<String?>) {
         self._pendingPairingCode = pendingPairingCode
-        #if canImport(UIKit)
-        self.deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
-        #else
-        self.deviceId = ProcessInfo.processInfo.globallyUniqueString
-        #endif
+        let defaults = UserDefaults.standard
+
+        if let storedDeviceId = defaults.string(forKey: "com.claudex.deviceId") {
+            self.deviceId = storedDeviceId
+        } else {
+            #if canImport(UIKit)
+            let resolvedId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+            #else
+            let resolvedId = ProcessInfo.processInfo.globallyUniqueString
+            #endif
+            self.deviceId = resolvedId
+            defaults.set(resolvedId, forKey: "com.claudex.deviceId")
+        }
     }
 
     var body: some View {
@@ -166,25 +186,18 @@ struct ChildModeView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if currentPairing != nil {
                         Button("Unlink") {
-                            showingUnlinkConfirmation = true
+                            print("Child Mode: unlink button tapped (toolbar)")
+                            alertContext = .confirmUnlink
                         }
                     }
                 }
             }
-            .confirmationDialog("Unlink device?", isPresented: $showingUnlinkConfirmation, titleVisibility: .visible) {
-                Button("Unlink Device", role: .destructive) {
-                    unlinkDevice()
-                }
-                Button("Cancel", role: .cancel) { showingUnlinkConfirmation = false }
-            }
-            .alert("Unable to unlink", isPresented: .constant(revokeError != nil), presenting: revokeError) { _ in
-                Button("OK", role: .cancel) { revokeError = nil }
-            } message: { error in
-                Text(error.localizedDescription)
-            }
             .onAppear(perform: refreshPairing)
             .onReceive(pairingService.objectWillChange) { _ in
                 refreshPairing()
+            }
+            .alert(item: $alertContext) { context in
+                makeAlert(for: context)
             }
     }
 
@@ -253,9 +266,10 @@ struct ChildModeView: View {
                 .padding(.horizontal)
 
                 Button(role: .destructive) {
-                    showingUnlinkConfirmation = true
+                    print("Child Mode: unlink button tapped (primary)")
+                    alertContext = .confirmUnlink
                 } label: {
-                    Label("Unlink Device", systemImage: "link.badge.minus")
+                    Label("Unlink Device", systemImage: unlinkIconName)
                         .font(.headline)
                 }
                 .buttonStyle(.borderedProminent)
@@ -291,7 +305,6 @@ struct ChildModeView: View {
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: PairingService.localPairingDefaultsKey)
         defaults.removeObject(forKey: "com.claudex.pairedChildId")
-        defaults.removeObject(forKey: "com.claudex.deviceId")
     }
 
     private func handlePairingComplete(_ pairing: ChildDevicePairing) {
@@ -304,13 +317,68 @@ struct ChildModeView: View {
     }
 
     private func unlinkDevice() {
+        print("Attempting to unlink device with ID: \(deviceId)")
         do {
-            try pairingService.revokePairing(for: deviceId)
+            let pairing = try pairingService.revokePairing(for: deviceId)
             clearStoredPairing()
             currentPairing = nil
-            showingUnlinkConfirmation = false
+            alertContext = nil
+            print("Device successfully unlinked.")
+
+            Task {
+                let familyId = FamilyID("default-family")
+                await pairingService.removePairingFromCloud(pairing, familyId: familyId)
+            }
         } catch {
-            revokeError = error
+            print("Error unlinking device: \(error.localizedDescription)")
+            alertContext = .unlinkError(error.localizedDescription)
+        }
+    }
+}
+
+@available(iOS 16.0, *)
+private extension ChildModeView {
+    enum AlertContext: Identifiable {
+        case confirmUnlink
+        case unlinkError(String)
+
+        var id: String {
+            switch self {
+            case .confirmUnlink: return "confirmUnlink"
+            case .unlinkError: return "unlinkError"
+            }
+        }
+    }
+
+    var unlinkIconName: String {
+        if #available(iOS 17.0, *) {
+            return "link.badge.minus"
+        } else {
+            return "link"
+        }
+    }
+
+    func makeAlert(for context: AlertContext) -> Alert {
+        switch context {
+        case .confirmUnlink:
+            return Alert(
+                title: Text("Unlink device?"),
+                message: Text("This device will no longer be associated with this child."),
+                primaryButton: .destructive(Text("Unlink")) {
+                    unlinkDevice()
+                },
+                secondaryButton: .cancel {
+                    alertContext = nil
+                }
+            )
+        case .unlinkError(let message):
+            return Alert(
+                title: Text("Unable to unlink"),
+                message: Text(message),
+                dismissButton: .default(Text("OK")) {
+                    alertContext = nil
+                }
+            )
         }
     }
 }

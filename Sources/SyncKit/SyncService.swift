@@ -1,6 +1,7 @@
 import Foundation
 #if canImport(CloudKit)
 import CloudKit
+private let defaultCloudContainerIdentifier = "iCloud.com.claudex.screentimerewards"
 #endif
 #if canImport(Core)
 import Core
@@ -26,62 +27,36 @@ public protocol SyncServiceProtocol {
     func saveChild(_ child: ChildContextPayload, familyId: FamilyID) async throws
     func fetchAppRules(familyId: FamilyID, childId: ChildID?) async throws -> [AppRulePayload]
     func saveAppRule(_ rule: AppRulePayload, familyId: FamilyID) async throws
+    func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode]
+    func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws
+    func deletePairingCode(_ code: String, familyId: FamilyID) async throws
     func syncChanges(since token: CKServerChangeToken?) async throws -> (changes: [CKRecord], newToken: CKServerChangeToken?)
     #endif
 }
 
 @MainActor
-public final class SyncService: SyncServiceProtocol {
+public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSyncServiceProtocol {
     #if canImport(CloudKit)
     private let container: CKContainer
-    private let database: CKDatabase
-    private let zoneName = "FamilyZone"
-    private var customZone: CKRecordZone?
+    private let publicDatabase: CKDatabase
 
-    public init(container: CKContainer = CKContainer.default()) {
-        self.container = container
-        self.database = container.privateCloudDatabase
+    public init(container: CKContainer? = nil) {
+        let resolvedContainer = container ?? CKContainer(identifier: defaultCloudContainerIdentifier)
+        self.container = resolvedContainer
+        self.publicDatabase = resolvedContainer.publicCloudDatabase
     }
 
     // MARK: - Ping
 
     public func ping() -> Bool { true }
 
-    // MARK: - Zone Management
-
-    private func ensureCustomZone() async throws -> CKRecordZone {
-        if let zone = customZone {
-            return zone
-        }
-
-        let zoneID = CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName)
-        let zone = CKRecordZone(zoneID: zoneID)
-
-        do {
-            let (savedResults, _) = try await database.modifyRecordZones(saving: [zone], deleting: [])
-            for (_, result) in savedResults {
-                switch result {
-                case .success(let savedZone):
-                    self.customZone = savedZone
-                    return savedZone
-                case .failure(let error):
-                    throw SyncError.serverError("Zone save failed: \(error.localizedDescription)")
-                }
-            }
-            throw SyncError.serverError("Failed to create custom zone")
-        } catch {
-            throw SyncError.serverError("Zone creation failed: \(error.localizedDescription)")
-        }
-    }
-
     // MARK: - Family Operations
 
     public func fetchFamily(id: FamilyID) async throws -> FamilyPayload {
-        let _ = try await ensureCustomZone()
-        let recordID = CKRecord.ID(recordName: id.rawValue, zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName))
+        let recordID = CKRecord.ID(recordName: id.rawValue)
 
         do {
-            let record = try await database.record(for: recordID)
+            let record = try await publicDatabase.record(for: recordID)
             return try CloudKitMapper.familyPayload(from: record)
         } catch let error as CKError where error.code == .unknownItem {
             throw SyncError.invalidRecord("Family not found")
@@ -91,11 +66,10 @@ public final class SyncService: SyncServiceProtocol {
     }
 
     public func saveFamily(_ family: FamilyPayload) async throws {
-        let _ = try await ensureCustomZone()
         let record = CloudKitMapper.familyRecord(for: family)
 
         do {
-            _ = try await database.save(record)
+            _ = try await publicDatabase.save(record)
         } catch {
             throw SyncError.serverError(error.localizedDescription)
         }
@@ -104,15 +78,14 @@ public final class SyncService: SyncServiceProtocol {
     // MARK: - Child Operations
 
     public func fetchChildren(familyId: FamilyID) async throws -> [ChildContextPayload] {
-        let _ = try await ensureCustomZone()
-        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue, zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName))
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let familyRef = CKRecord.Reference(recordID: familyRecordID, action: .none)
 
         let predicate = NSPredicate(format: "familyRef == %@", familyRef)
         let query = CKQuery(recordType: CloudKitRecordType.childContext, predicate: predicate)
 
         do {
-            let (results, _) = try await database.records(matching: query)
+            let (results, _) = try await publicDatabase.records(matching: query)
             var children: [ChildContextPayload] = []
 
             for (_, result) in results {
@@ -132,12 +105,11 @@ public final class SyncService: SyncServiceProtocol {
     }
 
     public func saveChild(_ child: ChildContextPayload, familyId: FamilyID) async throws {
-        let _ = try await ensureCustomZone()
-        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue, zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName))
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let record = CloudKitMapper.childRecord(for: child, familyID: familyRecordID)
 
         do {
-            _ = try await database.save(record)
+            _ = try await publicDatabase.save(record)
         } catch {
             throw SyncError.serverError(error.localizedDescription)
         }
@@ -146,13 +118,12 @@ public final class SyncService: SyncServiceProtocol {
     // MARK: - App Rule Operations
 
     public func fetchAppRules(familyId: FamilyID, childId: ChildID?) async throws -> [AppRulePayload] {
-        let _ = try await ensureCustomZone()
-        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue, zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName))
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let familyRef = CKRecord.Reference(recordID: familyRecordID, action: .none)
 
         let predicate: NSPredicate
         if let childId = childId {
-            let childRecordID = CKRecord.ID(recordName: childId.rawValue, zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName))
+            let childRecordID = CKRecord.ID(recordName: childId.rawValue)
             let childRef = CKRecord.Reference(recordID: childRecordID, action: .none)
             predicate = NSPredicate(format: "familyRef == %@ AND childRef == %@", familyRef, childRef)
         } else {
@@ -162,7 +133,7 @@ public final class SyncService: SyncServiceProtocol {
         let query = CKQuery(recordType: CloudKitRecordType.appRule, predicate: predicate)
 
         do {
-            let (results, _) = try await database.records(matching: query)
+            let (results, _) = try await publicDatabase.records(matching: query)
             var rules: [AppRulePayload] = []
 
             for (_, result) in results {
@@ -182,13 +153,99 @@ public final class SyncService: SyncServiceProtocol {
     }
 
     public func saveAppRule(_ rule: AppRulePayload, familyId: FamilyID) async throws {
-        let _ = try await ensureCustomZone()
-        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue, zoneID: CKRecordZone.ID(zoneName: zoneName, ownerName: CKCurrentUserDefaultName))
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let record = CloudKitMapper.appRuleRecord(for: rule, familyID: familyRecordID)
 
         do {
-            _ = try await database.save(record)
+            _ = try await publicDatabase.save(record)
         } catch {
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Pairing Code Operations
+    public func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode] {
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
+        let familyRef = CKRecord.Reference(recordID: familyRecordID, action: .none)
+
+        let predicate = NSPredicate(format: "familyRef == %@", familyRef)
+        let query = CKQuery(recordType: CloudKitRecordType.pairingCode, predicate: predicate)
+        
+        print("Fetching pairing codes from CloudKit public database for family: \(familyId)")
+
+        do {
+            let (results, _) = try await publicDatabase.records(matching: query)
+            var codes: [PairingCode] = []
+            print("Found \(results.count) results from CloudKit public database")
+
+            for (_, result) in results {
+                switch result {
+                case .success(let record):
+                    do {
+                        let code = try CloudKitMapper.pairingCode(from: record)
+                        print("Successfully parsed pairing code: \(code.code)")
+                        codes.append(code)
+                    } catch {
+                        print("Failed to parse pairing code from record: \(error)")
+                    }
+                case .failure(let error):
+                    print("Failed to fetch pairing code record: \(error)")
+                }
+            }
+            
+            print("Returning \(codes.count) pairing codes")
+            return codes
+        } catch let ckError as CKError {
+            if ckError.code == .unknownItem {
+                print("No pairing code records found yet in CloudKit; returning empty set")
+                return []
+            }
+            print("Error fetching pairing codes from CloudKit public database: \(ckError)")
+            throw SyncError.serverError(ckError.localizedDescription)
+        } catch {
+            print("Error fetching pairing codes from CloudKit public database: \(error)")
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    public func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws {
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
+        let recordID = CKRecord.ID(recordName: code.code)
+        let record: CKRecord
+
+        print("Saving pairing code \(code.code) to CloudKit public database for family: \(familyId)")
+
+        do {
+            record = try await publicDatabase.record(for: recordID)
+            CloudKitMapper.applyPairingCode(code, to: record, familyID: familyRecordID)
+            print("Updating existing pairing code record \(code.code) in CloudKit")
+        } catch let ckError as CKError where ckError.code == .unknownItem {
+            print("Existing pairing code not found; creating new record for code \(code.code)")
+            record = CloudKitMapper.pairingCodeRecord(for: code, familyID: familyRecordID)
+        } catch {
+            print("Failed to fetch pairing code record \(code.code) before save: \(error)")
+            throw SyncError.serverError(error.localizedDescription)
+        }
+
+        do {
+            _ = try await publicDatabase.modifyRecords(saving: [record], deleting: [])
+            print("Successfully saved pairing code \(code.code) to CloudKit public database")
+        } catch {
+            print("Error saving pairing code \(code.code) to CloudKit public database: \(error)")
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    public func deletePairingCode(_ code: String, familyId: FamilyID) async throws {
+        let recordID = CKRecord.ID(recordName: code)
+        print("Deleting pairing code \(code) from CloudKit public database")
+        do {
+            _ = try await publicDatabase.deleteRecord(withID: recordID)
+            print("Successfully deleted pairing code \(code) from CloudKit public database")
+        } catch let ckError as CKError where ckError.code == .unknownItem {
+            print("Pairing code \(code) not found in CloudKit; treating as already deleted")
+        } catch {
+            print("Error deleting pairing code \(code) from CloudKit public database: \(error)")
             throw SyncError.serverError(error.localizedDescription)
         }
     }
@@ -196,50 +253,7 @@ public final class SyncService: SyncServiceProtocol {
     // MARK: - Change Tracking & Sync
 
     public func syncChanges(since token: CKServerChangeToken?) async throws -> (changes: [CKRecord], newToken: CKServerChangeToken?) {
-        let zone = try await ensureCustomZone()
-
-        var changedRecords: [CKRecord] = []
-        var serverChangeToken: CKServerChangeToken?
-
-        let configuration = CKFetchRecordZoneChangesOperation.ZoneConfiguration()
-        configuration.previousServerChangeToken = token
-
-        let operation = CKFetchRecordZoneChangesOperation(recordZoneIDs: [zone.zoneID], configurationsByRecordZoneID: [zone.zoneID: configuration])
-
-        operation.recordWasChangedBlock = { recordID, result in
-            switch result {
-            case .success(let record):
-                changedRecords.append(record)
-            case .failure(let error):
-                print("Record change error: \(error)")
-            }
-        }
-
-        operation.recordZoneFetchResultBlock = { zoneID, result in
-            switch result {
-            case .success(let (token, _, _)):
-                serverChangeToken = token
-            case .failure(let error):
-                print("Zone fetch error: \(error)")
-            }
-        }
-
-        operation.fetchRecordZoneChangesResultBlock = { result in
-            switch result {
-            case .success:
-                break
-            case .failure(let error):
-                print("Fetch changes failed: \(error)")
-            }
-        }
-
-        database.add(operation)
-
-        // Wait for operation to complete (simplified for async/await)
-        // In production, use proper async operation handling
-        try await Task.sleep(nanoseconds: 2_000_000_000) // 2 second timeout
-
-        return (changedRecords, serverChangeToken)
+        return ([], nil)
     }
 
     // MARK: - Conflict Resolution (Last-Writer-Wins)
@@ -256,5 +270,8 @@ public final class SyncService: SyncServiceProtocol {
     // Non-CloudKit stub
     public init() {}
     public func ping() -> Bool { true }
+    public func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode] { return [] }
+    public func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws { }
+    public func deletePairingCode(_ code: String, familyId: FamilyID) async throws { }
     #endif
 }

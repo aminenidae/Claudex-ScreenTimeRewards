@@ -16,6 +16,7 @@ public enum CloudKitRecordType {
     public static let pointsLedgerEntry = "PointsLedgerEntry"
     public static let auditEntry = "AuditEntry"
     public static let redemptionWindow = "RedemptionWindow"
+    public static let pairingCode = "PairingCode"
 }
 
 public enum CloudKitMapperError: Error {
@@ -166,6 +167,71 @@ public struct CloudKitMapper {
         return (window, pointsSpent, deviceId)
     }
 
+    // MARK: - Pairing Code
+    public static func pairingCodeRecord(
+        for code: PairingCode,
+        familyID: CKRecord.ID
+    ) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: code.code)
+        let record = CKRecord(recordType: CloudKitRecordType.pairingCode, recordID: recordID)
+        applyPairingCode(code, to: record, familyID: familyID)
+        return record
+    }
+
+    public static func applyPairingCode(
+        _ code: PairingCode,
+        to record: CKRecord,
+        familyID: CKRecord.ID
+    ) {
+        record["familyRef"] = CKRecord.Reference(recordID: familyID, action: .none)
+        record["childRef"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: code.childId.rawValue), action: .none)
+        record["createdAt"] = code.createdAt
+        record["expiresAt"] = code.expiresAt
+        record["ttlMinutes"] = code.ttlMinutes
+        record["isUsed"] = code.isUsed
+        if let usedAt = code.usedAt {
+            record["usedAt"] = usedAt
+        } else {
+            record["usedAt"] = nil
+        }
+        if let usedByDeviceId = code.usedByDeviceId {
+            record["usedByDeviceId"] = usedByDeviceId
+        } else {
+            record["usedByDeviceId"] = nil
+        }
+    }
+
+    public static func pairingCode(from record: CKRecord) throws -> PairingCode {
+        guard let createdAt = record["createdAt"] as? Date else {
+            throw CloudKitMapperError.missingField("createdAt")
+        }
+        guard let _ = record["expiresAt"] as? Date else {
+            throw CloudKitMapperError.missingField("expiresAt")
+        }
+        guard let ttlMinutes = record["ttlMinutes"] as? Int else {
+            throw CloudKitMapperError.missingField("ttlMinutes")
+        }
+        guard let isUsed = record["isUsed"] as? Bool else {
+            throw CloudKitMapperError.missingField("isUsed")
+        }
+        
+        // Get child ID from the record reference
+        let childRef = (record["childRef"] as? CKRecord.Reference)?.recordID.recordName ?? "unknown"
+        let childId = ChildID(childRef)
+        let usedAt = record["usedAt"] as? Date
+        let usedByDeviceId = record["usedByDeviceId"] as? String
+
+        return PairingCode(
+            code: record.recordID.recordName,
+            childId: childId,
+            createdAt: createdAt,
+            ttlMinutes: ttlMinutes,
+            isUsed: isUsed,
+            usedAt: usedAt,
+            usedByDeviceId: usedByDeviceId
+        )
+    }
+
     // MARK: - Child Context
 
     public static func childRecord(
@@ -227,7 +293,7 @@ public struct CloudKitMapper {
         guard let timestamp = record["timestamp"] as? Date else {
             throw CloudKitMapperError.missingField("timestamp")
         }
-        let childRecordName = (record["childRef"] as? CKRecord.Reference)?.recordID.recordName ?? record.recordID.zoneID.ownerName
+        let childRecordName = (record["childRef"] as? CKRecord.Reference)?.recordID.recordName
         let childId = ChildID(childRecordName ?? "unknown")
         return PointsLedgerEntry(
             id: UUID(uuidString: record.recordID.recordName) ?? UUID(),
