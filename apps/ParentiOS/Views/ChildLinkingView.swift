@@ -19,6 +19,23 @@ struct ChildLinkingView: View {
     @State private var focusedIndex: Int
     @State private var shouldAutoSubmit: Bool
     @State private var isSyncing = false
+    @State private var showPairingSuccess = false
+
+    init(prefilledCode: String?, onPairingComplete: @escaping (ChildDevicePairing) -> Void, onCancel: @escaping () -> Void) {
+        self.prefilledCode = prefilledCode
+        self.onPairingComplete = onPairingComplete
+        self.onCancel = onCancel
+        
+        if let code = prefilledCode, code.count == 6 {
+            self._codeDigits = State(initialValue: code.map { String($0) })
+            self._focusedIndex = State(initialValue: 5) // Focus at the end
+            self._shouldAutoSubmit = State(initialValue: true)
+        } else {
+            self._codeDigits = State(initialValue: Array(repeating: "", count: 6))
+            self._focusedIndex = State(initialValue: 0)
+            self._shouldAutoSubmit = State(initialValue: false)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 32) {
@@ -93,6 +110,13 @@ struct ChildLinkingView: View {
             }
         } message: { err in
             Text(err.localizedDescription)
+        }
+        .alert("Success!", isPresented: $showPairingSuccess) {
+            Button("Continue") {
+                // The onPairingComplete callback will be called in the submitCode function
+            }
+        } message: {
+            Text("Device successfully linked to parent account!")
         }
         .overlay {
             if isLoading {
@@ -198,13 +222,6 @@ struct ChildLinkingView: View {
             print("Child device: Waiting for sync to settle...")
             try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
             
-            // Print available codes after sync
-            await MainActor.run {
-                print("Child device: Available codes after sync: \(pairingService.activeCodes.keys)")
-                if pairingService.activeCodes.isEmpty {
-                    print("Child device: No pairing codes are currently available after sync. If this device is already paired, this is expected.")
-                }
-            }
         } catch let error as SyncError {
             print("Child device: CloudKit sync failed with SyncError: \(error)")
             switch error {
@@ -230,43 +247,27 @@ struct ChildLinkingView: View {
     }
 
     private func submitCode() {
-        guard isCodeComplete else { 
-            print("Child device: Code not complete, skipping submission")
-            return 
-        }
-
+        guard isCodeComplete else { return }
+        
+        let deviceId = getDeviceId()
         isLoading = true
-        print("Child device: Attempting to submit pairing code: \(enteredCode)")
-
+        error = nil
+        
         Task {
-            // Add a small delay to ensure any ongoing sync completes
-            print("Child device: Waiting briefly to ensure sync completion...")
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second
-            
             do {
-                let deviceId = await getDeviceIdentifier()
-                print("Child device: Attempting to pair with code: \(enteredCode) for device: \(deviceId)")
+                // Try to consume the pairing code
+                let pairing = try pairingService.consumePairingCode(enteredCode, deviceId: deviceId)
                 
-                // First, let's check what codes are available locally
-                await MainActor.run {
-                    print("Child device: Available local codes before consumption attempt: \(pairingService.activeCodes.keys)")
-                }
-                
-                let pairing = try await MainActor.run {
-                    return try pairingService.consumePairingCode(enteredCode, deviceId: deviceId)
-                }
-
-                // Store pairing locally
-                await storePairingLocally(pairing)
-
-                // Success
                 await MainActor.run {
                     isLoading = false
-                    print("Child device: Successfully paired with code \(enteredCode)")
-                    onPairingComplete(pairing)
+                    showPairingSuccess = true
+                    
+                    // Delay calling onPairingComplete to allow the success alert to be shown
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        onPairingComplete(pairing)
+                    }
                 }
             } catch {
-                print("Child device: Pairing failed with error: \(error)")
                 await MainActor.run {
                     isLoading = false
                     self.error = error
@@ -275,74 +276,23 @@ struct ChildLinkingView: View {
         }
     }
 
-    private func clearCode() {
-        codeDigits = ["", "", "", "", "", ""]
-        focusedIndex = 0
-        shouldAutoSubmit = false
+    private func autoSubmitIfNeeded() {
+        if shouldAutoSubmit && isCodeComplete {
+            submitCode()
+        }
     }
 
-    private func getDeviceIdentifier() async -> String {
-        // Use platform-specific identifier for repeatable device binding
+    private func clearCode() {
+        codeDigits = Array(repeating: "", count: 6)
+        focusedIndex = 0
+    }
+
+    private func getDeviceId() -> String {
         #if canImport(UIKit)
         return UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
         #else
         return ProcessInfo.processInfo.globallyUniqueString
         #endif
-    }
-
-    private func storePairingLocally(_ pairing: ChildDevicePairing) async {
-        let defaults = UserDefaults.standard
-        // Persist full pairing for child mode to restore after relaunch
-        if let encoded = try? JSONEncoder().encode(pairing) {
-            defaults.set(encoded, forKey: PairingService.localPairingDefaultsKey)
-        }
-
-        // Legacy keys kept for compatibility with earlier builds
-        defaults.set(pairing.childId.rawValue, forKey: "com.claudex.pairedChildId")
-        defaults.set(pairing.deviceId, forKey: "com.claudex.deviceId")
-    }
-}
-
-// MARK: - Initializers & Helpers
-
-extension ChildLinkingView {
-    init(
-        prefilledCode: String? = nil,
-        onPairingComplete: @escaping (ChildDevicePairing) -> Void,
-        onCancel: @escaping () -> Void
-    ) {
-        self.prefilledCode = Self.cleanedCode(prefilledCode)
-        self.onPairingComplete = onPairingComplete
-        self.onCancel = onCancel
-
-        let digits = Self.initialDigits(from: self.prefilledCode)
-        _codeDigits = State(initialValue: digits)
-        _focusedIndex = State(initialValue: Self.initialFocusIndex(for: digits))
-        _shouldAutoSubmit = State(initialValue: digits.allSatisfy { !$0.isEmpty })
-    }
-
-    private func autoSubmitIfNeeded() {
-        guard shouldAutoSubmit else { return }
-        shouldAutoSubmit = false
-        submitCode()
-    }
-
-    private static func cleanedCode(_ code: String?) -> String? {
-        guard let code, code.count == 6 else { return nil }
-        let digits = code.filter { $0.isNumber }
-        return digits.count == 6 ? digits : nil
-    }
-
-    private static func initialDigits(from code: String?) -> [String] {
-        guard let code else { return Array(repeating: "", count: 6) }
-        return code.map { String($0) }
-    }
-
-    private static func initialFocusIndex(for digits: [String]) -> Int {
-        if let firstEmpty = digits.firstIndex(where: { $0.isEmpty }) {
-            return firstEmpty
-        }
-        return 5
     }
 }
 
@@ -353,45 +303,35 @@ private struct CodeDigitField: View {
     let isFocused: Bool
     let onSubmit: () -> Void
 
-    @FocusState private var isTextFieldFocused: Bool
-
     var body: some View {
         TextField("", text: $digit)
-            .font(.system(size: 48, weight: .bold, design: .monospaced))
-            .foregroundColor(.primary)
             .multilineTextAlignment(.center)
+            .font(.system(size: 32, weight: .bold, design: .monospaced))
+            .frame(width: 50, height: 60)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isFocused ? Color.blue : Color.gray, lineWidth: 2)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.clear))
+            )
             .keyboardType(.numberPad)
-            .frame(width: 50, height: 70)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isFocused ? Color.blue : Color.gray.opacity(0.3), lineWidth: 2)
-            )
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(uiColor: .secondarySystemBackground))
-            )
-            .focused($isTextFieldFocused)
+            .textContentType(.oneTimeCode)
             .onChange(of: digit) { newValue in
-                // Limit to a single numeric character for iOS 16 compatibility
-                let cleaned = String(newValue.filter { $0.isNumber }.prefix(1))
-
-                if digit != cleaned {
-                    digit = cleaned
+                // Limit to single digit
+                if newValue.count > 1 {
+                    digit = String(newValue.prefix(1))
                 }
-
-                // Auto-submit on input once the value is sanitized
-                if !cleaned.isEmpty {
+                
+                // Filter non-numeric characters
+                if let number = Int(newValue), number >= 0 && number <= 9 {
+                    // Valid digit, allow it
+                } else if !newValue.isEmpty {
+                    // Invalid character, clear it
+                    digit = ""
+                }
+                
+                // Auto-submit when we have a digit
+                if !newValue.isEmpty {
                     onSubmit()
-                }
-            }
-            .onChange(of: isFocused) { newValue in
-                if isTextFieldFocused != newValue {
-                    isTextFieldFocused = newValue
-                }
-            }
-            .onAppear {
-                if isFocused {
-                    isTextFieldFocused = true
                 }
             }
     }
@@ -402,32 +342,26 @@ private struct CodeDigitField: View {
 private struct LoadingOverlay: View {
     var body: some View {
         ZStack {
-            Color.black.opacity(0.4)
-                .ignoresSafeArea()
-
-            VStack(spacing: 16) {
-                ProgressView()
-                    .scaleEffect(1.5)
-                    .tint(.white)
-
-                Text("Linking device...")
-                    .font(.headline)
-                    .foregroundColor(.white)
-            }
-            .padding(32)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(uiColor: .systemBackground))
-            )
+            Color.black.opacity(0.2)
+                .edgesIgnoringSafeArea(.all)
+            
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle())
+                .scaleEffect(1.5)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.systemBackground))
+                        .shadow(radius: 10)
+                )
         }
     }
 }
 
-// MARK: - Previews
-
-#Preview("Initial State") {
+#Preview("Child Linking View") {
     NavigationStack {
         ChildLinkingView(
+            prefilledCode: nil,
             onPairingComplete: { _ in },
             onCancel: {}
         )
@@ -435,7 +369,7 @@ private struct LoadingOverlay: View {
     }
 }
 
-#Preview("Prefilled Code") {
+#Preview("Child Linking View with Prefilled Code") {
     NavigationStack {
         ChildLinkingView(
             prefilledCode: "123456",

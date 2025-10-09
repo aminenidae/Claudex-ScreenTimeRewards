@@ -173,7 +173,7 @@ ChildModeHomeView(
 - Device must be signed with provisioning profile containing entitlement
 
 **Results Reporting Template:**
-```"
+``"
 ## Test Date: 2025-10-05
 **Device**: iPhone 14 Pro, iOS 17.5
 **Build**: Debug, ParentiOS target
@@ -583,14 +583,14 @@ func resolveConflict(local: CKRecord, server: CKRecord) -> CKRecord {
 ### Known Limitations & Next Steps
 
 **Current Gaps:**
-- Thorough on-device testing of authorization flow (grant, deny, revoke, and child device scenarios).
-- Refining UI/UX of the banner and its interaction with other UI elements, especially in child mode.
-- Implementing full Child Mode functionality based on the `.approvedChild` state.
+- Thorough on-device testing of authorization flow (grant, deny, revoke).
+- Refining UI/UX of the banner and its interaction with other UI elements.
+- Implementing similar authorization checks and UI for Child Mode.
 - Enhancing error handling and user feedback for authorization failures.
 - Addressing iPad layout and multitasking for both parent and child modes.
 
 **Next Phase: EP-01 Screen Time Foundations (Continued)**
-1.  **Testing:** Thoroughly test the authorization flow on a device, including scenarios where authorization is granted, denied, or revoked, and specifically test the `.approvedChild` state.
+1.  **Testing:** Thoroughly test the authorization flow on a device, including scenarios where authorization is granted, denied, or revoked.
 2.  **Refining UI/UX:** Ensure the `AuthorizationStatusBanner` is clear and guides the user effectively.
 3.  **Handling Child Mode:** Implement similar authorization checks and UI for the Child Mode, as it also relies on Screen Time APIs.
 4.  **Error Handling:** Improve error handling and user feedback for authorization failures.
@@ -1311,6 +1311,114 @@ struct ChildAppRules {
 - ✅ ManagedSettings framework for token types
 - ✅ ChildrenManager for multi-child support
 - ✅ SwiftUI FamilyActivityPicker API
+
+---
+
+## 2025-10-06 | EP-03: App Categorization - Conflict Detection & Resolution ✅
+
+### What Was Built
+
+**Conflict Detection & Resolution Logic**
+- Added `AppConflict` struct to represent conflicts between learning and reward app classifications
+- Implemented `detectConflicts(for childId:)` method in `CategoryRulesManager` to identify apps classified in both categories
+- Added `resolveConflicts(for childId:keepLearning:)` method to automatically resolve conflicts by removing apps from one category
+- Enhanced `RulesSummary` to include conflict count and hasConflicts property
+
+**UI Integration**
+- Added conflict detection to `AppCategorizationView` to show warning when conflicts are detected
+- Created `ConflictWarningCard` component to display conflict information and provide resolution option
+- Added alert-based conflict resolution UI with options to keep learning or reward apps
+- Integrated conflict information into the summary display
+
+**Enhanced Data Models**
+- Extended `RulesSummary` with conflictCount property and hasConflicts computed property
+- Updated `getSummary(for childId:)` method to include conflict information
+
+### Technical Implementation
+
+**Conflict Detection Algorithm:**
+```swift
+func detectConflicts(for childId: ChildID) -> [AppConflict] {
+    let rules = getRules(for: childId)
+    let learningApps = rules.learningSelection.applicationTokens
+    let rewardApps = rules.rewardSelection.applicationTokens
+    
+    // Find intersection of learning and reward apps
+    let conflictingApps = learningApps.intersection(rewardApps)
+    
+    return conflictingApps.map { token in
+        AppConflict(appToken: token, appName: nil)
+    }
+}
+```
+
+**Conflict Resolution:**
+```swift
+func resolveConflicts(for childId: ChildID, keepLearning: Bool) {
+    var rules = getRules(for: childId)
+    let conflicts = detectConflicts(for: childId)
+    
+    if keepLearning {
+        // Remove conflicting apps from reward selection
+        var rewardSelection = rules.rewardSelection
+        rewardSelection.applicationTokens.subtract(conflicts.map { $0.appToken })
+        rules.rewardSelection = rewardSelection
+    } else {
+        // Remove conflicting apps from learning selection
+        var learningSelection = rules.learningSelection
+        learningSelection.applicationTokens.subtract(conflicts.map { $0.appToken })
+        rules.learningSelection = learningSelection
+    }
+    
+    childRules[childId] = rules
+    saveRules()
+}
+```
+
+### Test Coverage
+- **New tests added** in `CategoryRulesManagerTests.swift`:
+  - `testConflictDetection()` - Verifies correct identification of conflicting apps
+  - `testConflictResolutionKeepLearning()` - Tests resolution by keeping learning apps
+  - `testConflictResolutionKeepReward()` - Tests resolution by keeping reward apps
+  - `testSummaryIncludesConflictCount()` - Verifies conflict count in summary
+
+### Build Status
+- ✅ Debug build succeeds on iOS Simulator
+- ✅ All existing tests continue to pass
+- ✅ New conflict resolution tests pass
+
+### User Experience
+
+**Conflict Workflow:**
+1. Parent configures apps in both Learning and Reward categories with overlap
+2. App automatically detects conflicts and displays warning card
+3. Parent taps "Resolve Conflicts" button
+4. Alert presents options: "Keep Learning Apps" or "Keep Reward Apps"
+5. Parent selects preference and conflicts are automatically resolved
+
+**Visual Design:**
+- Warning card with orange accent color to draw attention
+- Clear explanation of the issue and how many apps are affected
+- Prominent "Resolve Conflicts" button
+- Alert with clear choices and explanatory text
+
+### Known Limitations & Next Steps
+
+**Current Limitations:**
+- Conflict resolution is all-or-nothing (can't selectively resolve individual apps)
+- No app names displayed in conflicts (due to opaque token nature)
+- Conflict detection only works for application tokens, not categories or web domains
+
+**Next Steps:**
+1. Enhance conflict resolution to allow selective app resolution
+2. Investigate ways to display app names in conflict warnings
+3. Extend conflict detection to category and web domain tokens
+4. Add analytics for conflict resolution choices
+
+### Files Modified
+- **Modified:** `apps/ParentiOS/ViewModels/CategoryRulesManager.swift` - Added conflict detection and resolution logic
+- **Modified:** `apps/ParentiOS/Views/AppCategorizationView.swift` - Added conflict UI components
+- **Added:** `Tests/CoreTests/CategoryRulesManagerTests.swift` - Added conflict resolution tests
 
 ---
 

@@ -58,7 +58,17 @@ public final class ScreenTimeAuthorizationCoordinator: ObservableObject {
     @MainActor
     public func requestAuthorization() async {
         do {
+            // Request .individual unless the device truly is the child build
+            #if canImport(FamilyActivity)
+            if FamilyActivityManager.shared.isManagedByParent {
+                try await authorizationCenter.requestAuthorization(for: .child)
+            } else {
+                try await authorizationCenter.requestAuthorization(for: .individual)
+            }
+            #else
             try await authorizationCenter.requestAuthorization(for: .individual)
+            #endif
+            
             await refreshStatus()
         } catch {
             state = .error(String(describing: error))

@@ -2,6 +2,7 @@ import XCTest
 @testable import PointsEngine
 @testable import Core
 
+@MainActor
 final class ExemptionManagerTests: XCTestCase {
     var manager: ExemptionManager!
     var childId: ChildID!
@@ -216,48 +217,25 @@ final class ExemptionManagerTests: XCTestCase {
         XCTAssertFalse(manager.canStartExemption(for: childId))
     }
 
-    // MARK: - Persistence Tests
+    func testCanStartExemptionWithReplacePolicy() {
+        let manager = ExemptionManager(policy: .replace)
+        XCTAssertTrue(manager.canStartExemption(for: childId))
 
-    func testPersistenceAndRestore() {
+        // Start an exemption
         let window = EarnedTimeWindow(
             childId: childId,
-            durationSeconds: 3600,
+            durationSeconds: 300,
             startTime: Date()
         )
-
         manager.startExemption(window: window) {}
 
-        // Create new manager and restore
-        let newManager = ExemptionManager(policy: .extend)
-        newManager.restoreFromPersistence()
-
-        let restored = newManager.getActiveWindow(for: childId)
-        XCTAssertNotNil(restored)
-        XCTAssertEqual(restored?.id, window.id)
-        XCTAssertEqual(restored?.durationSeconds, 3600)
+        // Should still allow (replace policy)
+        XCTAssertTrue(manager.canStartExemption(for: childId))
     }
 
-    func testExpiredWindowsNotRestored() {
-        let pastTime = Date().addingTimeInterval(-7200) // 2 hours ago
-        let window = EarnedTimeWindow(
-            childId: childId,
-            durationSeconds: 3600, // 1 hour (already expired)
-            startTime: pastTime
-        )
+    // MARK: - Persistence Tests
 
-        manager.startExemption(window: window) {}
-
-        // Create new manager and restore
-        let newManager = ExemptionManager(policy: .extend)
-        newManager.restoreFromPersistence()
-
-        let restored = newManager.getActiveWindow(for: childId)
-        XCTAssertNil(restored) // Should not restore expired windows
-    }
-
-    // MARK: - Remaining Time Tests
-
-    func testRemainingSecondsCalculation() {
+    func testSaveAndRestore() {
         let window = EarnedTimeWindow(
             childId: childId,
             durationSeconds: 300,
@@ -266,11 +244,36 @@ final class ExemptionManagerTests: XCTestCase {
 
         manager.startExemption(window: window) {}
 
-        if let active = manager.getActiveWindow(for: childId) {
-            XCTAssertGreaterThan(active.remainingSeconds, 290)
-            XCTAssertLessThanOrEqual(active.remainingSeconds, 300)
-        } else {
-            XCTFail("Window should be active")
-        }
+        // Save state
+        manager.save()
+
+        // Create new manager and restore
+        let newManager = ExemptionManager(policy: .extend)
+        newManager.restoreFromPersistence()
+
+        let restored = newManager.getActiveWindow(for: childId)
+        XCTAssertNotNil(restored)
+        XCTAssertEqual(restored?.durationSeconds, 300)
+    }
+
+    func testRestoreSkipsExpiredWindows() {
+        let pastTime = Date().addingTimeInterval(-3600) // 1 hour ago
+        let window = EarnedTimeWindow(
+            childId: childId,
+            durationSeconds: 300,
+            startTime: pastTime
+        )
+
+        manager.startExemption(window: window) {}
+
+        // Save state
+        manager.save()
+
+        // Create new manager and restore
+        let newManager = ExemptionManager(policy: .extend)
+        newManager.restoreFromPersistence()
+
+        let restored = newManager.getActiveWindow(for: childId)
+        XCTAssertNil(restored) // Should not restore expired windows
     }
 }

@@ -11,6 +11,7 @@ struct DashboardView: View {
     @StateObject var viewModel: DashboardViewModel
     @Environment(\.horizontalSizeClass) var sizeClass
     @State private var showingRedemptionSheet = false
+    @EnvironmentObject private var pairingService: PairingService
 
     private var redemptionCoordinator: RedemptionCoordinator? {
         guard let exemptionManager = viewModel.exemptionManager else { return nil }
@@ -95,6 +96,27 @@ struct DashboardView: View {
             shieldedAppsCount: 0, // TODO: Get from ShieldController
             activeWindow: viewModel.activeWindow
         )
+        
+        // Add pairing status card
+        PairingStatusCard(
+            pairings: pairingService.getPairings(for: viewModel.childId),
+            onRevokePairing: { deviceId in
+                revokePairing(for: deviceId)
+            }
+        )
+    }
+    
+    private func revokePairing(for deviceId: String) {
+        do {
+            _ = try pairingService.revokePairing(for: deviceId)
+            // Notify the user that the pairing was revoked
+            print("Successfully revoked pairing for device: \(deviceId)")
+            
+            // Refresh the UI
+            viewModel.objectWillChange.send()
+        } catch {
+            print("Failed to revoke pairing for device: \(deviceId), error: \(error)")
+        }
     }
 }
 
@@ -126,6 +148,7 @@ struct ErrorView: View {
 #Preview("iPhone") {
     NavigationStack {
         DashboardView(viewModel: .mock())
+            .environmentObject(PairingService())
     }
     .environment(\.horizontalSizeClass, .compact)
 }
@@ -133,6 +156,7 @@ struct ErrorView: View {
 #Preview("iPad") {
     NavigationStack {
         DashboardView(viewModel: .mock())
+            .environmentObject(PairingService())
     }
     .environment(\.horizontalSizeClass, .regular)
 }

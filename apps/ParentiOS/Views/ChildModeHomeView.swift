@@ -15,6 +15,7 @@ struct ChildModeHomeView: View {
     let onUnlinkRequest: () -> Void
 
     @State private var showingRedemptionSheet = false
+    @State private var isOffline = false // For offline banner demo
     
     private var balance: Int {
         ledger.getBalance(childId: childProfile.id)
@@ -35,6 +36,11 @@ struct ChildModeHomeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
+                // Offline Banner
+                if isOffline {
+                    offlineBanner
+                }
+                
                 // Points Summary Card
                 pointsSummaryCard
                 
@@ -46,8 +52,11 @@ struct ChildModeHomeView: View {
                 // Recent Activity Section
                 recentActivitySection
                 
-                // Request More Time Button
-                requestMoreTimeButton
+                // Redeem Time Button (Primary CTA)
+                redeemTimeButton
+                
+                // Unlink Button (Secondary)
+                unlinkButton
                 
                 Spacer(minLength: 20)
             }
@@ -71,6 +80,27 @@ struct ChildModeHomeView: View {
                 }
             )
         }
+    }
+    
+    // MARK: - Offline Banner
+    
+    private var offlineBanner: some View {
+        HStack {
+            Image(systemName: "wifi.slash")
+                .font(.system(size: 16))
+            
+            Text("You're offline")
+                .font(.subheadline)
+                .fontWeight(.medium)
+            
+            Spacer()
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.orange.opacity(0.2))
+        )
+        .padding(.horizontal)
     }
     
     // MARK: - Points Summary Card
@@ -183,10 +213,22 @@ struct ChildModeHomeView: View {
                 .padding(.horizontal)
             
             if recentEntries.isEmpty {
-                Text("No activity yet")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
+                VStack(spacing: 12) {
+                    Image(systemName: "list.bullet")
+                        .font(.system(size: 32))
+                        .foregroundStyle(.secondary)
+                    
+                    Text("No activity yet")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .padding(.horizontal)
             } else {
                 ForEach(recentEntries, id: \.id) { entry in
                     recentActivityRow(entry: entry)
@@ -221,15 +263,15 @@ struct ChildModeHomeView: View {
         .padding(.vertical, 8)
     }
     
-    // MARK: - Request More Time Button
+    // MARK: - Redeem Time Button (Primary CTA)
     
-    private var requestMoreTimeButton: some View {
+    private var redeemTimeButton: some View {
         Button(action: {
             showingRedemptionSheet = true
         }) {
             HStack {
                 Image(systemName: "clock.badge.plus")
-                Text("Request More Time")
+                Text("Redeem Time")
             }
             .font(.headline)
             .frame(maxWidth: .infinity)
@@ -242,6 +284,28 @@ struct ChildModeHomeView: View {
         }
         .padding(.horizontal)
         .disabled(balance < 30) // Minimum redemption is 30 points
+    }
+    
+    // MARK: - Unlink Button (Secondary)
+    
+    private var unlinkButton: some View {
+        Button(action: {
+            onUnlinkRequest()
+        }) {
+            HStack {
+                Image(systemName: "link.slash")
+                Text("Unlink Device")
+            }
+            .font(.subheadline)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.secondarySystemBackground))
+            )
+            .foregroundColor(.red)
+        }
+        .padding(.horizontal)
     }
 }
 
@@ -281,5 +345,27 @@ struct ChildModeHomeView: View {
             redemptionService: redemptionService,
             onUnlinkRequest: {}
         )
+    }
+}
+
+#Preview("Child Mode Home - Offline") {
+    let ledger = PointsLedger()
+    let exemptionManager = ExemptionManager()
+    let redemptionService = RedemptionService(ledger: ledger)
+    
+    // Add some mock data
+    _ = ledger.recordAccrual(childId: ChildID("child-1"), points: 150, timestamp: Date().addingTimeInterval(-3600))
+    
+    return NavigationStack {
+        ChildModeHomeView(
+            childProfile: ChildProfile(id: ChildID("child-1"), name: "Alice", storeName: "child-child-1"),
+            ledger: ledger,
+            exemptionManager: exemptionManager,
+            redemptionService: redemptionService,
+            onUnlinkRequest: {}
+        )
+        .onAppear {
+            // Simulate offline state
+        }
     }
 }

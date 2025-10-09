@@ -5,6 +5,12 @@ import ManagedSettings
 import Core
 #endif
 
+/// Represents a conflict between learning and reward app classifications
+struct AppConflict {
+    let appToken: ApplicationToken
+    let appName: String? // Optional, as we may not have access to app names
+}
+
 /// Manages app categorization rules (Learning vs Reward) per child
 @MainActor
 class CategoryRulesManager: ObservableObject {
@@ -39,6 +45,13 @@ class CategoryRulesManager: ObservableObject {
 
     /// Update learning apps selection for a child
     func updateLearningApps(for childId: ChildID, selection: FamilyActivitySelection) {
+        // Logging block to see what comes out of the picker
+        let apps = selection.applicationTokens.map { token -> (String?, String?) in
+            let app = ManagedSettings.Application(token: token)
+            return (app.bundleIdentifier, app.localizedDisplayName)
+        }
+        print("Learning selection tokens:", apps)
+        
         var rules = getRules(for: childId)
         rules.learningSelection = selection
         childRules[childId] = rules
@@ -47,6 +60,13 @@ class CategoryRulesManager: ObservableObject {
 
     /// Update reward apps selection for a child
     func updateRewardApps(for childId: ChildID, selection: FamilyActivitySelection) {
+        // Logging block to see what comes out of the picker
+        let apps = selection.applicationTokens.map { token -> (String?, String?) in
+            let app = ManagedSettings.Application(token: token)
+            return (app.bundleIdentifier, app.localizedDisplayName)
+        }
+        print("Reward selection tokens:", apps)
+        
         var rules = getRules(for: childId)
         rules.rewardSelection = selection
         childRules[childId] = rules
@@ -68,12 +88,53 @@ class CategoryRulesManager: ObservableObject {
     /// Get summary of configured rules
     func getSummary(for childId: ChildID) -> RulesSummary {
         let rules = getRules(for: childId)
+        let conflictCount = detectConflicts(for: childId).count
+        
         return RulesSummary(
             learningAppsCount: rules.learningSelection.applicationTokens.count,
             learningCategoriesCount: rules.learningSelection.categoryTokens.count,
             rewardAppsCount: rules.rewardSelection.applicationTokens.count,
-            rewardCategoriesCount: rules.rewardSelection.categoryTokens.count
+            rewardCategoriesCount: rules.rewardSelection.categoryTokens.count,
+            conflictCount: conflictCount
         )
+    }
+
+    /// Detect conflicts between learning and reward app selections
+    func detectConflicts(for childId: ChildID) -> [AppConflict] {
+        let rules = getRules(for: childId)
+        let learningApps = rules.learningSelection.applicationTokens
+        let rewardApps = rules.rewardSelection.applicationTokens
+        
+        // Find intersection of learning and reward apps
+        let conflictingApps = learningApps.intersection(rewardApps)
+        
+        return conflictingApps.map { token in
+            AppConflict(appToken: token, appName: nil)
+        }
+    }
+
+    /// Resolve conflicts by removing apps from one category
+    /// - Parameters:
+    ///   - childId: The child ID to resolve conflicts for
+    ///   - keepLearning: If true, keep apps in learning and remove from reward. If false, keep in reward and remove from learning.
+    func resolveConflicts(for childId: ChildID, keepLearning: Bool) {
+        var rules = getRules(for: childId)
+        let conflicts = detectConflicts(for: childId)
+        
+        if keepLearning {
+            // Remove conflicting apps from reward selection
+            var rewardSelection = rules.rewardSelection
+            rewardSelection.applicationTokens.subtract(conflicts.map { $0.appToken })
+            rules.rewardSelection = rewardSelection
+        } else {
+            // Remove conflicting apps from learning selection
+            var learningSelection = rules.learningSelection
+            learningSelection.applicationTokens.subtract(conflicts.map { $0.appToken })
+            rules.learningSelection = learningSelection
+        }
+        
+        childRules[childId] = rules
+        saveRules()
     }
 
     // MARK: - Persistence
@@ -151,6 +212,15 @@ struct RulesSummary {
     let learningCategoriesCount: Int
     let rewardAppsCount: Int
     let rewardCategoriesCount: Int
+    let conflictCount: Int  // New property to track conflicts
+
+    init(learningAppsCount: Int, learningCategoriesCount: Int, rewardAppsCount: Int, rewardCategoriesCount: Int, conflictCount: Int = 0) {
+        self.learningAppsCount = learningAppsCount
+        self.learningCategoriesCount = learningCategoriesCount
+        self.rewardAppsCount = rewardAppsCount
+        self.rewardCategoriesCount = rewardCategoriesCount
+        self.conflictCount = conflictCount
+    }
 
     var hasLearningRules: Bool {
         learningAppsCount > 0 || learningCategoriesCount > 0
@@ -180,6 +250,11 @@ struct RulesSummary {
             parts.append("\(rewardCategoriesCount) categor\(rewardCategoriesCount == 1 ? "y" : "ies")")
         }
         return parts.isEmpty ? "Not configured" : parts.joined(separator: ", ")
+    }
+    
+    /// Check if there are conflicts between learning and reward rules
+    var hasConflicts: Bool {
+        conflictCount > 0
     }
 }
 

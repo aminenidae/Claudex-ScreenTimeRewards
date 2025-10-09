@@ -16,6 +16,8 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSFamilyControlsUsageDescription</key>
+	<string>Claudex needs Screen Time access to link and manage your children's devices.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>

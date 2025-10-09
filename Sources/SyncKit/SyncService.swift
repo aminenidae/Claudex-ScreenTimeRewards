@@ -25,6 +25,7 @@ public protocol SyncServiceProtocol {
     func saveFamily(_ family: FamilyPayload) async throws
     func fetchChildren(familyId: FamilyID) async throws -> [ChildContextPayload]
     func saveChild(_ child: ChildContextPayload, familyId: FamilyID) async throws
+    func deleteChild(_ childId: ChildID, familyId: FamilyID) async throws
     func fetchAppRules(familyId: FamilyID, childId: ChildID?) async throws -> [AppRulePayload]
     func saveAppRule(_ rule: AppRulePayload, familyId: FamilyID) async throws
     func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode]
@@ -78,6 +79,7 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
     // MARK: - Child Operations
 
     public func fetchChildren(familyId: FamilyID) async throws -> [ChildContextPayload] {
+        print("SyncService: Fetching children from CloudKit for family \(familyId.rawValue)")
         let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let familyRef = CKRecord.Reference(recordID: familyRecordID, action: .none)
 
@@ -94,23 +96,41 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
                     let child = try CloudKitMapper.childPayload(from: record)
                     children.append(child)
                 case .failure(let error):
-                    print("Failed to fetch child: \(error)")
+                    print("SyncService: Failed to fetch child record: \(error)")
                 }
             }
 
+            print("SyncService: Successfully fetched \(children.count) children from CloudKit")
             return children
         } catch {
+            print("SyncService: Failed to fetch children from CloudKit: \(error)")
             throw SyncError.serverError(error.localizedDescription)
         }
     }
 
     public func saveChild(_ child: ChildContextPayload, familyId: FamilyID) async throws {
+        print("SyncService: Saving child \(child.displayName) (ID: \(child.id.rawValue)) to CloudKit for family \(familyId.rawValue)")
         let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let record = CloudKitMapper.childRecord(for: child, familyID: familyRecordID)
 
         do {
             _ = try await publicDatabase.save(record)
+            print("SyncService: Successfully saved child \(child.displayName) to CloudKit")
         } catch {
+            print("SyncService: Failed to save child \(child.displayName) to CloudKit: \(error)")
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    public func deleteChild(_ childId: ChildID, familyId: FamilyID) async throws {
+        print("SyncService: Deleting child \(childId.rawValue) from CloudKit for family \(familyId.rawValue)")
+        let recordID = CKRecord.ID(recordName: childId.rawValue)
+
+        do {
+            _ = try await publicDatabase.deleteRecord(withID: recordID)
+            print("SyncService: Successfully deleted child \(childId.rawValue) from CloudKit")
+        } catch {
+            print("SyncService: Failed to delete child \(childId.rawValue) from CloudKit: \(error)")
             throw SyncError.serverError(error.localizedDescription)
         }
     }

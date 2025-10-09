@@ -5,8 +5,8 @@ import BackgroundTasks
 #if canImport(PointsEngine)
 import PointsEngine
 #else
-protocol ExemptionManagerProtocol {}
-protocol ShieldControllerProtocol {}
+public protocol ExemptionManagerProtocol {}
+public protocol ShieldControllerProtocol {}
 #endif
 
 public enum BackgroundTaskIdentifier: String {

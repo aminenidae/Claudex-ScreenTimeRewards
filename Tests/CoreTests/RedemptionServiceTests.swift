@@ -2,6 +2,7 @@ import XCTest
 @testable import PointsEngine
 @testable import Core
 
+@MainActor
 final class RedemptionServiceTests: XCTestCase {
     var service: RedemptionService!
     var ledger: PointsLedger!

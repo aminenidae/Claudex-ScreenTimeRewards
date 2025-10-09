@@ -2,6 +2,7 @@ import XCTest
 @testable import PointsEngine
 @testable import Core
 
+@MainActor
 final class PointsLedgerTests: XCTestCase {
     var ledger: PointsLedger!
     var childId: ChildID!
@@ -172,18 +173,18 @@ final class PointsLedgerTests: XCTestCase {
 
     func testSaveAndLoad() throws {
         // Use fresh ledgers to avoid test interference
-        let auditLog = AuditLog()
-        let saveLedger = PointsLedger(auditLog: auditLog)
-        saveLedger.recordAccrual(childId: childId, points: 100)
-        saveLedger.recordRedemption(childId: childId, points: 30)
+        let auditLog1 = AuditLog()
+        let saveLedger = PointsLedger(auditLog: auditLog1)
+        _ = saveLedger.recordAccrual(childId: childId, points: 100)
+        _ = saveLedger.recordRedemption(childId: childId, points: 30)
 
         // Wait for async operations to complete
         Thread.sleep(forTimeInterval: 0.1)
 
         try saveLedger.save()
 
-        let auditLog = AuditLog()
-        let loadLedger = PointsLedger(auditLog: auditLog)
+        let auditLog2 = AuditLog()
+        let loadLedger = PointsLedger(auditLog: auditLog2)
         try loadLedger.load()
 
         XCTAssertEqual(loadLedger.getBalance(childId: childId), 70)
@@ -191,7 +192,7 @@ final class PointsLedgerTests: XCTestCase {
     }
 
     func testClear() {
-        ledger.recordAccrual(childId: childId, points: 100)
+        _ = ledger.recordAccrual(childId: childId, points: 100)
         ledger.clear()
 
         XCTAssertEqual(ledger.getBalance(childId: childId), 0)

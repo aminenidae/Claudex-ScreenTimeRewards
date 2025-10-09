@@ -11,6 +11,7 @@ final class PairingServiceTests: XCTestCase {
         return defaults
     }
 
+    @MainActor
     func testGeneratePairingCodeProvidesUniqueCode() throws {
         let defaults = makeUserDefaults()
         let service = PairingService(userDefaults: defaults)
@@ -25,6 +26,7 @@ final class PairingServiceTests: XCTestCase {
         XCTAssertEqual(service.activeCode(for: childId)?.code, secondCode.code)
     }
 
+    @MainActor
     func testConsumePairingCodeCreatesPairing() throws {
         let defaults = makeUserDefaults()
         let service = PairingService(userDefaults: defaults)
@@ -46,6 +48,7 @@ final class PairingServiceTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testExpiredCodeCannotBeConsumed() throws {
         let defaults = makeUserDefaults()
         let service = PairingService(userDefaults: defaults)
@@ -62,6 +65,7 @@ final class PairingServiceTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testGenerationRateLimiting() throws {
         let defaults = makeUserDefaults()
         let service = PairingService(userDefaults: defaults)

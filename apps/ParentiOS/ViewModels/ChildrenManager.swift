@@ -10,6 +10,8 @@ import FamilyControls
 import PointsEngine
 #endif
 
+// CloudKitDebugger is compiled directly into the ParentiOS target from Sources/Core/CloudKitDebugger.swift
+
 /// Represents a managed child profile
 struct ChildProfile: Identifiable, Hashable, Codable {
     let id: ChildID
@@ -26,8 +28,10 @@ struct ChildProfile: Identifiable, Hashable, Codable {
 /// Manages the list of children and provides view models for each
 @MainActor
 class ChildrenManager: ObservableObject {
-    @Published var children: [ChildProfile] = [] { 
-        didSet { persistChildren() } 
+    @Published var children: [ChildProfile] = [] {
+        didSet {
+            persistChildren()
+        }
     }
     @Published var selectedChildId: ChildID? {
         didSet {
@@ -52,6 +56,7 @@ class ChildrenManager: ObservableObject {
 
     // Cache of view models (one per child)
     private var viewModels: [ChildID: DashboardViewModel] = [:]
+    private var syncService: SyncService?
 
     init(ledger: PointsLedger, engine: PointsEngine, exemptionManager: ExemptionManager, redemptionService: RedemptionServiceProtocol) {
         self.ledger = ledger
@@ -66,9 +71,7 @@ class ChildrenManager: ObservableObject {
             if selectedChildId == nil {
                 selectedChildId = children.first?.id
             }
-            if children.isEmpty {
-                loadDemoChildren()
-            }
+            // Remove the demo children loading when feature flag is on
         } else {
             self.storageURL = nil
             loadDemoChildren()
@@ -91,6 +94,11 @@ class ChildrenManager: ObservableObject {
         viewModels[childId] = vm
         return vm
     }
+
+    func setSyncService(_ syncService: SyncService) {
+        self.syncService = syncService
+    }
+
     /// Select child by index
     func selectChild(at index: Int) {
         guard index >= 0 && index < children.count else { return }
@@ -126,25 +134,86 @@ class ChildrenManager: ObservableObject {
         let displayName = trimmed.isEmpty ? "Child" : trimmed
 
         do {
-            try await AuthorizationCenter.shared.requestAuthorization(for: .child)
+            let center = AuthorizationCenter.shared
+            let status = await center.authorizationStatus
+            if status != .approved {
+                try await center.requestAuthorization(for: .individual)
+            }
             let childId = ChildID(UUID().uuidString)
             let storeName = "child-\(childId.rawValue)"
             let profile = ChildProfile(id: childId, name: displayName, storeName: storeName)
+
+            // Save to CloudKit
+            if let syncService = syncService {
+                print("ChildrenManager: About to save child \(displayName) to CloudKit via SyncService")
+                let payload = ChildContextPayload(id: childId, childOpaqueId: storeName, displayName: displayName)
+                try await syncService.saveChild(payload, familyId: FamilyID("default-family"))
+                print("ChildrenManager: Successfully saved child \(displayName) to CloudKit")
+            } else {
+                print("ChildrenManager: WARNING - SyncService is nil, child not saved to CloudKit!")
+            }
+
             children.append(profile)
             selectedChildId = childId
+
             return .success(profile)
         } catch {
             return .failure(error)
         }
     }
 
-    func removeChild(_ child: ChildProfile) {
+    func removeChild(_ child: ChildProfile) async {
         children.removeAll { $0.id == child.id }
         viewModels[child.id] = nil
         if selectedChildId == child.id {
             selectedChildId = children.first?.id
         }
+
+        if let syncService = syncService {
+            do {
+                try await syncService.deleteChild(child.id, familyId: FamilyID("default-family"))
+            } catch {
+                print("Failed to delete child from cloud: \(error)")
+            }
+        }
     }
+
+    func refreshChildrenFromCloud(familyId: FamilyID) async {
+        guard let syncService = syncService else {
+            print("SyncService not available in ChildrenManager")
+            return
+        }
+
+        let maxRetries = 3
+        var attempt = 0
+
+        while attempt < maxRetries {
+            attempt += 1
+            do {
+                let payloads = try await syncService.fetchChildren(familyId: familyId)
+                let profiles = payloads.map { ChildProfile(id: $0.id, name: $0.displayName ?? "Child", storeName: $0.childOpaqueId) }
+                
+                await MainActor.run {
+                    self.children = profiles
+                    persistChildren()
+                }
+
+                return // Success
+            } catch let error as SyncError {
+                if case .serverError(let message) = error, message.contains("Did not find record type") {
+                    print("Failed to refresh children, record type not found. Retry attempt \(attempt)/\(maxRetries)...")
+                    try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 second delay
+                } else {
+                    print("Failed to refresh children from cloud: \(error)")
+                    return
+                }
+            } catch {
+                print("Failed to refresh children from cloud: \(error)")
+                return
+            }
+        }
+    }
+
 
     var selectedChildIndex: Int {
         guard let selectedId = selectedChildId,
@@ -182,4 +251,14 @@ class ChildrenManager: ObservableObject {
             print("ChildrenManager: failed to save children: \(error)")
         }
     }
+    
+    #if canImport(FamilyControls)
+    /// Get the managed environment for a specific child
+    /// This is a placeholder implementation - FamilyActivityPicker works with the current authorization context
+    func getManagedEnvironment(for childId: ChildID) -> Any? {
+        // FamilyActivityPicker works with the currently authorized child context
+        // We don't need to explicitly pass a managed environment for basic functionality
+        return nil
+    }
+    #endif
 }

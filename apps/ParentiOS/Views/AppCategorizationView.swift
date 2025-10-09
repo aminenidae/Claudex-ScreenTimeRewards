@@ -8,11 +8,16 @@ import Core
 struct AppCategorizationView: View {
     @ObservedObject var childrenManager: ChildrenManager
     @ObservedObject var rulesManager: CategoryRulesManager
+    @EnvironmentObject private var pairingService: PairingService
 
     @State private var selectedChildIndex: Int = 0
     @State private var showingLearningPicker = false
     @State private var showingRewardPicker = false
     @State private var showingAddChildSheet = false
+    @State private var showingManageChildrenSheet = false
+    @State private var showingConflictAlert = false
+    @State private var conflictResolutionChoice = 0 // 0 = keep learning, 1 = keep reward
+    @State private var isPairingSyncInProgress = false
 
     var selectedChild: ChildProfile? {
         guard !childrenManager.children.isEmpty else { return nil }
@@ -40,12 +45,29 @@ struct AppCategorizationView: View {
                             .padding(.horizontal)
                             .padding(.top, 20)
 
+                        // Show conflict warning if there are conflicts
+                        let summary = rulesManager.getSummary(for: child.id)
+                        let canConfigureCategories = isChildPaired(child.id)
+                        if summary.hasConflicts {
+                            ConflictWarningCard(
+                                conflictCount: summary.conflictCount,
+                                onResolve: { showingConflictAlert = true }
+                            )
+                            .padding(.horizontal)
+                        }
+
+                        if !canConfigureCategories {
+                            PairingRequiredCard(childName: child.name)
+                                .padding(.horizontal)
+                        }
+
                         CategorySection(
                             title: "Learning Apps",
                             subtitle: "Earn points when used",
                             icon: "graduationcap.fill",
                             iconColor: .green,
-                            summary: rulesManager.getSummary(for: child.id).learningDescription,
+                            summary: summary.learningDescription,
+                            isEnabled: canConfigureCategories,
                             action: { showingLearningPicker = true }
                         )
                         .padding(.horizontal)
@@ -55,19 +77,30 @@ struct AppCategorizationView: View {
                             subtitle: "Require points to unlock",
                             icon: "star.fill",
                             iconColor: .orange,
-                            summary: rulesManager.getSummary(for: child.id).rewardDescription,
+                            summary: summary.rewardDescription,
+                            isEnabled: canConfigureCategories,
                             action: { showingRewardPicker = true }
                         )
                         .padding(.horizontal)
 
                         if FeatureFlags.enablesFamilyAuthorization {
-                            Button {
-                                showingAddChildSheet = true
-                            } label: {
-                                Label("Add Another Child", systemImage: "plus")
-                                    .frame(maxWidth: .infinity)
+                            VStack {
+                                Button {
+                                    showingAddChildSheet = true
+                                } label: {
+                                    Label("Add Another Child", systemImage: "plus")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
+
+                                Button {
+                                    showingManageChildrenSheet = true
+                                } label: {
+                                    Label("Manage Children", systemImage: "person.crop.circle.badge.xmark")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.bordered)
                             }
-                            .buttonStyle(.bordered)
                             .padding(.horizontal)
                         }
 
@@ -120,14 +153,27 @@ struct AppCategorizationView: View {
                 }
             }
         }
-        .familyActivityPicker(
-            isPresented: $showingLearningPicker,
-            selection: learningSelectionBinding
-        )
-        .familyActivityPicker(
-            isPresented: $showingRewardPicker,
-            selection: rewardSelectionBinding
-        )
+        .task {
+            await syncPairingsFromCloud()
+        }
+        .sheet(isPresented: $showingLearningPicker) {
+            if let child = selectedChild, isChildPaired(child.id) {
+                FamilyActivityPicker(
+                    selection: learningSelectionBinding
+                )
+            } else {
+                EmptyView()
+            }
+        }
+        .sheet(isPresented: $showingRewardPicker) {
+            if let child = selectedChild, isChildPaired(child.id) {
+                FamilyActivityPicker(
+                    selection: rewardSelectionBinding
+                )
+            } else {
+                EmptyView()
+            }
+        }
         .sheet(isPresented: $showingAddChildSheet) {
             if FeatureFlags.enablesFamilyAuthorization {
                 AddChildSheet { name in
@@ -140,11 +186,57 @@ struct AppCategorizationView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingManageChildrenSheet) {
+            ManageChildrenView(childrenManager: childrenManager)
+        }
+        .alert("Conflict Resolution", isPresented: $showingConflictAlert) {
+            Button("Keep Learning Apps") {
+                if let child = selectedChild {
+                    rulesManager.resolveConflicts(for: child.id, keepLearning: true)
+                }
+            }
+            Button("Keep Reward Apps") {
+                if let child = selectedChild {
+                    rulesManager.resolveConflicts(for: child.id, keepLearning: false)
+                }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Some apps are classified as both learning and reward. Which category should take precedence?")
+        }
         .onReceive(childrenManager.$children) { newChildren in
             if selectedChildIndex >= newChildren.count {
                 selectedChildIndex = max(0, newChildren.count - 1)
             }
         }
+    }
+
+    // MARK: - Helper Methods
+
+    private func hasConflicts(for childId: ChildID) -> Bool {
+        return !rulesManager.detectConflicts(for: childId).isEmpty
+    }
+
+    private func conflictCount(for childId: ChildID) -> Int {
+        return rulesManager.detectConflicts(for: childId).count
+    }
+
+    private func isChildPaired(_ childId: ChildID) -> Bool {
+        !pairingService.getPairings(for: childId).isEmpty
+    }
+
+    private func syncPairingsFromCloud() async {
+        #if canImport(CloudKit)
+        guard !isPairingSyncInProgress else { return }
+        isPairingSyncInProgress = true
+        defer { isPairingSyncInProgress = false }
+
+        do {
+            try await pairingService.syncWithCloudKit(familyId: FamilyID("default-family"))
+        } catch {
+            print("AppCategorizationView: Failed to sync pairing state: \(error)")
+        }
+        #endif
     }
 
     // MARK: - Bindings
@@ -180,7 +272,7 @@ struct AppCategorizationView: View {
     }
 }
 
-// MARK: - Supporting Views remain unchanged...
+// MARK: - Supporting Views
 
 @available(iOS 16.0, *)
 private struct InstructionsCard: View {
@@ -201,12 +293,55 @@ private struct InstructionsCard: View {
 }
 
 @available(iOS 16.0, *)
+private struct ConflictWarningCard: View {
+    let conflictCount: Int
+    let onResolve: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                Text("App Conflicts Detected")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            Text("There \(conflictCount == 1 ? "is" : "are") \(conflictCount) app\(conflictCount == 1 ? "" : "s") classified as both learning and reward. This may cause unexpected behavior.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            
+            Button(action: onResolve) {
+                Text("Resolve Conflicts")
+                    .font(.callout)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(Color.orange)
+                    .cornerRadius(8)
+            }
+            .padding(.top, 4)
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.orange.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
+@available(iOS 16.0, *)
 private struct CategorySection: View {
     let title: String
     let subtitle: String
     let icon: String
     let iconColor: Color
     let summary: String
+    let isEnabled: Bool
     let action: () -> Void
 
     var body: some View {
@@ -244,5 +379,40 @@ private struct CategorySection: View {
             )
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.5)
+        .overlay {
+            if !isEnabled {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6]))
+                    .foregroundStyle(Color.secondary.opacity(0.4))
+            }
+        }
+    }
+}
+
+@available(iOS 16.0, *)
+private struct PairingRequiredCard: View {
+    let childName: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "link.badge.plus")
+                .font(.title2)
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Link \(childName)'s device to choose apps")
+                    .font(.headline)
+                Text("Pair the child's device first, then come back to assign learning and reward apps.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.tertiarySystemBackground))
+        )
     }
 }

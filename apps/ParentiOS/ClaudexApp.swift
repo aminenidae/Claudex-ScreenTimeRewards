@@ -37,9 +37,10 @@ struct ClaudexScreenTimeRewardsApp: App {
                     }
                     .task {
                         #if canImport(CloudKit)
-                        // Connect pairing service with sync service
-                        print("Connecting pairing service with sync service")
+                        // Connect services
+                        print("Connecting services")
                         pairingService.setSyncService(syncService)
+                        childrenManager.setSyncService(syncService)
                         #endif
                     }
             } else {
@@ -70,6 +71,8 @@ private extension ClaudexScreenTimeRewardsApp {
         let exemptionManager = ExemptionManager()
         let redemptionService = RedemptionService(ledger: ledger)
 
+        // The CloudKitDebugger will be initialized and started in ChildrenManager
+        
         return ChildrenManager(
             ledger: ledger,
             engine: engine,
@@ -158,6 +161,7 @@ struct ChildModeView: View {
 
     @State private var currentPairing: ChildDevicePairing?
     @State private var alertContext: AlertContext?
+    @State private var isLoadingChildren = false
 
     private let deviceId: String
 
@@ -222,9 +226,11 @@ struct ChildModeView: View {
 
     private func pairedContent(for pairing: ChildDevicePairing) -> some View {
         let childProfile = childrenManager.children.first { $0.id == pairing.childId }
-        
+
         return Group {
-            if let childProfile = childProfile {
+            if isLoadingChildren {
+                ProgressView("Loading Child Profile...")
+            } else if let childProfile = childProfile {
                 ChildModeHomeView(
                     childProfile: childProfile,
                     ledger: childrenManager.ledger,
@@ -326,6 +332,13 @@ struct ChildModeView: View {
     private func handlePairingComplete(_ pairing: ChildDevicePairing) {
         currentPairing = pairing
         pendingPairingCode = nil
+        isLoadingChildren = true
+
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            await childrenManager.refreshChildrenFromCloud(familyId: FamilyID("default-family"))
+            isLoadingChildren = false
+        }
     }
 
     private func handlePairingCancelled() {

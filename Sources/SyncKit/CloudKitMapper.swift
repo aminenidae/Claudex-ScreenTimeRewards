@@ -32,7 +32,9 @@ public struct CloudKitMapper {
         let recordID = CKRecord.ID(recordName: payload.id.rawValue)
         let record = CKRecord(recordType: CloudKitRecordType.family, recordID: recordID)
         record["createdAt"] = payload.createdAt
-        record["parentDeviceIds"] = payload.parentDeviceIds
+        if let parentDeviceIds = payload.parentDeviceIds {
+            record["parentDeviceIds"] = parentDeviceIds
+        }
         if let familyName = payload.familyName {
             record["familyName"] = familyName
         }
@@ -47,7 +49,7 @@ public struct CloudKitMapper {
         guard let modifiedAt = record["modifiedAt"] as? Date else {
             throw CloudKitMapperError.missingField("modifiedAt")
         }
-        let parentDeviceIds = record["parentDeviceIds"] as? [String] ?? []
+        let parentDeviceIds = record["parentDeviceIds"] as? [String]
         let familyName = record["familyName"] as? String
         let familyId = FamilyID(record.recordID.recordName)
 

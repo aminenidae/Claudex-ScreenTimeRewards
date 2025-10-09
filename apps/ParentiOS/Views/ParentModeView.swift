@@ -8,6 +8,7 @@ import PointsEngine
 #if canImport(ScreenTimeService)
 import ScreenTimeService
 #endif
+// SyncKit files are compiled directly into the target, no import needed
 
 @available(iOS 16.0, *)
 struct ParentModeView: View {
@@ -21,8 +22,11 @@ struct ParentModeView: View {
 #if canImport(ManagedSettings) && canImport(FamilyControls) && canImport(PointsEngine) && !os(macOS)
     @StateObject private var rewardCoordinator: RewardCoordinator
 #endif
+    @StateObject private var syncService: SyncService
     private let ledger: PointsLedger
     @State private var showingPairingSheet = false
+    @State private var pairingNotification: PairingNotification?
+    @State private var showPairingSuccess = false
 
     init() {
         let ledger: PointsLedger
@@ -57,6 +61,13 @@ struct ParentModeView: View {
             exemptionManager: exemptionManager,
             redemptionService: redemptionService
         )
+
+        // SyncKit is always available - files are compiled into the target
+        print("ParentModeView.init: Creating SyncService for CloudKit sync")
+        let syncServiceInstance = SyncService()
+        manager.setSyncService(syncServiceInstance)
+        _syncService = StateObject(wrappedValue: syncServiceInstance)
+        print("ParentModeView.init: SyncService created and set on ChildrenManager")
 
 #if DEBUG
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1", manager.children.isEmpty {
@@ -128,6 +139,23 @@ struct ParentModeView: View {
                 .environmentObject(pairingService)
             }
         }
+        .onReceive(pairingService.$lastPairingNotification) { notification in
+            if let notification = notification {
+                handlePairingNotification(notification)
+            }
+        }
+        .alert("Device Paired!", isPresented: $showPairingSuccess) {
+            Button("OK") {
+                showPairingSuccess = false
+                pairingNotification = nil
+            }
+        } message: {
+            if let notification = pairingNotification {
+                Text("Successfully paired device \"\(notification.deviceName)\" to \(getChildName(childId: notification.childId))")
+            } else {
+                Text("Device successfully paired!")
+            }
+        }
     }
 }
 
@@ -136,6 +164,20 @@ private extension ParentModeView {
     var selectedChild: ChildProfile? {
         guard let selectedId = childrenManager.selectedChildId else { return nil }
         return childrenManager.children.first(where: { $0.id == selectedId })
+    }
+    
+    func handlePairingNotification(_ notification: PairingNotification) {
+        // Update UI to show pairing success
+        pairingNotification = notification
+        showPairingSuccess = true
+        
+        // Refresh the children manager to show updated pairing status
+        // This will cause the UI to update with the new pairing information
+        childrenManager.objectWillChange.send()
+    }
+    
+    func getChildName(childId: ChildID) -> String {
+        return childrenManager.children.first { $0.id == childId }?.name ?? "Unknown Child"
     }
 }
 

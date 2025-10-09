@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Pairing Models
 
@@ -23,6 +26,23 @@ public struct ChildDevicePairing: Codable, Equatable, Identifiable {
         self.deviceId = deviceId
         self.pairedAt = pairedAt
         self.pairingCode = pairingCode
+    }
+}
+
+// MARK: - Pairing Notification
+
+/// Notification sent when a child device is successfully paired
+public struct PairingNotification: Codable {
+    public let childId: ChildID
+    public let deviceId: String
+    public let pairedAt: Date
+    public let deviceName: String
+    
+    public init(childId: ChildID, deviceId: String, pairedAt: Date, deviceName: String) {
+        self.childId = childId
+        self.deviceId = deviceId
+        self.pairedAt = pairedAt
+        self.deviceName = deviceName
     }
 }
 
@@ -79,6 +99,9 @@ public protocol PairingServiceProtocol {
     
     /// Sync pairing codes with CloudKit
     func syncWithCloudKit(familyId: FamilyID) async throws
+    
+    /// Publishes notifications when pairing events occur
+    var pairingNotifications: PassthroughSubject<PairingNotification, Never> { get }
 }
 
 // MARK: - Pairing Service Implementation
@@ -111,6 +134,10 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
     // Use a generic protocol instead of importing SyncKit directly
     // Make this public for debugging
     public private(set) var syncService: (any PairingSyncServiceProtocol)?
+
+    // Notification publisher for pairing events
+    public let pairingNotifications = PassthroughSubject<PairingNotification, Never>()
+    @Published public var lastPairingNotification: PairingNotification?
 
     // MARK: Initialization
 
@@ -223,6 +250,18 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         pairings[deviceId] = pairing
         print("PairingService: Stored pairing for device \(deviceId)")
 
+        // Send notification to parent
+        let deviceName = getDeviceName()
+        let notification = PairingNotification(
+            childId: pairing.childId,
+            deviceId: deviceId,
+            pairedAt: Date(),
+            deviceName: deviceName
+        )
+        pairingNotifications.send(notification)
+        lastPairingNotification = notification
+        print("PairingService: Sent pairing notification for device \(deviceId)")
+
         // Persist
         saveToPersistence()
         print("PairingService: Saved pairing to persistence")
@@ -322,8 +361,8 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         for (codeKey, code) in activeCodes {
             print("PairingService: Processing local code \(codeKey) for child \(code.childId)")
             print("PairingService: Code validity - expired: \(code.isExpired), used: \(code.isUsed), valid: \(code.isValid)")
-            
-            if code.isValid {
+
+            if code.isUsed || !code.isExpired {
                 do {
                     try await syncService.savePairingCode(code, familyId: familyId)
                     print("PairingService: Uploaded pairing code to CloudKit: \(code.code)")
@@ -332,13 +371,41 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                     print("PairingService: Failed to upload pairing code \(code.code) to CloudKit: \(error)")
                 }
             } else {
-                print("PairingService: Skipped invalid local code \(code.code) (expired: \(code.isExpired), used: \(code.isUsed))")
+                print("PairingService: Skipped local code \(code.code) (expired without use)")
+                skippedCount += 1
             }
         }
-        
+
+        reconcilePairingsFromCodes()
+
         print("PairingService: Sync complete for family \(familyId): Added \(addedCount) codes from CloudKit, uploaded \(uploadedCount) codes to CloudKit, skipped \(skippedCount) invalid codes")
         print("PairingService: Total active codes: \(activeCodes.count)")
         saveToPersistence()
+    }
+
+    private func reconcilePairingsFromCodes() {
+        var updatedPairings = pairings
+        var didChange = false
+
+        for code in activeCodes.values {
+            guard code.isUsed, let deviceId = code.usedByDeviceId else { continue }
+            let pairing = ChildDevicePairing(
+                childId: code.childId,
+                deviceId: deviceId,
+                pairedAt: code.usedAt ?? code.createdAt,
+                pairingCode: code.code
+            )
+
+            if updatedPairings[deviceId] != pairing {
+                updatedPairings[deviceId] = pairing
+                didChange = true
+            }
+        }
+
+        if didChange {
+            pairings = updatedPairings
+            notifyChange()
+        }
     }
 
     // MARK: Private Helpers
@@ -460,5 +527,13 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
 
     private func notifyChange() {
         objectWillChange.send()
+    }
+    
+    private func getDeviceName() -> String {
+        #if canImport(UIKit)
+        return UIDevice.current.name
+        #else
+        return "Unknown Device"
+        #endif
     }
 }

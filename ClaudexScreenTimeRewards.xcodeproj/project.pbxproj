@@ -40,6 +40,8 @@
 		A10000352B6D000000000002 /* AuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000352B6D000000000001 /* AuditLog.swift */; };
 		A10000362B6D000000000004 /* AddChildSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000362B6D000000000003 /* AddChildSheet.swift */; };
 		A10000372B6D000000000005 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000372B6D000000000004 /* FeatureFlags.swift */; };
+		A20000382B6D000000000005 /* PairingStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000392B6D000000000006 /* PairingStatusCard.swift */; };
+		A30000382B6D000000000007 /* ManageChildrenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000392B6D000000000008 /* ManageChildrenView.swift */; };
 		AF74CC913F4642C88C9AB017 /* PointsLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B3A0A871F6497DA90A3104 /* PointsLedger.swift */; };
 		C7687F500A96443693F21C1C /* DataExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */; };
 		E0C89EBCDC374C4586984060 /* PointsBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9172FD87BC4A44F6B24E0CE0 /* PointsBalanceCard.swift */; };
@@ -83,6 +85,8 @@
 		A10000362B6D000000000003 /* AddChildSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddChildSheet.swift; sourceTree = "<group>"; };
 		A10000372B6D000000000004 /* FeatureFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlags.swift; sourceTree = "<group>"; };
 		A1E67DA07E9E4804A4A5151A /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
+		A20000392B6D000000000006 /* PairingStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStatusCard.swift; sourceTree = "<group>"; };
+		A30000392B6D000000000008 /* ManageChildrenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageChildrenView.swift; sourceTree = "<group>"; };
 		D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExemptionManager.swift; sourceTree = "<group>"; };
 		E2D509F5020B4151859084D6 /* MultiChildDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiChildDashboardView.swift; sourceTree = "<group>"; };
 		E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCategorizationView.swift; sourceTree = "<group>"; };
@@ -244,6 +248,8 @@
 				0F0A5A13C21542C79E447C5B /* LearningTimeCard.swift */,
 				6075ADFFD2904E07AF741291 /* RedemptionsCard.swift */,
 				0BF4E45F21A54E7EA0FA115F /* ShieldStatusCard.swift */,
+				A20000392B6D000000000006 /* PairingStatusCard.swift */,
+				A30000392B6D000000000008 /* ManageChildrenView.swift */,
 				A1E67DA07E9E4804A4A5151A /* ExportView.swift */,
 				A10000362B6D000000000003 /* AddChildSheet.swift */,
 			);
@@ -346,6 +352,8 @@
 				08D6754CB3974B63BB5D7FD2 /* RedemptionsCard.swift in Sources */,
 				432A8AA92E94AC6500E03796 /* ActiveRewardTimeView.swift in Sources */,
 				8FEBEEDA189E40919E08B934 /* ShieldStatusCard.swift in Sources */,
+				A20000382B6D000000000005 /* PairingStatusCard.swift in Sources */,
+				A30000382B6D000000000007 /* ManageChildrenView.swift in Sources */,
 				432A8A9F2E92C7F000E03796 /* ChildRedemptionView.swift in Sources */,
 				6D28F1A6090F4DB9839CDE78 /* ExportView.swift in Sources */,
 			);
@@ -384,6 +392,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = KQ5KZR3DQ5;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -439,6 +448,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = KQ5KZR3DQ5;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -462,6 +472,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = entitlements/Parent.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KQ5KZR3DQ5;
@@ -474,6 +485,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.claudex.ScreentimeRewards;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -485,6 +497,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = entitlements/Parent.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = KQ5KZR3DQ5;
@@ -497,6 +510,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.claudex.ScreentimeRewards;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";

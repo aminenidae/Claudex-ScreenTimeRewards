@@ -400,7 +400,7 @@ EP-14 Dev Experience & QA Infrastructure — Phase: MVP
 - ✅ EP-07: Dashboard & Reporting - DashboardViewModel, 5 card components, DataExporter (CSV/JSON), multi-child navigation with horizontal swipe
 
 **Partially Completed:**
-- 🔄 EP-03: App Categorization - CategoryRulesManager with per-child Learning/Reward classification, FamilyActivityPicker integration complete, conflict resolution pending
+- ✅ EP-03: App Categorization - CategoryRulesManager with per-child Learning/Reward classification, FamilyActivityPicker integration complete, conflict resolution implemented
 - 🔄 EP-06: Sync & Multi-Parent - Schema + mappers complete, offline queue and subscriptions pending
 
 **In Progress:**
