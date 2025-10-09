@@ -365,6 +365,10 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                         addedCount += 1
                     } else if code.isUsed, let deviceId = code.usedByDeviceId {
                         // Code is used - create pairing on parent device if it doesn't exist
+                        print("PairingService: Found used code \(code.code) from CloudKit with deviceId: \(deviceId)")
+                        print("PairingService: Current pairings count: \(self.pairings.count)")
+                        print("PairingService: Pairings dictionary keys: \(Array(self.pairings.keys))")
+
                         if self.pairings[deviceId] == nil {
                             let pairing = ChildDevicePairing(
                                 childId: code.childId,
@@ -372,26 +376,28 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                                 pairingCode: code.code
                             )
                             self.pairings[deviceId] = pairing
-                            print("PairingService: Created pairing from used CloudKit code \(code.code) for device \(deviceId)")
+                            print("PairingService: ✅ Created pairing from used CloudKit code \(code.code) for device \(deviceId) → child \(code.childId)")
                             addedCount += 1
                         } else {
                             print("PairingService: Pairing already exists for device \(deviceId)")
                             skippedCount += 1
                         }
                     } else {
-                        print("PairingService: Skipped invalid cloud code \(code.code) (expired: \(code.isExpired), used: \(code.isUsed))")
+                        print("PairingService: Skipped invalid cloud code \(code.code) (expired: \(code.isExpired), used: \(code.isUsed), usedByDeviceId: \(code.usedByDeviceId ?? "nil"))")
                         skippedCount += 1
                     }
                 } else {
                     print("PairingService: Cloud code \(code.code) already exists locally")
                     // Update local code if cloud version is newer
                     if let localCode = self.activeCodes[code.code] {
+                        print("PairingService: Comparing local code \(code.code) (created: \(localCode.createdAt)) with cloud version (created: \(code.createdAt))")
                         if code.createdAt > localCode.createdAt {
                             self.activeCodes[code.code] = code
                             print("PairingService: Updated local code \(code.code) with newer cloud version")
 
                             // If the cloud code is now used, create pairing if needed
                             if code.isUsed, let deviceId = code.usedByDeviceId {
+                                print("PairingService: Updated code is USED by device \(deviceId)")
                                 if self.pairings[deviceId] == nil {
                                     let pairing = ChildDevicePairing(
                                         childId: code.childId,
@@ -399,9 +405,15 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                                         pairingCode: code.code
                                     )
                                     self.pairings[deviceId] = pairing
-                                    print("PairingService: Created pairing from updated CloudKit code \(code.code) for device \(deviceId)")
+                                    print("PairingService: ✅ Created pairing from updated CloudKit code \(code.code) for device \(deviceId) → child \(code.childId)")
+                                } else {
+                                    print("PairingService: Pairing already exists for device \(deviceId)")
                                 }
+                            } else {
+                                print("PairingService: Updated code is NOT used (isUsed: \(code.isUsed), usedByDeviceId: \(code.usedByDeviceId ?? "nil"))")
                             }
+                        } else {
+                            print("PairingService: Local code is newer or same age, keeping local version")
                         }
                     }
                 }
