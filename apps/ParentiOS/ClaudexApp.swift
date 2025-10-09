@@ -21,28 +21,44 @@ struct ClaudexScreenTimeRewardsApp: App {
     @StateObject private var syncService = SyncService()
     #endif
     @State private var pendingPairingCode: String?
+    @State private var isRequestingAuthorization = true
 
     var body: some Scene {
         WindowGroup {
             if #available(iOS 16.0, *) {
-                ModeSelectionView(pendingPairingCode: $pendingPairingCode)
-                    .environmentObject(authorizationCoordinator)
-                    .environmentObject(childrenManager)
-                    .environmentObject(pairingService)
-                    #if canImport(CloudKit)
-                    .environmentObject(syncService)
-                    #endif
-                    .onOpenURL { url in
-                        handleDeepLink(url)
-                    }
-                    .task {
+                ZStack {
+                    ModeSelectionView(pendingPairingCode: $pendingPairingCode)
+                        .environmentObject(authorizationCoordinator)
+                        .environmentObject(childrenManager)
+                        .environmentObject(pairingService)
                         #if canImport(CloudKit)
-                        // Connect services
-                        print("Connecting services")
-                        pairingService.setSyncService(syncService)
-                        childrenManager.setSyncService(syncService)
+                        .environmentObject(syncService)
                         #endif
+                        .onOpenURL { url in
+                            handleDeepLink(url)
+                        }
+                        .opacity(isRequestingAuthorization ? 0 : 1)
+
+                    if isRequestingAuthorization {
+                        AuthorizationLoadingView()
                     }
+                }
+                .task {
+                    // Request Family Controls authorization early to avoid delays when adding children
+                    await authorizationCoordinator.requestAuthorizationIfNeeded()
+
+                    #if canImport(CloudKit)
+                    // Connect services
+                    print("Connecting services")
+                    pairingService.setSyncService(syncService)
+                    childrenManager.setSyncService(syncService)
+                    #endif
+
+                    // Hide loading indicator with a smooth transition
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isRequestingAuthorization = false
+                    }
+                }
             } else {
                 Text("iOS 16 or newer is required.")
                     .padding()
@@ -515,5 +531,29 @@ struct ModeButton: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(.secondarySystemBackground))
         )
+    }
+}
+
+@available(iOS 16.0, *)
+struct AuthorizationLoadingView: View {
+    var body: some View {
+        VStack(spacing: 24) {
+            ProgressView()
+                .scaleEffect(1.5)
+                .tint(.blue)
+
+            VStack(spacing: 8) {
+                Text("Setting Up")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+
+                Text("Checking Family Controls permissions...")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(.systemBackground))
     }
 }

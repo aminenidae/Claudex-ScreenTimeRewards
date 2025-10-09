@@ -134,11 +134,8 @@ class ChildrenManager: ObservableObject {
         let displayName = trimmed.isEmpty ? "Child" : trimmed
 
         do {
-            let center = AuthorizationCenter.shared
-            let status = await center.authorizationStatus
-            if status != .approved {
-                try await center.requestAuthorization(for: .individual)
-            }
+            // Authorization is now requested at app launch, so we can skip the check here
+            // This prevents the 14s hang when adding a child
             let childId = ChildID(UUID().uuidString)
             let storeName = "child-\(childId.rawValue)"
             let profile = ChildProfile(id: childId, name: displayName, storeName: storeName)
