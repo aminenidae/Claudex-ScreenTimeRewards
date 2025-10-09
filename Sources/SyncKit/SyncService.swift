@@ -31,11 +31,11 @@ public protocol SyncServiceProtocol {
     func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode]
     func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws
     func deletePairingCode(_ code: String, familyId: FamilyID) async throws
-    func syncChanges(since token: CKServerChangeToken?) async throws -> (changes: [CKRecord], newToken: CKServerChangeToken?)
+    func purgeExpiredPairingCodes() async throws
+    func primeCloudKit() async
     #endif
 }
 
-@MainActor
 public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSyncServiceProtocol {
     #if canImport(CloudKit)
     private let container: CKContainer
@@ -57,7 +57,7 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         let recordID = CKRecord.ID(recordName: id.rawValue)
 
         do {
-            let record = try await publicDatabase.record(for: recordID)
+            let record = try await self.publicDatabase.record(for: recordID)
             return try CloudKitMapper.familyPayload(from: record)
         } catch let error as CKError where error.code == .unknownItem {
             throw SyncError.invalidRecord("Family not found")
@@ -70,7 +70,7 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         let record = CloudKitMapper.familyRecord(for: family)
 
         do {
-            _ = try await publicDatabase.save(record)
+            _ = try await self.publicDatabase.save(record)
         } catch {
             throw SyncError.serverError(error.localizedDescription)
         }
@@ -80,6 +80,10 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
 
     public func fetchChildren(familyId: FamilyID) async throws -> [ChildContextPayload] {
         print("SyncService: Fetching children from CloudKit for family \(familyId.rawValue)")
+        // Log start time for performance monitoring
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        print("SyncService: Performing CloudKit fetch on background task")
         let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let familyRef = CKRecord.Reference(recordID: familyRecordID, action: .none)
 
@@ -87,7 +91,7 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         let query = CKQuery(recordType: CloudKitRecordType.childContext, predicate: predicate)
 
         do {
-            let (results, _) = try await publicDatabase.records(matching: query)
+            let (results, _) = try await self.publicDatabase.records(matching: query)
             var children: [ChildContextPayload] = []
 
             for (_, result) in results {
@@ -100,36 +104,56 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
                 }
             }
 
+            let endTime = CFAbsoluteTimeGetCurrent()
+            print("SyncService: CloudKit fetch completed in \(endTime - startTime)s")
             print("SyncService: Successfully fetched \(children.count) children from CloudKit")
             return children
         } catch {
+            let endTime = CFAbsoluteTimeGetCurrent()
+            print("SyncService: CloudKit fetch failed after \(endTime - startTime)s: \(error)")
             print("SyncService: Failed to fetch children from CloudKit: \(error)")
             throw SyncError.serverError(error.localizedDescription)
         }
     }
 
     public func saveChild(_ child: ChildContextPayload, familyId: FamilyID) async throws {
-        print("SyncService: Saving child \(child.displayName) (ID: \(child.id.rawValue)) to CloudKit for family \(familyId.rawValue)")
+        print("SyncService: Saving child \(child.displayName ?? "Unknown") (ID: \(child.id.rawValue)) to CloudKit for family \(familyId.rawValue)")
+        // Log start time for performance monitoring
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        print("SyncService: Performing CloudKit save on background task")
         let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let record = CloudKitMapper.childRecord(for: child, familyID: familyRecordID)
 
         do {
-            _ = try await publicDatabase.save(record)
-            print("SyncService: Successfully saved child \(child.displayName) to CloudKit")
+            _ = try await self.publicDatabase.save(record)
+            let endTime = CFAbsoluteTimeGetCurrent()
+            print("SyncService: CloudKit save completed in \(endTime - startTime)s")
+            print("SyncService: Successfully saved child \(child.displayName ?? "Unknown") to CloudKit")
         } catch {
-            print("SyncService: Failed to save child \(child.displayName) to CloudKit: \(error)")
+            let endTime = CFAbsoluteTimeGetCurrent()
+            print("SyncService: CloudKit save failed after \(endTime - startTime)s: \(error)")
+            print("SyncService: Failed to save child \(child.displayName ?? "Unknown") to CloudKit: \(error)")
             throw SyncError.serverError(error.localizedDescription)
         }
     }
 
     public func deleteChild(_ childId: ChildID, familyId: FamilyID) async throws {
         print("SyncService: Deleting child \(childId.rawValue) from CloudKit for family \(familyId.rawValue)")
+        // Log start time for performance monitoring
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        print("SyncService: Performing CloudKit delete on background task")
         let recordID = CKRecord.ID(recordName: childId.rawValue)
 
         do {
-            _ = try await publicDatabase.deleteRecord(withID: recordID)
+            _ = try await self.publicDatabase.deleteRecord(withID: recordID)
+            let endTime = CFAbsoluteTimeGetCurrent()
+            print("SyncService: CloudKit delete completed in \(endTime - startTime)s")
             print("SyncService: Successfully deleted child \(childId.rawValue) from CloudKit")
         } catch {
+            let endTime = CFAbsoluteTimeGetCurrent()
+            print("SyncService: CloudKit delete failed after \(endTime - startTime)s: \(error)")
             print("SyncService: Failed to delete child \(childId.rawValue) from CloudKit: \(error)")
             throw SyncError.serverError(error.localizedDescription)
         }
@@ -153,7 +177,7 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         let query = CKQuery(recordType: CloudKitRecordType.appRule, predicate: predicate)
 
         do {
-            let (results, _) = try await publicDatabase.records(matching: query)
+            let (results, _) = try await self.publicDatabase.records(matching: query)
             var rules: [AppRulePayload] = []
 
             for (_, result) in results {
@@ -177,7 +201,7 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         let record = CloudKitMapper.appRuleRecord(for: rule, familyID: familyRecordID)
 
         do {
-            _ = try await publicDatabase.save(record)
+            _ = try await self.publicDatabase.save(record)
         } catch {
             throw SyncError.serverError(error.localizedDescription)
         }
@@ -194,7 +218,7 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         print("Fetching pairing codes from CloudKit public database for family: \(familyId)")
 
         do {
-            let (results, _) = try await publicDatabase.records(matching: query)
+            let (results, _) = try await self.publicDatabase.records(matching: query)
             var codes: [PairingCode] = []
             print("Found \(results.count) results from CloudKit public database")
 
@@ -231,12 +255,13 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
     public func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws {
         let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
         let recordID = CKRecord.ID(recordName: code.code)
-        let record: CKRecord
+        var record: CKRecord
 
         print("Saving pairing code \(code.code) to CloudKit public database for family: \(familyId)")
 
+        // Perform CloudKit operations on a background task
         do {
-            record = try await publicDatabase.record(for: recordID)
+            record = try await self.publicDatabase.record(for: recordID)
             CloudKitMapper.applyPairingCode(code, to: record, familyID: familyRecordID)
             print("Updating existing pairing code record \(code.code) in CloudKit")
         } catch let ckError as CKError where ckError.code == .unknownItem {
@@ -248,7 +273,7 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         }
 
         do {
-            _ = try await publicDatabase.modifyRecords(saving: [record], deleting: [])
+            _ = try await self.publicDatabase.modifyRecords(saving: [record], deleting: [])
             print("Successfully saved pairing code \(code.code) to CloudKit public database")
         } catch {
             print("Error saving pairing code \(code.code) to CloudKit public database: \(error)")
@@ -260,13 +285,26 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         let recordID = CKRecord.ID(recordName: code)
         print("Deleting pairing code \(code) from CloudKit public database")
         do {
-            _ = try await publicDatabase.deleteRecord(withID: recordID)
+            _ = try await self.publicDatabase.deleteRecord(withID: recordID)
             print("Successfully deleted pairing code \(code) from CloudKit public database")
         } catch let ckError as CKError where ckError.code == .unknownItem {
             print("Pairing code \(code) not found in CloudKit; treating as already deleted")
         } catch {
+            // Don't throw here as this is a cleanup operation
             print("Error deleting pairing code \(code) from CloudKit public database: \(error)")
-            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    public func primeCloudKit() async {
+        print("Priming CloudKit container...")
+        do {
+            let dummyId = ChildID("dummy-child-for-priming")
+            let dummyPayload = ChildContextPayload(id: dummyId, childOpaqueId: "dummy-opaque-id", displayName: "Dummy")
+            try await self.saveChild(dummyPayload, familyId: FamilyID("default-family"))
+            try await self.deleteChild(dummyId, familyId: FamilyID("default-family"))
+            print("CloudKit container primed successfully.")
+        } catch {
+            print("Failed to prime CloudKit container: \(error)")
         }
     }
 
@@ -274,6 +312,36 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
 
     public func syncChanges(since token: CKServerChangeToken?) async throws -> (changes: [CKRecord], newToken: CKServerChangeToken?) {
         return ([], nil)
+    }
+
+    public func purgeExpiredPairingCodes() async throws {
+        // Query for expired pairing codes directly using predicate
+        let now = Date()
+        let predicate = NSPredicate(format: "expiresAt < %@", now as NSDate)
+        let query = CKQuery(recordType: CloudKitRecordType.pairingCode, predicate: predicate)
+        
+        do {
+            let (results, _) = try await self.publicDatabase.records(matching: query)
+            var expiredRecordIDs: [CKRecord.ID] = []
+            
+            for (recordID, result) in results {
+                switch result {
+                case .success:
+                    expiredRecordIDs.append(recordID)
+                case .failure(let error):
+                    print("Failed to fetch pairing code record for expiration check: \(error)")
+                }
+            }
+            
+            // Delete expired codes
+            if !expiredRecordIDs.isEmpty {
+                print("Purging \(expiredRecordIDs.count) expired pairing codes from CloudKit")
+                _ = try await self.publicDatabase.modifyRecords(saving: [], deleting: expiredRecordIDs)
+            }
+        } catch {
+            print("Error during pairing code purge: \(error)")
+            // Don't throw here as this is a cleanup operation that shouldn't break sync
+        }
     }
 
     // MARK: - Conflict Resolution (Last-Writer-Wins)

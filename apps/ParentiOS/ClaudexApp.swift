@@ -15,86 +15,98 @@ import UIKit
 @main
 struct ClaudexScreenTimeRewardsApp: App {
     @StateObject private var authorizationCoordinator = ScreenTimeAuthorizationCoordinator()
-    @StateObject private var childrenManager = ClaudexScreenTimeRewardsApp.makeChildrenManager()
+    @StateObject private var childrenManager: ChildrenManager
     @StateObject private var pairingService = PairingService()
-    #if canImport(CloudKit)
+    @StateObject private var rulesManager = CategoryRulesManager()
+    @StateObject private var ledger: PointsLedger
+    @StateObject private var learningCoordinator: LearningSessionCoordinator
+    @StateObject private var rewardCoordinator: RewardCoordinator
     @StateObject private var syncService = SyncService()
-    #endif
+
     @State private var pendingPairingCode: String?
-    @State private var isRequestingAuthorization = true
+    @State private var isPriming = true
+
+    init() {
+        let ledger = PointsLedger()
+        self._ledger = StateObject(wrappedValue: ledger)
+
+        let engine = PointsEngine()
+        let exemptionManager = ExemptionManager()
+        let redemptionService = RedemptionService(ledger: ledger)
+
+        let childrenManager = ChildrenManager(
+            ledger: ledger,
+            engine: engine,
+            exemptionManager: exemptionManager,
+            redemptionService: redemptionService
+        )
+        self._childrenManager = StateObject(wrappedValue: childrenManager)
+
+        let rulesManager = CategoryRulesManager()
+        self._rulesManager = StateObject(wrappedValue: rulesManager)
+
+        let learningCoordinator = LearningSessionCoordinator(
+            rulesManager: rulesManager,
+            pointsEngine: engine,
+            pointsLedger: ledger
+        )
+        self._learningCoordinator = StateObject(wrappedValue: learningCoordinator)
+
+        #if canImport(ScreenTimeService)
+        let shieldController = ShieldController()
+        let rewardCoordinator = RewardCoordinator(
+            rulesManager: rulesManager,
+            redemptionService: redemptionService,
+            shieldController: shieldController,
+            exemptionManager: exemptionManager
+        )
+        self._rewardCoordinator = StateObject(wrappedValue: rewardCoordinator)
+        #else
+        self._rewardCoordinator = StateObject(wrappedValue: RewardCoordinator())
+        #endif
+    }
 
     var body: some Scene {
         WindowGroup {
             if #available(iOS 16.0, *) {
-                ZStack {
-                    ModeSelectionView(pendingPairingCode: $pendingPairingCode)
-                        .environmentObject(authorizationCoordinator)
-                        .environmentObject(childrenManager)
-                        .environmentObject(pairingService)
-                        #if canImport(CloudKit)
-                        .environmentObject(syncService)
-                        #endif
-                        .onOpenURL { url in
-                            handleDeepLink(url)
-                        }
-                        .opacity(isRequestingAuthorization ? 0 : 1)
-
-                    if isRequestingAuthorization {
-                        AuthorizationLoadingView()
+                Group {
+                    if isPriming {
+                        ProgressView("Preparing...")
+                    } else {
+                        ModeSelectionView(pendingPairingCode: $pendingPairingCode)
+                            .environmentObject(authorizationCoordinator)
+                            .environmentObject(childrenManager)
+                            .environmentObject(pairingService)
+                            .environmentObject(rulesManager)
+                            .environmentObject(ledger)
+                            .environmentObject(learningCoordinator)
+                            .environmentObject(rewardCoordinator)
+                            .environmentObject(syncService)
+                            .onOpenURL { url in
+                                handleDeepLink(url)
+                            }
                     }
                 }
                 .task {
-                    // Request Family Controls authorization early to avoid delays when adding children
-                    await authorizationCoordinator.requestAuthorizationIfNeeded()
-
                     #if canImport(CloudKit)
+                    // Log start time for performance monitoring
+                    let startTime = CFAbsoluteTimeGetCurrent()
+                    print("ClaudexApp: Starting primeCloudKit")
+                    await syncService.primeCloudKit()
+                    let endTime = CFAbsoluteTimeGetCurrent()
+                    print("ClaudexApp: Completed primeCloudKit in \(endTime - startTime)s")
+                    isPriming = false
                     // Connect services
                     print("Connecting services")
                     pairingService.setSyncService(syncService)
                     childrenManager.setSyncService(syncService)
                     #endif
-
-                    // Hide loading indicator with a smooth transition
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        isRequestingAuthorization = false
-                    }
                 }
             } else {
                 Text("iOS 16 or newer is required.")
                     .padding()
             }
         }
-    }
-}
-
-@available(iOS 16.0, *)
-private extension ClaudexScreenTimeRewardsApp {
-    static func makeChildrenManager() -> ChildrenManager {
-        let ledger: PointsLedger
-        let auditLog = AuditLog()
-
-        if let appGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.claudex.screentimerewards") {
-            let ledgerFileURL = appGroupURL.appendingPathComponent("points_ledger.json")
-            ledger = PointsLedger(fileURL: ledgerFileURL, auditLog: auditLog)
-        } else {
-            let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first ?? URL(fileURLWithPath: NSTemporaryDirectory())
-            let fallbackURL = documents.appendingPathComponent("points_ledger.json")
-            print("[Claudex] Warning: App group container unavailable; falling back to documents directory for PointsLedger persistence.")
-            ledger = PointsLedger(fileURL: fallbackURL, auditLog: auditLog)
-        }
-
-        let engine = PointsEngine()
-        let exemptionManager = ExemptionManager()
-        let redemptionService = RedemptionService(ledger: ledger)
-
-        // The CloudKitDebugger will be initialized and started in ChildrenManager
-        
-        return ChildrenManager(
-            ledger: ledger,
-            engine: engine,
-            exemptionManager: exemptionManager,
-            redemptionService: redemptionService
-        )
     }
 
     func handleDeepLink(_ url: URL) {

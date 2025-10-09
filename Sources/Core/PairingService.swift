@@ -70,7 +70,6 @@ public enum PairingError: Error, LocalizedError {
 
 // MARK: - Pairing Service Protocol
 
-@MainActor
 public protocol PairingServiceProtocol {
     /// Generate a new pairing code for a child
     func generatePairingCode(for childId: ChildID, ttlMinutes: Int) throws -> PairingCode
@@ -106,7 +105,6 @@ public protocol PairingServiceProtocol {
 
 // MARK: - Pairing Service Implementation
 
-@MainActor
 public final class PairingService: ObservableObject, PairingServiceProtocol {
 
     public static let localPairingDefaultsKey = "com.claudex.localPairing"
@@ -323,7 +321,17 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         }
         
         print("PairingService: Starting sync with CloudKit for family: \(familyId)")
-        let cloudCodes = try await syncService.fetchPairingCodes(familyId: familyId)
+        // Log start time for performance monitoring
+        let startTime = CFAbsoluteTimeGetCurrent()
+        
+        // Perform CloudKit operations on a background task
+        let cloudCodes = try await Task.detached {
+            print("PairingService: Fetching pairing codes from CloudKit on background task")
+            let codes = try await syncService.fetchPairingCodes(familyId: familyId)
+            let endTime = CFAbsoluteTimeGetCurrent()
+            print("PairingService: CloudKit fetch completed in \(endTime - startTime)s")
+            return codes
+        }.value
         print("PairingService: Retrieved \(cloudCodes.count) pairing codes from CloudKit")
         
         var addedCount = 0
@@ -335,36 +343,50 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
             print("PairingService: Processing cloud code \(code.code) for child \(code.childId)")
             print("PairingService: Code validity - expired: \(code.isExpired), used: \(code.isUsed), valid: \(code.isValid)")
             
-            if activeCodes[code.code] == nil {
-                if code.isValid {
-                    activeCodes[code.code] = code
-                    print("PairingService: Added pairing code from CloudKit: \(code.code) for child: \(code.childId)")
-                    addedCount += 1
+            // Update UI-related properties on the main actor
+            await MainActor.run {
+                if self.activeCodes[code.code] == nil {
+                    if code.isValid {
+                        self.activeCodes[code.code] = code
+                        print("PairingService: Added pairing code from CloudKit: \(code.code) for child: \(code.childId)")
+                        addedCount += 1
+                    } else {
+                        print("PairingService: Skipped invalid cloud code \(code.code) (expired: \(code.isExpired), used: \(code.isUsed))")
+                        skippedCount += 1
+                    }
                 } else {
-                    print("PairingService: Skipped invalid cloud code \(code.code) (expired: \(code.isExpired), used: \(code.isUsed))")
-                    skippedCount += 1
-                }
-            } else {
-                print("PairingService: Cloud code \(code.code) already exists locally")
-                // Update local code if cloud version is newer
-                if let localCode = activeCodes[code.code] {
-                    if code.createdAt > localCode.createdAt {
-                        activeCodes[code.code] = code
-                        print("PairingService: Updated local code \(code.code) with newer cloud version")
+                    print("PairingService: Cloud code \(code.code) already exists locally")
+                    // Update local code if cloud version is newer
+                    if let localCode = self.activeCodes[code.code] {
+                        if code.createdAt > localCode.createdAt {
+                            self.activeCodes[code.code] = code
+                            print("PairingService: Updated local code \(code.code) with newer cloud version")
+                        }
                     }
                 }
             }
         }
         
         // Upload any local codes that aren't in CloudKit
-        print("PairingService: Checking \(activeCodes.count) local codes for upload to CloudKit")
-        for (codeKey, code) in activeCodes {
+        print("PairingService: Checking \(self.activeCodes.count) local codes for upload to CloudKit")
+        
+        // Create a copy of activeCodes to avoid modifying while iterating
+        let codesToProcess = await MainActor.run { self.activeCodes }
+        
+        for (codeKey, code) in codesToProcess {
             print("PairingService: Processing local code \(codeKey) for child \(code.childId)")
             print("PairingService: Code validity - expired: \(code.isExpired), used: \(code.isUsed), valid: \(code.isValid)")
 
             if code.isUsed || !code.isExpired {
                 do {
-                    try await syncService.savePairingCode(code, familyId: familyId)
+                    // Log start time for save operation
+                    let saveStartTime = CFAbsoluteTimeGetCurrent()
+                    try await Task.detached {
+                        print("PairingService: Saving pairing code \(code.code) to CloudKit on background task")
+                        try await syncService.savePairingCode(code, familyId: familyId)
+                        let saveEndTime = CFAbsoluteTimeGetCurrent()
+                        print("PairingService: CloudKit save completed in \(saveEndTime - saveStartTime)s")
+                    }.value
                     print("PairingService: Uploaded pairing code to CloudKit: \(code.code)")
                     uploadedCount += 1
                 } catch {
@@ -376,11 +398,19 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
             }
         }
 
-        reconcilePairingsFromCodes()
+        // Reconcile pairings on the main actor
+        await MainActor.run {
+            self.reconcilePairingsFromCodes()
+        }
 
-        print("PairingService: Sync complete for family \(familyId): Added \(addedCount) codes from CloudKit, uploaded \(uploadedCount) codes to CloudKit, skipped \(skippedCount) invalid codes")
-        print("PairingService: Total active codes: \(activeCodes.count)")
-        saveToPersistence()
+        // Save to persistence on the main actor
+        await MainActor.run {
+            self.saveToPersistence()
+        }
+        
+        let totalTime = CFAbsoluteTimeGetCurrent() - startTime
+        print("PairingService: Sync complete for family \(familyId): Added \(addedCount) codes from CloudKit, uploaded \(uploadedCount) codes to CloudKit, skipped \(skippedCount) invalid codes. Total time: \(totalTime)s")
+        print("PairingService: Total active codes: \(self.activeCodes.count)")
     }
 
     private func reconcilePairingsFromCodes() {

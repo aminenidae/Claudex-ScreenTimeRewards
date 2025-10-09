@@ -8,7 +8,7 @@ import PointsEngine
 
 @available(iOS 16.0, *)
 struct MultiChildDashboardView: View {
-    @ObservedObject var childrenManager: ChildrenManager
+    @EnvironmentObject private var childrenManager: ChildrenManager
     @State private var selectedIndex: Int = 0
 
     var body: some View {

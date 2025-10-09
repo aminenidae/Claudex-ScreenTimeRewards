@@ -16,16 +16,21 @@ struct AddChildSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section(header: Text("Child Info")) {
-                    TextField("Child name", text: $name)
-                        .disabled(isProcessing)
-                }
+            VStack(spacing: 20) {
+                TextField("Child name", text: $name)
+                    .disabled(isProcessing)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal)
 
                 if let errorMessage {
-                    Section(footer: Text(errorMessage).foregroundStyle(.red)) { EmptyView() }
+                    Text(errorMessage)
+                        .foregroundStyle(.red)
+                        .padding(.horizontal)
                 }
+
+                Spacer()
             }
+            .padding(.top)
             .navigationTitle("Add Child")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -143,9 +143,12 @@ class ChildrenManager: ObservableObject {
             // Save to CloudKit
             if let syncService = syncService {
                 print("ChildrenManager: About to save child \(displayName) to CloudKit via SyncService")
+                // Log start time for performance monitoring
+                let startTime = CFAbsoluteTimeGetCurrent()
                 let payload = ChildContextPayload(id: childId, childOpaqueId: storeName, displayName: displayName)
                 try await syncService.saveChild(payload, familyId: FamilyID("default-family"))
-                print("ChildrenManager: Successfully saved child \(displayName) to CloudKit")
+                let endTime = CFAbsoluteTimeGetCurrent()
+                print("ChildrenManager: Successfully saved child \(displayName) to CloudKit in \(endTime - startTime)s")
             } else {
                 print("ChildrenManager: WARNING - SyncService is nil, child not saved to CloudKit!")
             }
@@ -184,6 +187,10 @@ class ChildrenManager: ObservableObject {
         let maxRetries = 3
         var attempt = 0
 
+        // Log start time for performance monitoring
+        let startTime = CFAbsoluteTimeGetCurrent()
+        print("ChildrenManager: Starting refreshChildrenFromCloud")
+
         while attempt < maxRetries {
             attempt += 1
             do {
@@ -195,6 +202,8 @@ class ChildrenManager: ObservableObject {
                     persistChildren()
                 }
 
+                let endTime = CFAbsoluteTimeGetCurrent()
+                print("ChildrenManager: Completed refreshChildrenFromCloud in \(endTime - startTime)s")
                 return // Success
             } catch let error as SyncError {
                 if case .serverError(let message) = error, message.contains("Did not find record type") {
@@ -202,10 +211,14 @@ class ChildrenManager: ObservableObject {
                     try? await Task.sleep(nanoseconds: 2_000_000_000) // 2 second delay
                 } else {
                     print("Failed to refresh children from cloud: \(error)")
+                    let endTime = CFAbsoluteTimeGetCurrent()
+                    print("ChildrenManager: Failed refreshChildrenFromCloud after \(endTime - startTime)s")
                     return
                 }
             } catch {
                 print("Failed to refresh children from cloud: \(error)")
+                let endTime = CFAbsoluteTimeGetCurrent()
+                print("ChildrenManager: Failed refreshChildrenFromCloud after \(endTime - startTime)s")
                 return
             }
         }

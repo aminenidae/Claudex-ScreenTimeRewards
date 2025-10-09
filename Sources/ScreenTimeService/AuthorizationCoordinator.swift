@@ -68,10 +68,22 @@ public final class ScreenTimeAuthorizationCoordinator: ObservableObject {
             #else
             try await authorizationCenter.requestAuthorization(for: .individual)
             #endif
-            
+
             await refreshStatus()
         } catch {
             state = .error(String(describing: error))
+        }
+    }
+
+    /// Request authorization only if not already approved
+    /// This avoids showing the authorization dialog if it's already been granted
+    @MainActor
+    public func requestAuthorizationIfNeeded() async {
+        await refreshStatus()
+
+        // Only request authorization if it's not already approved
+        if state == .notDetermined {
+            await requestAuthorization()
         }
     }
 }

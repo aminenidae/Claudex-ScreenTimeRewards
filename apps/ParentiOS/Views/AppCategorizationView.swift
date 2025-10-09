@@ -6,8 +6,8 @@ import Core
 
 @available(iOS 16.0, *)
 struct AppCategorizationView: View {
-    @ObservedObject var childrenManager: ChildrenManager
-    @ObservedObject var rulesManager: CategoryRulesManager
+    @EnvironmentObject private var childrenManager: ChildrenManager
+    @EnvironmentObject private var rulesManager: CategoryRulesManager
     @EnvironmentObject private var pairingService: PairingService
 
     @State private var selectedChildIndex: Int = 0
@@ -232,7 +232,13 @@ struct AppCategorizationView: View {
         defer { isPairingSyncInProgress = false }
 
         do {
+            // Log start time for performance monitoring
+            let startTime = CFAbsoluteTimeGetCurrent()
+            print("AppCategorizationView: Starting syncPairingsFromCloud")
+            // Call the sync method without blocking the main actor
             try await pairingService.syncWithCloudKit(familyId: FamilyID("default-family"))
+            let endTime = CFAbsoluteTimeGetCurrent()
+            print("AppCategorizationView: Completed syncPairingsFromCloud in \(endTime - startTime)s")
         } catch {
             print("AppCategorizationView: Failed to sync pairing state: \(error)")
         }
