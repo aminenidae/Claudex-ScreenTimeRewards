@@ -363,6 +363,21 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                         self.activeCodes[code.code] = code
                         print("PairingService: Added pairing code from CloudKit: \(code.code) for child: \(code.childId)")
                         addedCount += 1
+                    } else if code.isUsed, let deviceId = code.usedByDeviceId {
+                        // Code is used - create pairing on parent device if it doesn't exist
+                        if self.pairings[deviceId] == nil {
+                            let pairing = ChildDevicePairing(
+                                childId: code.childId,
+                                deviceId: deviceId,
+                                pairingCode: code.code
+                            )
+                            self.pairings[deviceId] = pairing
+                            print("PairingService: Created pairing from used CloudKit code \(code.code) for device \(deviceId)")
+                            addedCount += 1
+                        } else {
+                            print("PairingService: Pairing already exists for device \(deviceId)")
+                            skippedCount += 1
+                        }
                     } else {
                         print("PairingService: Skipped invalid cloud code \(code.code) (expired: \(code.isExpired), used: \(code.isUsed))")
                         skippedCount += 1
@@ -374,12 +389,31 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                         if code.createdAt > localCode.createdAt {
                             self.activeCodes[code.code] = code
                             print("PairingService: Updated local code \(code.code) with newer cloud version")
+
+                            // If the cloud code is now used, create pairing if needed
+                            if code.isUsed, let deviceId = code.usedByDeviceId {
+                                if self.pairings[deviceId] == nil {
+                                    let pairing = ChildDevicePairing(
+                                        childId: code.childId,
+                                        deviceId: deviceId,
+                                        pairingCode: code.code
+                                    )
+                                    self.pairings[deviceId] = pairing
+                                    print("PairingService: Created pairing from updated CloudKit code \(code.code) for device \(deviceId)")
+                                }
+                            }
                         }
                     }
                 }
             }
         }
         
+        // Save pairings to persistence if any were created
+        await MainActor.run {
+            self.saveToPersistence()
+            self.notifyChange()
+        }
+
         // Upload any local codes that aren't in CloudKit
         print("PairingService: Checking \(self.activeCodes.count) local codes for upload to CloudKit")
         
