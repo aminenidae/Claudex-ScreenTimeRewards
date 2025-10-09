@@ -8,6 +8,9 @@ import PointsEngine
 #if canImport(ScreenTimeService)
 import ScreenTimeService
 #endif
+#if canImport(ParentiOS)
+import ParentiOS
+#endif
 // SyncKit files are compiled directly into the target, no import needed
 
 @available(iOS 16.0, *)
@@ -86,6 +89,18 @@ struct ParentModeView: View {
             } else {
                 Text("Device successfully paired!")
             }
+        }
+        .task {
+            // Sync with CloudKit whenever Parent Mode becomes active to ensure latest pairing state
+            #if canImport(CloudKit)
+            do {
+                print("ParentModeView: Syncing with CloudKit on appear")
+                try await pairingService.syncWithCloudKit(familyId: FamilyID("default-family"))
+                print("ParentModeView: Completed CloudKit sync")
+            } catch {
+                print("ParentModeView: Failed to sync with CloudKit: \(error)")
+            }
+            #endif
         }
     }
 }

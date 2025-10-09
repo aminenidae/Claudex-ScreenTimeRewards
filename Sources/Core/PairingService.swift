@@ -264,6 +264,19 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         saveToPersistence()
         print("PairingService: Saved pairing to persistence")
 
+        // Immediately sync the updated code back to CloudKit to ensure other devices can see the pairing
+        if let syncService = syncService {
+            Task.detached {
+                do {
+                    print("PairingService: Saving updated pairing code \(code) to CloudKit")
+                    try await syncService.savePairingCode(pairingCode.markingUsed(by: deviceId), familyId: FamilyID("default-family"))
+                    print("PairingService: Successfully saved updated pairing code to CloudKit")
+                } catch {
+                    print("PairingService: Failed to save updated pairing code to CloudKit: \(error)")
+                }
+            }
+        }
+
         print("PairingService: Successfully paired device \(deviceId) to child \(pairingCode.childId)")
         return pairing
     }

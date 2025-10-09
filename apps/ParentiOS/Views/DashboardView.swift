@@ -39,6 +39,7 @@ struct DashboardView: View {
         .navigationBarTitleDisplayMode(.large)
         .refreshable {
             viewModel.refresh()
+            await syncPairingsFromCloud()
         }
         .onAppear {
             viewModel.refresh()
@@ -46,6 +47,10 @@ struct DashboardView: View {
         }
         .onDisappear {
             viewModel.stopAutoRefresh()
+        }
+        .task {
+            // Sync pairing status from CloudKit when dashboard appears
+            await syncPairingsFromCloud()
         }
     }
 
@@ -111,12 +116,28 @@ struct DashboardView: View {
             _ = try pairingService.revokePairing(for: deviceId)
             // Notify the user that the pairing was revoked
             print("Successfully revoked pairing for device: \(deviceId)")
-            
+
             // Refresh the UI
             viewModel.objectWillChange.send()
         } catch {
             print("Failed to revoke pairing for device: \(deviceId), error: \(error)")
         }
+    }
+
+    private func syncPairingsFromCloud() async {
+        #if canImport(CloudKit)
+        do {
+            print("DashboardView: Syncing pairings from CloudKit")
+            try await pairingService.syncWithCloudKit(familyId: FamilyID("default-family"))
+            print("DashboardView: Successfully synced pairings from CloudKit")
+            // Force UI update
+            await MainActor.run {
+                pairingService.objectWillChange.send()
+            }
+        } catch {
+            print("DashboardView: Failed to sync pairings from CloudKit: \(error)")
+        }
+        #endif
     }
 }
 

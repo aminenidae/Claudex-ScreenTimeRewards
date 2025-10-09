@@ -9,6 +9,7 @@ import PointsEngine
 @available(iOS 16.0, *)
 struct MultiChildDashboardView: View {
     @EnvironmentObject private var childrenManager: ChildrenManager
+    @EnvironmentObject private var pairingService: PairingService
     @State private var selectedIndex: Int = 0
 
     var body: some View {
@@ -35,6 +36,18 @@ struct MultiChildDashboardView: View {
                 .tabViewStyle(.page(indexDisplayMode: .never))
                 .onChange(of: selectedIndex) { newValue in
                     childrenManager.selectChild(at: newValue)
+                }
+                .task {
+                    // Sync with CloudKit whenever the dashboard view appears to ensure latest pairing state
+                    #if canImport(CloudKit)
+                    do {
+                        print("MultiChildDashboardView: Syncing with CloudKit on appear")
+                        try await pairingService.syncWithCloudKit(familyId: FamilyID("default-family"))
+                        print("MultiChildDashboardView: Completed CloudKit sync")
+                    } catch {
+                        print("MultiChildDashboardView: Failed to sync with CloudKit: \(error)")
+                    }
+                    #endif
                 }
             }
         }
