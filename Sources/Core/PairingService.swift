@@ -350,9 +350,13 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         var addedCount = 0
         var uploadedCount = 0
         var skippedCount = 0
-        
+
+        // Track codes that exist in CloudKit to avoid unnecessary uploads
+        var cloudCodeIds = Set<String>()
+
         // Merge cloud codes with local codes
         for code in cloudCodes {
+            cloudCodeIds.insert(code.code)
             print("PairingService: Processing cloud code \(code.code) for child \(code.childId)")
             print("PairingService: Code validity - expired: \(code.isExpired), used: \(code.isUsed), valid: \(code.isValid)")
             
@@ -456,6 +460,14 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         for (codeKey, code) in codesToProcess {
             print("PairingService: Processing local code \(codeKey) for child \(code.childId)")
             print("PairingService: Code validity - expired: \(code.isExpired), used: \(code.isUsed), valid: \(code.isValid)")
+
+            // Skip uploading if code already exists in CloudKit and hasn't been used locally
+            // This prevents overwriting child's updates
+            if cloudCodeIds.contains(code.code) && !code.isUsed {
+                print("PairingService: Skipped local code \(code.code) (already in CloudKit, not modified)")
+                skippedCount += 1
+                continue
+            }
 
             if code.isUsed || !code.isExpired {
                 do {
