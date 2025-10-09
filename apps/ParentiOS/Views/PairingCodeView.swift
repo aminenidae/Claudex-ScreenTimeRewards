@@ -18,6 +18,7 @@ struct PairingCodeView: View {
     @State private var isSyncing = false
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private let syncTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect() // Sync every 5 seconds
 
     var body: some View {
         NavigationView {
@@ -65,6 +66,12 @@ struct PairingCodeView: View {
             }
             .onReceive(timer) { _ in
                 updateTimeRemaining()
+            }
+            .onReceive(syncTimer) { _ in
+                // Sync with CloudKit every 5 seconds to detect when child pairs
+                Task {
+                    await syncWithCloudKit()
+                }
             }
             .onAppear(perform: onAppear)
             .onReceive(pairingService.objectWillChange) { _ in
