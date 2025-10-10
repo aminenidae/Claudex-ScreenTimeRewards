@@ -3,6 +3,9 @@ import FamilyControls
 #if canImport(Core)
 import Core
 #endif
+#if canImport(SyncKit)
+import SyncKit
+#endif
 
 @available(iOS 16.0, *)
 struct AppCategorizationView: View {
@@ -18,6 +21,12 @@ struct AppCategorizationView: View {
     @State private var showingConflictAlert = false
     @State private var conflictResolutionChoice = 0 // 0 = keep learning, 1 = keep reward
     @State private var isPairingSyncInProgress = false
+
+    // Phase 3a: App Inventory
+    @State private var appInventory: ChildAppInventoryPayload?
+    @State private var isLoadingInventory = false
+    @State private var showingValidationSummary = false
+    @State private var validationMessage = ""
 
     var selectedChild: ChildProfile? {
         guard !childrenManager.children.isEmpty else { return nil }
@@ -44,6 +53,14 @@ struct AppCategorizationView: View {
                         InstructionsCard()
                             .padding(.horizontal)
                             .padding(.top, 20)
+
+                        // Phase 3a: Show app inventory info
+                        InventoryInfoCard(
+                            inventory: appInventory,
+                            isLoading: isLoadingInventory,
+                            childName: child.name
+                        )
+                        .padding(.horizontal)
 
                         // Show conflict warning if there are conflicts
                         let summary = rulesManager.getSummary(for: child.id)
@@ -156,6 +173,12 @@ struct AppCategorizationView: View {
         .task {
             await syncPairingsFromCloud()
         }
+        .task(id: selectedChild?.id) {
+            // Phase 3a: Fetch inventory when child changes
+            if let child = selectedChild {
+                await fetchAppInventory(for: child.id)
+            }
+        }
         .sheet(isPresented: $showingLearningPicker) {
             if let child = selectedChild, isChildPaired(child.id) {
                 FamilyActivityPicker(
@@ -216,6 +239,11 @@ struct AppCategorizationView: View {
         } message: {
             Text("Some apps are classified as both learning and reward. Which category should take precedence?")
         }
+        .alert("Selection Summary", isPresented: $showingValidationSummary) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(validationMessage)
+        }
         .onReceive(childrenManager.$children) { newChildren in
             if selectedChildIndex >= newChildren.count {
                 selectedChildIndex = max(0, newChildren.count - 1)
@@ -257,6 +285,79 @@ struct AppCategorizationView: View {
         #endif
     }
 
+    // MARK: - Phase 3a: App Inventory
+
+    private func fetchAppInventory(for childId: ChildID) async {
+        #if canImport(CloudKit)
+        isLoadingInventory = true
+        defer { isLoadingInventory = false }
+
+        guard let syncService = childrenManager.syncService else {
+            print("⚠️ AppCategorizationView: No sync service available, skipping inventory fetch")
+            await MainActor.run {
+                self.appInventory = nil
+            }
+            return
+        }
+
+        do {
+            print("📱 AppCategorizationView: Fetching app inventory for child: \(childId.rawValue)")
+            let inventory = try await syncService.fetchAppInventory(
+                familyId: FamilyID("default-family"),
+                childId: childId
+            )
+
+            await MainActor.run {
+                self.appInventory = inventory
+                if let inv = inventory {
+                    print("📱 AppCategorizationView: Loaded inventory - \(inv.appCount) apps, last updated: \(inv.lastUpdated)")
+                } else {
+                    print("📱 AppCategorizationView: No inventory found for child")
+                }
+            }
+        } catch {
+            print("❌ AppCategorizationView: Failed to fetch inventory: \(error)")
+            await MainActor.run {
+                self.appInventory = nil
+            }
+        }
+        #endif
+    }
+
+    private func validateSelection(_ selection: FamilyActivitySelection, for childId: ChildID, category: String) {
+        guard let inventory = appInventory else {
+            print("📱 AppCategorizationView: No inventory to validate against")
+            return
+        }
+
+        let selectedTokens = selection.applicationTokens.map { token in
+            let data = withUnsafeBytes(of: token) { Data($0) }
+            return data.base64EncodedString()
+        }
+
+        let inventoryTokens = Set(inventory.appTokens)
+        let matchingCount = selectedTokens.filter { inventoryTokens.contains($0) }.count
+        let totalCount = selectedTokens.count
+
+        if totalCount == 0 {
+            return // No apps selected, nothing to validate
+        }
+
+        let message: String
+        if matchingCount == totalCount {
+            message = "✅ All \(totalCount) selected \(category) apps are on \(selectedChild?.name ?? "child")'s device"
+        } else if matchingCount == 0 {
+            message = "⚠️ None of the \(totalCount) selected \(category) apps were found on \(selectedChild?.name ?? "child")'s device. They may not be categorized yet."
+        } else {
+            let notMatching = totalCount - matchingCount
+            message = "⚠️ \(matchingCount) of \(totalCount) selected \(category) apps are on \(selectedChild?.name ?? "child")'s device. \(notMatching) app\(notMatching == 1 ? "" : "s") may not be installed or categorized yet."
+        }
+
+        validationMessage = message
+        showingValidationSummary = true
+        print("📱 AppCategorizationView: Validation - \(message)")
+    }
+
     // MARK: - Bindings
 
     private var learningSelectionBinding: Binding<FamilyActivitySelection> {
@@ -270,6 +371,8 @@ struct AppCategorizationView: View {
             set: { newValue in
                 guard let child = selectedChild else { return }
                 rulesManager.updateLearningApps(for: child.id, selection: newValue)
+                // Phase 3a: Validate selection against inventory
+                validateSelection(newValue, for: child.id, category: "learning")
             }
         )
     }
@@ -285,6 +388,8 @@ struct AppCategorizationView: View {
             set: { newValue in
                 guard let child = selectedChild else { return }
                 rulesManager.updateRewardApps(for: child.id, selection: newValue)
+                // Phase 3a: Validate selection against inventory
+                validateSelection(newValue, for: child.id, category: "reward")
             }
         )
     }
@@ -432,5 +537,72 @@ private struct PairingRequiredCard: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(.tertiarySystemBackground))
         )
+    }
+}
+
+// MARK: - Phase 3a: Inventory Info Card
+
+@available(iOS 16.0, *)
+private struct InventoryInfoCard: View {
+    let inventory: ChildAppInventoryPayload?
+    let isLoading: Bool
+    let childName: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "apps.iphone")
+                    .foregroundStyle(.blue)
+                Text("App Inventory")
+                    .font(.headline)
+                Spacer()
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
+            }
+
+            if let inventory = inventory {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("\(childName) has categorized \(inventory.appCount) app\(inventory.appCount == 1 ? "" : "s")")
+                            .font(.subheadline)
+                    }
+
+                    HStack {
+                        Image(systemName: "clock.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                        Text("Last synced: \(formattedDate(inventory.lastUpdated))")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else if !isLoading {
+                HStack {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.secondary)
+                    Text("No app inventory synced yet")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Text("After categorizing apps, the inventory will sync automatically.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
+    }
+
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }

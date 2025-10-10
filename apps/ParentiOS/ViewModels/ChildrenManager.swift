@@ -56,7 +56,12 @@ class ChildrenManager: ObservableObject {
 
     // Cache of view models (one per child)
     private var viewModels: [ChildID: DashboardViewModel] = [:]
-    private var syncService: SyncService?
+    private var _syncService: SyncService?
+
+    // Public accessor for sync service
+    var syncService: SyncService? {
+        return _syncService
+    }
 
     init(ledger: PointsLedger, engine: PointsEngine, exemptionManager: ExemptionManager, redemptionService: RedemptionServiceProtocol) {
         self.ledger = ledger
@@ -96,7 +101,7 @@ class ChildrenManager: ObservableObject {
     }
 
     func setSyncService(_ syncService: SyncService) {
-        self.syncService = syncService
+        self._syncService = syncService
     }
 
     /// Select child by index
@@ -141,7 +146,7 @@ class ChildrenManager: ObservableObject {
             let profile = ChildProfile(id: childId, name: displayName, storeName: storeName)
 
             // Save to CloudKit
-            if let syncService = syncService {
+            if let syncService = _syncService {
                 print("ChildrenManager: About to save child \(displayName) to CloudKit via SyncService")
                 // Log start time for performance monitoring
                 let startTime = CFAbsoluteTimeGetCurrent()
@@ -169,7 +174,7 @@ class ChildrenManager: ObservableObject {
             selectedChildId = children.first?.id
         }
 
-        if let syncService = syncService {
+        if let syncService = _syncService {
             do {
                 try await syncService.deleteChild(child.id, familyId: FamilyID("default-family"))
             } catch {
@@ -179,7 +184,7 @@ class ChildrenManager: ObservableObject {
     }
 
     func refreshChildrenFromCloud(familyId: FamilyID) async {
-        guard let syncService = syncService else {
+        guard let syncService = _syncService else {
             print("SyncService not available in ChildrenManager")
             return
         }
