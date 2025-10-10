@@ -191,27 +191,36 @@ Task {
 
 ## Implementation Plan
 
-### Phase 1: Foundation (CURRENT - In Progress)
+### Phase 1: Foundation - ✅ COMPLETE
 - [x] Add comprehensive logging to app selection flow
 - [x] Implement CloudKit sync for app rules (CategoryRulesManager)
 - [x] Connect CategoryRulesManager to SyncService
-- [ ] Update CloudKit permissions for AppRule records
+- [x] Update CloudKit permissions for AppRule records
 
-### Phase 2: Child Device App Inventory (Next)
-- [ ] Create `InstalledAppsMonitor` service
-- [ ] Define CloudKit schema for `ChildAppInventory` record type
-- [ ] Implement token-to-base64 conversion helpers (reuse from CategoryRulesManager)
-- [ ] Add CloudKitMapper methods for app inventory
-- [ ] Wire app inventory sync into child mode launch flow
-- [ ] Test: Verify app inventory appears in CloudKit after child device opens
+### Phase 2: Child Device App Inventory - ✅ COMPLETE
+- [x] Create `InstalledAppsMonitor` service
+- [x] Define CloudKit schema for `ChildAppInventory` record type
+- [x] Implement token-to-base64 conversion helpers (reuse from CategoryRulesManager)
+- [x] Add CloudKitMapper methods for app inventory
+- [x] Wire app inventory sync into CategoryRulesManager (automatic on categorization)
+- [x] Create ChildAppInventory record type in CloudKit Console
+- [x] Test: Verify app inventory appears in CloudKit after categorization
+- [x] Verified: 4 apps synced successfully to CloudKit (2025-10-10)
 
-### Phase 3: Parent UI Enhancement
-- [ ] Fetch child app inventory when opening FamilyActivityPicker
-- [ ] Create custom picker wrapper with visual indicators
-- [ ] Implement filter toggle ("Show only child's apps")
+### Phase 3: Parent UI Enhancement - ⏳ IN PROGRESS (Option A: Information Display)
+- [ ] Fetch child app inventory when opening AppCategorizationView
+- [ ] Display inventory banner: "[Child] has categorized X apps" + last sync time
+- [ ] Post-selection validation: Show summary of selected apps vs inventory
+- [ ] Optional warning for apps NOT in child's inventory
 - [ ] Add empty state UI for "inventory not synced yet"
-- [ ] Test: Parent can see which apps are on child's device
-- [ ] Test: Filter toggle correctly hides/shows non-child apps
+- [ ] Test: Verify inventory info displays correctly
+- [ ] Test: Post-selection validation works
+
+**Phase 3b (Future - Option B: Custom Picker):**
+- [ ] Build custom app selection UI (replace FamilyActivityPicker)
+- [ ] Add visual indicators: ✅ green checkmark for apps in inventory
+- [ ] Implement filter toggle ("Show only child's apps")
+- [ ] Test: Filter correctly shows/hides non-inventory apps
 
 ### Phase 4: Polish & Edge Cases
 - [ ] Handle app uninstallation detection

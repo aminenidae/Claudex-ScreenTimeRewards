@@ -4,6 +4,217 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-10 | Phase 2: Child App Inventory Sync for Custom Picker ✅
+
+### Issue Summary
+
+**Problem: FamilyActivityPicker Shows All Family Sharing Apps**
+
+Parents couldn't distinguish which apps their specific child actually had installed:
+- FamilyActivityPicker shows apps from ALL devices in Family Sharing group
+- Parent device apps (with icons) mixed with other family members' apps (no icons)
+- No way to filter or identify child-device-specific apps
+- Led to incorrect configurations and parent confusion
+
+**Solution: Child App Inventory Sync System**
+
+Built infrastructure for child devices to report their app inventory to CloudKit, enabling future parent UI enhancements with visual indicators and filtering.
+
+### What Was Built
+
+**1. CloudKit Infrastructure for App Inventory**
+- **New Payload:** `ChildAppInventoryPayload` in Core/AppModels.swift
+  - Fields: childId, deviceId, appTokens[], categoryTokens[], lastUpdated, appCount
+- **CloudKitMapper Methods:**
+  - `childAppInventoryRecord()` - Converts payload → CKRecord
+  - `childAppInventoryPayload()` - Converts CKRecord → payload
+- **SyncService Methods:**
+  - `fetchAppInventory()` - Retrieves inventory for a child
+  - `saveAppInventory()` - Upserts inventory with fetch-then-modify pattern
+- **CloudKit Record Type:** ChildAppInventory (documented in cloudkit-schema.md)
+
+**2. InstalledAppsMonitor Service**
+- **File:** `Sources/ScreenTimeService/InstalledAppsMonitor.swift`
+- Tracks child device app categorizations (iOS limitation: can't enumerate all installed apps)
+- Converts ApplicationTokens → base64 for CloudKit storage
+- Syncs app inventory to CloudKit
+- Supports periodic sync (24-hour intervals)
+
+**3. Automatic Inventory Sync in CategoryRulesManager**
+- Added `syncAppInventoryToCloudKit()` private method
+- Automatically triggered after every app categorization change
+- Combines Learning + Reward selections into single inventory
+- One record per child-device pair: `{childId}:{deviceId}`
+- Inventory represents "apps this child has categorized" (not all installed apps)
+
+**4. CloudKit Schema Documentation**
+- Updated `docs/cloudkit-schema.md` with ChildAppInventory schema
+- Record Type #4 between AppRule and PointsLedgerEntry
+- Fields: familyRef (Reference), childRef (Reference), deviceId (String), appTokens (String List), categoryTokens (String List), lastUpdated (Date/Time), appCount (Int64)
+- Indexes: recordName (queryable), childRef (queryable), deviceId (queryable), lastUpdated (queryable)
+- Security: _icloud role with CREATE, READ, WRITE permissions
+
+### How It Works
+
+**Data Flow:**
+1. Parent categorizes apps (Learning/Reward) via FamilyActivityPicker
+2. CategoryRulesManager saves selections locally + syncs AppRule records to CloudKit
+3. CategoryRulesManager automatically syncs combined app inventory (Learning ∪ Reward)
+4. CloudKit stores ChildAppInventory record: `{childId}:{deviceId}`
+5. Parent UI (Phase 3) will fetch inventory to show visual indicators
+
+**Two Types of "Category" (Important Distinction):**
+- **Apple Categories** (categoryTokens): Built-in taxonomy (Education, Games, etc.) - selected as entire groups
+- **Our Classification** (Learning/Reward): Stored in separate AppRule records with `classification` field
+
+**ChildAppInventory Purpose:**
+- Tracks WHAT apps are categorized (combined list)
+- Does NOT store Learning vs Reward classification (that's in AppRule)
+- Enables parent UI to show "✅ on child's device" indicators
+
+### Validation
+
+**CloudKit Console Verification:**
+- ✅ ChildAppInventory record type created with proper schema
+- ✅ Test record created: `4AC0CBF8-6909-...:B67E24BD-B0DD-...`
+- ✅ Fields populated correctly:
+  - appTokens: 4 items (base64-encoded ApplicationTokens)
+  - categoryTokens: 0 items (no full categories selected)
+  - appCount: 4
+  - deviceId: B67E24BD-B0DD-41E3-895C-1E710F315D47
+  - familyRef: default-family
+  - childRef: 4AC0CBF8-6909-4A33-957F-26221B99C0B1
+  - lastUpdated: 2025-10-10, 8:12:13 PM
+- ✅ Queryable indexes working (recordName, childRef, deviceId, lastUpdated)
+
+**Runtime Validation:**
+- ✅ Automatic sync triggered when parent selects Learning apps
+- ✅ Automatic sync triggered when parent selects Reward apps
+- ✅ Inventory updates on every categorization change
+- ✅ Logs confirm successful CloudKit upload:
+  ```
+  📱 CategoryRulesManager: Syncing app inventory for child: [childId]
+  ☁️ SyncService: Saving app inventory for child [childId] (4 apps)
+  📱 CategoryRulesManager: Successfully synced app inventory (4 items)
+  ```
+
+### Technical Implementation
+
+**Automatic Inventory Sync Pattern:**
+```swift
+// In CategoryRulesManager.syncToCloudKit()
+print("☁️ CategoryRulesManager: Uploaded \(uploadedCount) app rules to CloudKit")
+
+// Also sync the app inventory (combined learning + reward apps)
+try await syncAppInventoryToCloudKit(for: childId, familyId: familyId)
+
+private func syncAppInventoryToCloudKit(for childId: ChildID, familyId: FamilyID) async throws {
+    // Combine learning + reward selections
+    var combinedSelection = FamilyActivitySelection()
+    combinedSelection.applicationTokens = rules.learningSelection.applicationTokens
+        .union(rules.rewardSelection.applicationTokens)
+    combinedSelection.categoryTokens = rules.learningSelection.categoryTokens
+        .union(rules.rewardSelection.categoryTokens)
+
+    // Convert to base64 and upload
+    let payload = ChildAppInventoryPayload(
+        id: "\(childId):\(deviceId)",
+        childId: childId,
+        deviceId: deviceId,
+        appTokens: combinedSelection.applicationTokens.map { tokenToBase64($0) },
+        categoryTokens: combinedSelection.categoryTokens.map { ... },
+        lastUpdated: Date(),
+        appCount: appTokens.count + categoryTokens.count
+    )
+
+    try await syncService.saveAppInventory(payload, familyId: familyId)
+}
+```
+
+**CloudKit Upsert Pattern:**
+```swift
+// SyncService.saveAppInventory() - fetch-then-modify to avoid duplicates
+let recordID = CKRecord.ID(recordName: inventory.id)
+var record: CKRecord
+
+do {
+    record = try await self.publicDatabase.record(for: recordID)
+    // Update existing record
+    let updatedRecord = CloudKitMapper.childAppInventoryRecord(for: inventory, familyID: familyRecordID)
+    for key in updatedRecord.allKeys() {
+        record[key] = updatedRecord[key]
+    }
+} catch let ckError as CKError where ckError.code == .unknownItem {
+    // Create new record
+    record = CloudKitMapper.childAppInventoryRecord(for: inventory, familyID: familyRecordID)
+}
+
+_ = try await self.publicDatabase.save(record)
+```
+
+### Build Status
+- ✅ Xcode build: SUCCESS (iOS device target)
+- ✅ All warnings resolved (no errors)
+- ✅ Conditional compilation working (#if canImport(CloudKit))
+- ✅ CloudKit schema deployed to Development environment
+
+### Code Metrics
+- **Files Added:** 1
+  - `Sources/ScreenTimeService/InstalledAppsMonitor.swift` (~135 LOC)
+- **Files Modified:** 5
+  - `Sources/Core/AppModels.swift` (+ChildAppInventoryPayload struct)
+  - `Sources/SyncKit/CloudKitMapper.swift` (+childAppInventory mappers, +record type constant)
+  - `Sources/SyncKit/SyncService.swift` (+fetchAppInventory, +saveAppInventory methods)
+  - `apps/ParentiOS/ViewModels/CategoryRulesManager.swift` (+syncAppInventoryToCloudKit method)
+  - `docs/cloudkit-schema.md` (+ChildAppInventory schema documentation)
+
+### Impact on Checklists/PRD
+
+**Issue Tracker Updates:**
+- `docs/issues/app-categorization-family-sharing-issue.md`:
+  - ✅ Phase 1: Foundation (logging & CloudKit sync) - COMPLETE
+  - ✅ Phase 2: Child Device App Inventory - COMPLETE
+  - ⏳ Phase 3: Parent UI Enhancement - IN PROGRESS (next phase)
+
+**Architecture:**
+- Inventory sync is fully automatic (no manual triggers needed)
+- Parent categorization → AppRule sync + ChildAppInventory sync (atomic)
+- One source of truth for "what apps has this child categorized"
+
+### Known Limitations
+
+**iOS FamilyControls API Constraints:**
+- Cannot enumerate all installed apps on device (privacy/API limitation)
+- Inventory represents "categorized apps" (apps selected via FamilyActivityPicker)
+- This is actually ideal: tracks apps that are both installed AND configured
+
+**Future Enhancements (Phase 3):**
+- categoryTokens may be empty if parent only selects individual apps (normal behavior)
+- Full category selections will populate categoryTokens field
+- Both are supported and handled correctly
+
+### Next Steps: Phase 3 - Enhanced Parent UI
+
+**Planned Features:**
+1. Fetch child's app inventory when opening AppCategorizationView
+2. Display inventory info: "[Child] has categorized X apps" + last sync time
+3. Post-selection validation: Show summary of selected apps vs child's inventory
+4. Optional warning if user selects apps NOT in child's inventory
+5. (Future) Visual indicators: ✅ checkmarks for apps in inventory
+6. (Future) Filter toggle: "Show only [child's name]'s apps"
+
+**Implementation Approach:**
+- Option A (Phase 3a): Information Display - simpler, faster to implement
+- Option B (Phase 3b): Custom Picker - more work, better UX (if needed)
+
+### Dependencies
+- ✅ CloudKit ChildAppInventory record type created
+- ✅ Security Roles configured (_icloud: CREATE, READ, WRITE)
+- ✅ Queryable indexes deployed (recordName, childRef, deviceId, lastUpdated)
+- ✅ App inventory sync tested and verified in CloudKit Console
+
+---
+
 ## 2025-10-10 | CloudKit Pairing Sync Fix & App Rules Infrastructure ✅
 
 ### Issue Summary
