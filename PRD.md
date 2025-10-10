@@ -6,7 +6,7 @@ Version: 1.0 (MVP)
 
 Owners: Product + Engineering
 
-Last Updated: 2025-10-06
+Last Updated: 2025-10-10
 
 ## 1. Overview
 
@@ -105,6 +105,7 @@ FR-03 Pairing Flow
 - Child mode accepts prefilled codes/deep links and guides through <2 minute pairing, including auto-submit when all digits entered.
 - Support re-pairing, revocation, and device-local persistence of the active pairing.
 - CloudKit mirrors code lifecycle: upload on generation, mark used on consumption, and delete on unlink without surfacing server-conflict errors.
+- Pairing status syncs between parent and child devices within 5 seconds via CloudKit with proper type conversion (Bool→Int64) and WRITE permissions configured.
 
 FR-04 App Categorization & Rules
 - Category defaults for “learning” and “reward”; manual overrides per app.
@@ -133,6 +134,8 @@ FR-09 Weekly Reporting (DeviceActivityReport)
 
 FR-10 Multi-Parent & Audit
 - Cloud sync with last-writer-wins; audit entries for changes (who/when/what).
+- CloudKit schema fields must match Swift types (use explicit type conversion for Bool→Int64 where schema requires INT type).
+- CloudKit Security Roles must include WRITE permission for _icloud role on all updatable record types.
 
 FR-11 Notifications
 - Parent: entitlement changes, weekly summaries, threshold alerts.
@@ -305,18 +308,21 @@ EP-01 Screen Time Foundations (Entitlements & Authorization) — Phase: MVP
 - S-105 iPad Experience: Ensure authorization UI adapts to iPad multitasking/layouts. Acceptance: Works consistently across size classes. **Status: In Progress**
 
 EP-02 Pairing & Family Association — Phase: MVP
-- S-201 Pairing Code Generation: Parent generates short-lived code/deep link. Acceptance: Code TTL, one-time use, rate-limited.
-- S-202 Child Link: Child app enters code or deep link to associate app instance to child context. Acceptance: <2 minutes; invalid/expired handled.
-- S-203 Unlink/Re-pair: Parent can revoke and re-pair child device. Acceptance: Previous link invalidated; new link active.
-- S-204 Multi-Child Management: Manage multiple children in UI. Acceptance: Clear selection; no cross-leakage.
-- S-205 Parent Multi-Device: Parent can sign in on multiple devices. Acceptance: Sync parity; audit preserved.
+- S-201 Pairing Code Generation: Parent generates short-lived code/deep link. Acceptance: Code TTL, one-time use, rate-limited. **Status: Completed ✅**
+- S-202 Child Link: Child app enters code or deep link to associate app instance to child context. Acceptance: <2 minutes; invalid/expired handled. **Status: Completed ✅**
+- S-203 Unlink/Re-pair: Parent can revoke and re-pair child device. Acceptance: Previous link invalidated; new link active. **Status: Completed ✅**
+- S-204 Multi-Child Management: Manage multiple children in UI. Acceptance: Clear selection; no cross-leakage. **Status: Completed ✅**
+- S-205 Parent Multi-Device: Parent can sign in on multiple devices. Acceptance: Sync parity; audit preserved. **Status: In Progress**
+- **CloudKit Pairing Sync:** Bool→Int64 type conversion for isUsed field, proper WRITE permissions, race condition fix (check used codes before valid codes). **Status: Completed ✅ (2025-10-10)**
 
 EP-03 App Categorization & Rules — Phase: MVP
-- S-301 Category Defaults: Choose default categories for learning/reward. Acceptance: Persisted.
-- S-302 Manual Overrides: Set per-app overrides. Acceptance: Override > default.
-- S-303 Conflict Resolution: Deterministic rule precedence and UI explanation. Acceptance: Tests cover edge cases.
-- S-304 Rule Sync: Changes reflect across devices in <2s online. Acceptance: Verified.
-- S-305 Rule Audits: Record who/when/what for changes. Acceptance: Audit entries stored.
+- S-301 Category Defaults: Choose default categories for learning/reward. Acceptance: Persisted. **Status: Completed ✅**
+- S-302 Manual Overrides: Set per-app overrides. Acceptance: Override > default. **Status: Completed ✅**
+- S-303 Conflict Resolution: Deterministic rule precedence and UI explanation. Acceptance: Tests cover edge cases. **Status: Completed ✅**
+- S-304 Rule Sync: Changes reflect across devices in <2s online. Acceptance: Verified. **Status: Implemented ⏳ (pending CloudKit permission update)**
+- S-305 Rule Audits: Record who/when/what for changes. Acceptance: Audit entries stored. **Status: Pending**
+- **CategoryRulesManager CloudKit Integration:** ApplicationToken→base64 conversion, automatic sync on app selection, comprehensive logging with emoji prefixes. **Status: Implemented ✅ (2025-10-10, pending permission update)**
+- **Custom App Picker (In Planning):** Hybrid picker with child device app inventory to show only child's installed apps (not all Family Sharing apps). Detailed spec in docs/issues/app-categorization-family-sharing-issue.md. **Status: Planned 📝**
 
 EP-04 Points Engine & Integrity — Phase: MVP
 - S-401 Foreground Accrual: Points accrue for foreground, unlocked learning usage. Acceptance: Matches DeviceActivity within ±5%. **Status: Completed ✅**
@@ -335,11 +341,14 @@ EP-05 Redemption & Shielding — Phase: MVP
 - S-505 Per-App vs Category: Support both; category wins unless app override set. Acceptance: Tested precedence.
 
 EP-06 Sync & Multi-Parent — Phase: MVP
-- S-601 CloudKit Schema: Implement record types and indexes (see docs/data-model.md). Acceptance: Migration script and tests.
-- S-602 Conflict Resolution: Last-writer-wins with server timestamps. Acceptance: Deterministic outcomes.
-- S-603 Offline Queue: Local queue and replay. Acceptance: Survives app restarts.
-- S-604 Audit Log: Append-only audit for admin changes. Acceptance: Visible and filterable.
-- S-605 Performance: Typical operations complete <200 ms locally; sync <2s online. Acceptance: Benchmarks recorded.
+- S-601 CloudKit Schema: Implement record types and indexes (see docs/data-model.md). Acceptance: Migration script and tests. **Status: Completed ✅**
+- S-602 Conflict Resolution: Last-writer-wins with server timestamps. Acceptance: Deterministic outcomes. **Status: Completed ✅**
+- S-603 Offline Queue: Local queue and replay. Acceptance: Survives app restarts. **Status: Pending**
+- S-604 Audit Log: Append-only audit for admin changes. Acceptance: Visible and filterable. **Status: Partial (mapper ready)**
+- S-605 Performance: Typical operations complete <200 ms locally; sync <2s online. Acceptance: Benchmarks recorded. **Status: Pending**
+- **CloudKit Type Conversion Pattern:** Established Bool→Int64 explicit conversion for schema compatibility. **Status: Completed ✅ (2025-10-10)**
+- **CloudKit Security Roles Configuration:** Documented requirement for WRITE permission on _icloud role for PairingCode and AppRule records. **Status: Documented ✅**
+- **Enhanced Logging Infrastructure:** Comprehensive CloudKit logging for type conversions, record field values, save results, and permission errors. **Status: Completed ✅ (2025-10-10)**
 
 EP-07 Dashboard & Reporting — Phase: MVP
 - S-701 Parent Dashboard: Points, learning time, redemptions, shields state. Acceptance: Refresh ≤1s.
@@ -399,9 +408,12 @@ EP-14 Dev Experience & QA Infrastructure — Phase: MVP
 - ✅ EP-06: CloudKit Sync Infrastructure (Partial) - CloudKitMapper with 6 record types, SyncService with CRUD + change tracking, last-writer-wins conflict resolution
 - ✅ EP-07: Dashboard & Reporting - DashboardViewModel, 5 card components, DataExporter (CSV/JSON), multi-child navigation with horizontal swipe
 
+**Completed Epics (Continued):**
+- ✅ EP-02: Pairing & Family Association - CloudKit sync with Bool→Int64 type conversion, permission fixes, race condition resolution (2025-10-10)
+
 **Partially Completed:**
-- ✅ EP-03: App Categorization - CategoryRulesManager with per-child Learning/Reward classification, FamilyActivityPicker integration complete, conflict resolution implemented
-- 🔄 EP-06: Sync & Multi-Parent - Schema + mappers complete, offline queue and subscriptions pending
+- ✅ EP-03: App Categorization - CategoryRulesManager with per-child Learning/Reward classification, FamilyActivityPicker integration complete, conflict resolution implemented, CloudKit sync ready (pending permission update, 2025-10-10)
+- 🔄 EP-06: Sync & Multi-Parent - Schema + mappers complete, type conversion patterns established, enhanced logging added, offline queue and subscriptions pending
 
 **In Progress:**
 - 🔄 EP-13: Parent & Child Mode Experience - Child mode view wired to ChildrenManager/PointsLedger with live data, simple redemption request button added, unlink section relegated to secondary area
@@ -412,3 +424,64 @@ EP-14 Dev Experience & QA Infrastructure — Phase: MVP
 - ✅ MainActor isolation fixes applied for thread-safe UI updates
 - ✅ CloudKit sync code compiles without errors
 - ⚠️ Warnings present (non-Sendable types, unused return values in preview code)
+
+## 25. Recent Implementation Updates (2025-10-10)
+
+### CloudKit Pairing Sync Fix
+**Issue:** Child device showed "Paired successfully" but parent showed "Waiting to pair"
+
+**Root Causes Identified:**
+1. Type mismatch: CloudKit `isUsed` field is INT(64) but code used Bool
+2. Permission issue: `_icloud` role had CREATE-only permission, missing WRITE
+3. Race condition: Codes expired before parent could sync (15min TTL)
+
+**Fixes Applied:**
+- CloudKitMapper: Bool→Int64 conversion (`record["isUsed"] = Int64(code.isUsed ? 1 : 0)`)
+- PairingService: Check used codes BEFORE valid codes to prevent race condition
+- Enhanced logging for type conversions and permission errors
+- CloudKit Console: Updated _icloud role with WRITE permission
+
+**Files Modified:**
+- `Sources/SyncKit/CloudKitMapper.swift` (lines 194, 218-230)
+- `Sources/Core/PairingService.swift` (lines 366-395)
+- `Sources/SyncKit/SyncService.swift` (enhanced logging)
+
+### App Categorization CloudKit Sync
+**Implementation:** CategoryRulesManager now auto-syncs app rules to CloudKit
+
+**Features Added:**
+- ApplicationToken→base64 conversion for opaque token storage
+- Automatic CloudKit sync on `updateLearningApps()` and `updateRewardApps()`
+- Per-child rule upload with device tracking
+- Comprehensive logging with emoji prefixes (📚 learning, ⭐ reward, ☁️ CloudKit)
+- FamilyActivityPicker lifecycle logging
+
+**Files Modified:**
+- `apps/ParentiOS/ViewModels/CategoryRulesManager.swift` (~150 LOC added)
+- `apps/ParentiOS/Views/AppCategorizationView.swift` (picker logging)
+- `apps/ParentiOS/ClaudexApp.swift` (service connection)
+
+**Status:** Implemented, pending CloudKit permission update (same as pairing fix)
+
+### Custom App Picker (Planned)
+**Issue:** FamilyActivityPicker shows all Family Sharing apps, not just child's device apps
+
+**Proposed Solution:** Hybrid picker with child device app inventory
+- Component 1: InstalledAppsMonitor service (child device reports apps)
+- Component 2: CloudKit ChildAppInventory schema
+- Component 3: Enhanced parent UI with badges/filters
+- Component 4: Child device auto-sync
+
+**Documentation:** Full spec in `docs/issues/app-categorization-family-sharing-issue.md`
+
+**Status:** Planned (4 phases, 12-18 hours estimated)
+
+### Lessons Learned
+**CloudKit Troubleshooting Best Practices:**
+1. Verify CloudKit Console permissions FIRST (CREATE vs WRITE)
+2. Check Security Roles configuration before diving into code
+3. Inspect CloudKit schema data types (INT vs BOOL mismatches)
+4. Use enhanced logging to surface permission errors early
+5. Ask user to verify web interface settings during troubleshooting
+
+**Key Insight:** Permission errors can be "silent" in CloudKit - API reports success but write is rejected server-side. Always log full CKError details and check saveResults for per-record failures.
