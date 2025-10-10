@@ -190,7 +190,11 @@ public struct CloudKitMapper {
         record["createdAt"] = code.createdAt
         record["expiresAt"] = code.expiresAt
         record["ttlMinutes"] = code.ttlMinutes
-        record["isUsed"] = code.isUsed
+        // Convert Bool to Int64 for CloudKit schema compatibility
+        let isUsedValue = Int64(code.isUsed ? 1 : 0)
+        print("CloudKitMapper: Setting isUsed for code \(code.code) - Bool: \(code.isUsed) -> Int64: \(isUsedValue)")
+        record["isUsed"] = isUsedValue
+        print("CloudKitMapper: Record isUsed field after setting: \(record["isUsed"] ?? "nil")")
         if let usedAt = code.usedAt {
             record["usedAt"] = usedAt
         } else {
@@ -213,10 +217,21 @@ public struct CloudKitMapper {
         guard let ttlMinutes = record["ttlMinutes"] as? Int else {
             throw CloudKitMapperError.missingField("ttlMinutes")
         }
-        guard let isUsed = record["isUsed"] as? Bool else {
+
+        // Convert Int64 to Bool for CloudKit schema compatibility
+        // CloudKit schema uses INT(64) but Swift uses Bool
+        let isUsed: Bool
+        if let isUsedInt = record["isUsed"] as? Int64 {
+            isUsed = isUsedInt != 0
+        } else if let isUsedInt = record["isUsed"] as? Int {
+            isUsed = isUsedInt != 0
+        } else if let isUsedBool = record["isUsed"] as? Bool {
+            // Fallback for backward compatibility if any records still have Bool
+            isUsed = isUsedBool
+        } else {
             throw CloudKitMapperError.missingField("isUsed")
         }
-        
+
         // Get child ID from the record reference
         let childRef = (record["childRef"] as? CKRecord.Reference)?.recordID.recordName ?? "unknown"
         let childId = ChildID(childRef)

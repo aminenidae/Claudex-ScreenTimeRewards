@@ -359,15 +359,13 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
             cloudCodeIds.insert(code.code)
             print("PairingService: Processing cloud code \(code.code) for child \(code.childId)")
             print("PairingService: Code validity - expired: \(code.isExpired), used: \(code.isUsed), valid: \(code.isValid)")
-            
+
             // Update UI-related properties on the main actor
             await MainActor.run {
                 if self.activeCodes[code.code] == nil {
-                    if code.isValid {
-                        self.activeCodes[code.code] = code
-                        print("PairingService: Added pairing code from CloudKit: \(code.code) for child: \(code.childId)")
-                        addedCount += 1
-                    } else if code.isUsed, let deviceId = code.usedByDeviceId {
+                    // IMPORTANT: Check for used codes FIRST, regardless of expiration
+                    // A code that was valid when consumed may be expired by the time parent syncs
+                    if code.isUsed, let deviceId = code.usedByDeviceId {
                         // Code is used - create pairing on parent device if it doesn't exist
                         print("PairingService: Found used code \(code.code) from CloudKit with deviceId: \(deviceId)")
                         print("PairingService: Current pairings count: \(self.pairings.count)")
@@ -386,6 +384,11 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                             print("PairingService: Pairing already exists for device \(deviceId)")
                             skippedCount += 1
                         }
+                    } else if code.isValid {
+                        // Code is valid and unused - add to active codes
+                        self.activeCodes[code.code] = code
+                        print("PairingService: Added pairing code from CloudKit: \(code.code) for child: \(code.childId)")
+                        addedCount += 1
                     } else {
                         print("PairingService: Skipped invalid cloud code \(code.code) (expired: \(code.isExpired), used: \(code.isUsed), usedByDeviceId: \(code.usedByDeviceId ?? "nil"))")
                         skippedCount += 1
@@ -396,12 +399,13 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                     if let localCode = self.activeCodes[code.code] {
                         print("PairingService: Comparing local code \(code.code) (created: \(localCode.createdAt), used: \(localCode.isUsed)) with cloud version (created: \(code.createdAt), used: \(code.isUsed))")
 
-                        // Always prefer cloud version if it's been used (child marked it as used)
+                        // IMPORTANT: Always prefer cloud version if it's been used (child marked it as used)
+                        // Process used codes regardless of expiration to avoid race conditions
                         if code.isUsed && !localCode.isUsed {
                             self.activeCodes[code.code] = code
                             print("PairingService: ⚠️ Cloud code \(code.code) is USED, updating local version to prevent overwriting")
 
-                            // Create pairing from the used code
+                            // Create pairing from the used code (even if expired)
                             if let deviceId = code.usedByDeviceId {
                                 print("PairingService: Cloud code used by device \(deviceId)")
                                 if self.pairings[deviceId] == nil {
@@ -420,7 +424,7 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                             self.activeCodes[code.code] = code
                             print("PairingService: Updated local code \(code.code) with newer cloud version")
 
-                            // If the cloud code is now used, create pairing if needed
+                            // If the cloud code is now used, create pairing if needed (even if expired)
                             if code.isUsed, let deviceId = code.usedByDeviceId {
                                 print("PairingService: Updated code is USED by device \(deviceId)")
                                 if self.pairings[deviceId] == nil {
