@@ -191,10 +191,7 @@ public struct CloudKitMapper {
         record["expiresAt"] = code.expiresAt
         record["ttlMinutes"] = code.ttlMinutes
         // Convert Bool to Int64 for CloudKit schema compatibility
-        let isUsedValue = Int64(code.isUsed ? 1 : 0)
-        print("CloudKitMapper: Setting isUsed for code \(code.code) - Bool: \(code.isUsed) -> Int64: \(isUsedValue)")
-        record["isUsed"] = isUsedValue
-        print("CloudKitMapper: Record isUsed field after setting: \(record["isUsed"] ?? "nil")")
+        record["isUsed"] = Int64(code.isUsed ? 1 : 0)
         if let usedAt = code.usedAt {
             record["usedAt"] = usedAt
         } else {

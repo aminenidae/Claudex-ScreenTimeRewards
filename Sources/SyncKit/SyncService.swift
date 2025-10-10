@@ -264,28 +264,17 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
             record = try await self.publicDatabase.record(for: recordID)
             CloudKitMapper.applyPairingCode(code, to: record, familyID: familyRecordID)
             print("Updating existing pairing code record \(code.code) in CloudKit")
-            print("SyncService: Record fields before save - isUsed: \(record["isUsed"] ?? "nil"), usedAt: \(record["usedAt"] ?? "nil"), usedByDeviceId: \(record["usedByDeviceId"] ?? "nil")")
         } catch let ckError as CKError where ckError.code == .unknownItem {
             print("Existing pairing code not found; creating new record for code \(code.code)")
             record = CloudKitMapper.pairingCodeRecord(for: code, familyID: familyRecordID)
-            print("SyncService: New record fields - isUsed: \(record["isUsed"] ?? "nil"), usedAt: \(record["usedAt"] ?? "nil"), usedByDeviceId: \(record["usedByDeviceId"] ?? "nil")")
         } catch {
             print("Failed to fetch pairing code record \(code.code) before save: \(error)")
             throw SyncError.serverError(error.localizedDescription)
         }
 
         do {
-            let result = try await self.publicDatabase.modifyRecords(saving: [record], deleting: [])
+            _ = try await self.publicDatabase.modifyRecords(saving: [record], deleting: [])
             print("Successfully saved pairing code \(code.code) to CloudKit public database")
-            print("SyncService: Save result - saved records count: \(result.saveResults.count)")
-            for (recordID, saveResult) in result.saveResults {
-                switch saveResult {
-                case .success(let savedRecord):
-                    print("SyncService: Saved record \(recordID.recordName) - isUsed: \(savedRecord["isUsed"] ?? "nil")")
-                case .failure(let error):
-                    print("SyncService: Failed to save record \(recordID.recordName): \(error)")
-                }
-            }
         } catch {
             print("Error saving pairing code \(code.code) to CloudKit public database: \(error)")
             throw SyncError.serverError(error.localizedDescription)
