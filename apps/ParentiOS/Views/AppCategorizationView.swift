@@ -161,6 +161,12 @@ struct AppCategorizationView: View {
                 FamilyActivityPicker(
                     selection: learningSelectionBinding
                 )
+                .onAppear {
+                    print("🎯 FamilyActivityPicker (Learning) opened for child: \(child.name) (\(child.id.rawValue))")
+                }
+                .onDisappear {
+                    print("🎯 FamilyActivityPicker (Learning) closed for child: \(child.name)")
+                }
             } else {
                 EmptyView()
             }
@@ -170,6 +176,12 @@ struct AppCategorizationView: View {
                 FamilyActivityPicker(
                     selection: rewardSelectionBinding
                 )
+                .onAppear {
+                    print("🎯 FamilyActivityPicker (Reward) opened for child: \(child.name) (\(child.id.rawValue))")
+                }
+                .onDisappear {
+                    print("🎯 FamilyActivityPicker (Reward) closed for child: \(child.name)")
+                }
             } else {
                 EmptyView()
             }

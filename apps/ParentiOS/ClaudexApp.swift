@@ -42,6 +42,7 @@ struct ClaudexScreenTimeRewardsApp: App {
         )
         self._childrenManager = StateObject(wrappedValue: childrenManager)
 
+        // Note: CategoryRulesManager will be connected to syncService in .task block
         let rulesManager = CategoryRulesManager()
         self._rulesManager = StateObject(wrappedValue: rulesManager)
 
@@ -100,6 +101,7 @@ struct ClaudexScreenTimeRewardsApp: App {
                     print("Connecting services")
                     pairingService.setSyncService(syncService)
                     childrenManager.setSyncService(syncService)
+                    rulesManager.setSyncService(syncService)
                     #endif
                 }
             } else {

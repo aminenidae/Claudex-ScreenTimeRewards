@@ -4,6 +4,12 @@ import ManagedSettings
 #if canImport(Core)
 import Core
 #endif
+#if canImport(SyncKit)
+import SyncKit
+#endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Represents a conflict between learning and reward app classifications
 struct AppConflict {
@@ -20,14 +26,41 @@ class CategoryRulesManager: ObservableObject {
     /// Storage location for persisted rules
     private let storageURL: URL
 
-    init(storageURL: URL? = nil) {
+    /// CloudKit sync service (optional)
+    #if canImport(SyncKit)
+    private var syncService: SyncServiceProtocol?
+    #endif
+
+    /// Parent device ID for tracking who modified rules
+    private let deviceId: String
+
+    init(storageURL: URL? = nil, syncService: SyncServiceProtocol? = nil, deviceId: String? = nil) {
         // Default to Documents directory
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         self.storageURL = storageURL ?? documentsPath.appendingPathComponent("app-rules.json")
 
+        #if canImport(SyncKit)
+        self.syncService = syncService
+        #endif
+
+        // Use device identifier for tracking modifications
+        #if canImport(UIKit)
+        self.deviceId = deviceId ?? UIDevice.current.identifierForVendor?.uuidString ?? "unknown"
+        #else
+        self.deviceId = deviceId ?? "unknown"
+        #endif
+
         // Load existing rules
         loadRules()
     }
+
+    #if canImport(SyncKit)
+    /// Set or update the sync service
+    func setSyncService(_ service: SyncServiceProtocol) {
+        self.syncService = service
+        print("☁️ CategoryRulesManager: CloudKit sync service configured")
+    }
+    #endif
 
     // MARK: - Public API
 
@@ -45,32 +78,80 @@ class CategoryRulesManager: ObservableObject {
 
     /// Update learning apps selection for a child
     func updateLearningApps(for childId: ChildID, selection: FamilyActivitySelection) {
-        // Logging block to see what comes out of the picker
-        let apps = selection.applicationTokens.map { token -> (String?, String?) in
+        print("📚 CategoryRulesManager: updateLearningApps called for child: \(childId.rawValue)")
+        print("📚 Total application tokens: \(selection.applicationTokens.count)")
+        print("📚 Total category tokens: \(selection.categoryTokens.count)")
+        print("📚 Total web domain tokens: \(selection.webDomainTokens.count)")
+
+        // Detailed logging of selected apps
+        for (index, token) in selection.applicationTokens.enumerated() {
             let app = ManagedSettings.Application(token: token)
-            return (app.bundleIdentifier, app.localizedDisplayName)
+            let bundleId = app.bundleIdentifier ?? "unknown"
+            let displayName = app.localizedDisplayName ?? "unknown"
+            print("📚 App \(index + 1): \(displayName) (bundle: \(bundleId))")
         }
-        print("Learning selection tokens:", apps)
-        
+
+        // Log categories
+        for (index, token) in selection.categoryTokens.enumerated() {
+            print("📚 Category \(index + 1): \(token)")
+        }
+
         var rules = getRules(for: childId)
         rules.learningSelection = selection
         childRules[childId] = rules
+        print("📚 Saving \(selection.applicationTokens.count) learning apps + \(selection.categoryTokens.count) categories to local storage")
         saveRules()
+        print("📚 ✅ Learning apps saved successfully")
+
+        // Sync to CloudKit
+        #if canImport(SyncKit)
+        Task {
+            do {
+                try await syncToCloudKit(for: childId)
+            } catch {
+                print("❌ Failed to sync learning apps to CloudKit: \(error)")
+            }
+        }
+        #endif
     }
 
     /// Update reward apps selection for a child
     func updateRewardApps(for childId: ChildID, selection: FamilyActivitySelection) {
-        // Logging block to see what comes out of the picker
-        let apps = selection.applicationTokens.map { token -> (String?, String?) in
+        print("⭐ CategoryRulesManager: updateRewardApps called for child: \(childId.rawValue)")
+        print("⭐ Total application tokens: \(selection.applicationTokens.count)")
+        print("⭐ Total category tokens: \(selection.categoryTokens.count)")
+        print("⭐ Total web domain tokens: \(selection.webDomainTokens.count)")
+
+        // Detailed logging of selected apps
+        for (index, token) in selection.applicationTokens.enumerated() {
             let app = ManagedSettings.Application(token: token)
-            return (app.bundleIdentifier, app.localizedDisplayName)
+            let bundleId = app.bundleIdentifier ?? "unknown"
+            let displayName = app.localizedDisplayName ?? "unknown"
+            print("⭐ App \(index + 1): \(displayName) (bundle: \(bundleId))")
         }
-        print("Reward selection tokens:", apps)
-        
+
+        // Log categories
+        for (index, token) in selection.categoryTokens.enumerated() {
+            print("⭐ Category \(index + 1): \(token)")
+        }
+
         var rules = getRules(for: childId)
         rules.rewardSelection = selection
         childRules[childId] = rules
+        print("⭐ Saving \(selection.applicationTokens.count) reward apps + \(selection.categoryTokens.count) categories to local storage")
         saveRules()
+        print("⭐ ✅ Reward apps saved successfully")
+
+        // Sync to CloudKit
+        #if canImport(SyncKit)
+        Task {
+            do {
+                try await syncToCloudKit(for: childId)
+            } catch {
+                print("❌ Failed to sync reward apps to CloudKit: \(error)")
+            }
+        }
+        #endif
     }
 
     /// Check if an app token is classified as learning
@@ -137,6 +218,86 @@ class CategoryRulesManager: ObservableObject {
         saveRules()
     }
 
+    // MARK: - CloudKit Sync
+
+    #if canImport(SyncKit)
+    /// Sync app rules to CloudKit for a specific child
+    func syncToCloudKit(for childId: ChildID, familyId: FamilyID = FamilyID("default-family")) async throws {
+        guard let syncService else {
+            print("⚠️ CategoryRulesManager: No sync service configured, skipping CloudKit sync")
+            return
+        }
+
+        print("☁️ CategoryRulesManager: Starting CloudKit sync for child: \(childId.rawValue)")
+        let rules = getRules(for: childId)
+        var uploadedCount = 0
+
+        // Convert learning apps to AppRulePayload and upload
+        for token in rules.learningSelection.applicationTokens {
+            let tokenString = tokenToBase64(token)
+            let ruleId = "\(childId.rawValue):\(tokenString.prefix(16))" // Use first 16 chars as ID suffix
+            let payload = AppRulePayload(
+                id: ruleId,
+                childId: childId,
+                appToken: tokenString,
+                classification: .learning,
+                isCategory: false,
+                categoryId: nil,
+                createdAt: Date(),
+                modifiedAt: Date(),
+                modifiedBy: deviceId
+            )
+
+            do {
+                try await syncService.saveAppRule(payload, familyId: familyId)
+                uploadedCount += 1
+                print("☁️   Uploaded learning app rule: \(ruleId)")
+            } catch {
+                print("❌   Failed to upload learning app rule \(ruleId): \(error)")
+            }
+        }
+
+        // Convert reward apps to AppRulePayload and upload
+        for token in rules.rewardSelection.applicationTokens {
+            let tokenString = tokenToBase64(token)
+            let ruleId = "\(childId.rawValue):\(tokenString.prefix(16))"
+            let payload = AppRulePayload(
+                id: ruleId,
+                childId: childId,
+                appToken: tokenString,
+                classification: .reward,
+                isCategory: false,
+                categoryId: nil,
+                createdAt: Date(),
+                modifiedAt: Date(),
+                modifiedBy: deviceId
+            )
+
+            do {
+                try await syncService.saveAppRule(payload, familyId: familyId)
+                uploadedCount += 1
+                print("☁️   Uploaded reward app rule: \(ruleId)")
+            } catch {
+                print("❌   Failed to upload reward app rule \(ruleId): \(error)")
+            }
+        }
+
+        print("☁️ CategoryRulesManager: Uploaded \(uploadedCount) app rules to CloudKit")
+    }
+
+    /// Helper to convert ApplicationToken to base64 string
+    private func tokenToBase64(_ token: ApplicationToken) -> String {
+        let data = withUnsafeBytes(of: token) { Data($0) }
+        return data.base64EncodedString()
+    }
+
+    /// Helper to convert base64 string back to ApplicationToken
+    private func base64ToToken(_ base64: String) -> ApplicationToken? {
+        guard let data = Data(base64Encoded: base64) else { return nil }
+        return data.withUnsafeBytes { $0.load(as: ApplicationToken.self) }
+    }
+    #endif
+
     // MARK: - Persistence
 
     private func saveRules() {
@@ -148,13 +309,15 @@ class CategoryRulesManager: ObservableObject {
             let codableRules = childRules.mapValues { $0.toCodable() }
             let data = try encoder.encode(codableRules)
             try data.write(to: storageURL)
+            print("💾 CategoryRulesManager: Saved rules for \(childRules.count) children to: \(storageURL.path)")
         } catch {
-            print("Failed to save app rules: \(error)")
+            print("❌ CategoryRulesManager: Failed to save app rules: \(error)")
         }
     }
 
     private func loadRules() {
         guard FileManager.default.fileExists(atPath: storageURL.path) else {
+            print("📂 CategoryRulesManager: No existing rules file found at: \(storageURL.path)")
             return
         }
 
@@ -169,8 +332,15 @@ class CategoryRulesManager: ObservableObject {
             for (childId, codableRule) in codableRules {
                 childRules[childId] = ChildAppRules(from: codableRule)
             }
+
+            print("📂 CategoryRulesManager: Loaded rules for \(childRules.count) children from: \(storageURL.path)")
+            for (childId, rules) in childRules {
+                print("📂   Child: \(childId.rawValue)")
+                print("📂     Learning: \(rules.learningSelection.applicationTokens.count) apps, \(rules.learningSelection.categoryTokens.count) categories")
+                print("📂     Reward: \(rules.rewardSelection.applicationTokens.count) apps, \(rules.rewardSelection.categoryTokens.count) categories")
+            }
         } catch {
-            print("Failed to load app rules: \(error)")
+            print("❌ CategoryRulesManager: Failed to load app rules: \(error)")
         }
     }
 }
