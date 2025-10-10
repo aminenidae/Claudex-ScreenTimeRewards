@@ -27,7 +27,7 @@ class CategoryRulesManager: ObservableObject {
     private let storageURL: URL
 
     /// CloudKit sync service (optional)
-    #if canImport(SyncKit)
+    #if canImport(CloudKit)
     private var syncService: SyncServiceProtocol?
     #endif
 
@@ -39,7 +39,7 @@ class CategoryRulesManager: ObservableObject {
         let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         self.storageURL = storageURL ?? documentsPath.appendingPathComponent("app-rules.json")
 
-        #if canImport(SyncKit)
+        #if canImport(CloudKit)
         self.syncService = syncService
         #endif
 
@@ -54,7 +54,7 @@ class CategoryRulesManager: ObservableObject {
         loadRules()
     }
 
-    #if canImport(SyncKit)
+    #if canImport(CloudKit)
     /// Set or update the sync service
     func setSyncService(_ service: SyncServiceProtocol) {
         self.syncService = service
@@ -104,7 +104,7 @@ class CategoryRulesManager: ObservableObject {
         print("📚 ✅ Learning apps saved successfully")
 
         // Sync to CloudKit
-        #if canImport(SyncKit)
+        #if canImport(CloudKit)
         Task {
             do {
                 try await syncToCloudKit(for: childId)
@@ -143,7 +143,7 @@ class CategoryRulesManager: ObservableObject {
         print("⭐ ✅ Reward apps saved successfully")
 
         // Sync to CloudKit
-        #if canImport(SyncKit)
+        #if canImport(CloudKit)
         Task {
             do {
                 try await syncToCloudKit(for: childId)
@@ -220,7 +220,7 @@ class CategoryRulesManager: ObservableObject {
 
     // MARK: - CloudKit Sync
 
-    #if canImport(SyncKit)
+    #if canImport(CloudKit)
     /// Sync app rules to CloudKit for a specific child
     func syncToCloudKit(for childId: ChildID, familyId: FamilyID = FamilyID("default-family")) async throws {
         guard let syncService else {

@@ -102,6 +102,9 @@ struct ClaudexScreenTimeRewardsApp: App {
                     pairingService.setSyncService(syncService)
                     childrenManager.setSyncService(syncService)
                     rulesManager.setSyncService(syncService)
+                    print("✅ All services connected to CloudKit sync")
+                    #else
+                    isPriming = false
                     #endif
                 }
             } else {
