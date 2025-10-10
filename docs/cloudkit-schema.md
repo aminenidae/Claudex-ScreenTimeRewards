@@ -80,7 +80,43 @@ Per-child app categorization rules (Learning/Reward).
 
 ---
 
-### 4. PointsLedgerEntry
+### 4. ChildAppInventory
+
+Per-child app inventory from child devices (tracks what apps are actually installed).
+
+| Field | Type | Indexed | Description |
+|-------|------|---------|-------------|
+| `recordName` | String (PK) | ✓ | `{childID}:{deviceID}` |
+| `familyRef` | Reference | ✓ | → Family record |
+| `childRef` | Reference | ✓ | → ChildContext record |
+| `deviceId` | String | ✓ | Child device identifier |
+| `appTokens` | [String] | - | Base64-encoded ApplicationTokens |
+| `categoryTokens` | [String] | - | Base64-encoded CategoryTokens |
+| `lastUpdated` | Date | ✓ | Last sync timestamp |
+| `appCount` | Int64 | - | Total count (apps + categories) |
+
+**Indexes:**
+- `familyRef` + `childRef` (compound for per-child queries)
+- `childRef` (for single-child inventory fetch)
+- `deviceId` (for per-device tracking)
+- `lastUpdated` (for freshness checks)
+
+**Purpose:**
+- Child devices report their installed apps to CloudKit
+- Parent devices fetch inventory to filter FamilyActivityPicker
+- Enables "Show only child's apps" filter in parent UI
+- Updated on: child app launch, app installation, periodic sync (24h)
+
+**Conflict Resolution:** Last-writer-wins based on `lastUpdated`
+
+**Notes:**
+- One record per child device (supports multiple devices per child)
+- `appTokens` and `categoryTokens` are opaque tokens from FamilyControls
+- Parent UI merges inventories from all child devices (union)
+
+---
+
+### 5. PointsLedgerEntry
 
 Append-only ledger for points transactions.
 
@@ -108,7 +144,7 @@ Append-only ledger for points transactions.
 
 ---
 
-### 5. AuditEntry
+### 6. AuditEntry
 
 Audit log for administrative actions.
 
@@ -133,7 +169,7 @@ Audit log for administrative actions.
 
 ---
 
-### 6. RedemptionWindow
+### 7. RedemptionWindow
 
 Active earned-time windows (for multi-device coordination).
 

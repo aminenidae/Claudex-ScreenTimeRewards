@@ -283,6 +283,52 @@ class CategoryRulesManager: ObservableObject {
         }
 
         print("☁️ CategoryRulesManager: Uploaded \(uploadedCount) app rules to CloudKit")
+
+        // Also sync the app inventory (combined learning + reward apps)
+        try await syncAppInventoryToCloudKit(for: childId, familyId: familyId)
+    }
+
+    /// Sync combined app inventory (learning + reward apps) to CloudKit
+    /// This allows parent devices to see what apps the child has categorized
+    private func syncAppInventoryToCloudKit(for childId: ChildID, familyId: FamilyID) async throws {
+        guard let syncService else {
+            print("⚠️ CategoryRulesManager: No sync service configured, skipping app inventory sync")
+            return
+        }
+
+        print("📱 CategoryRulesManager: Syncing app inventory for child: \(childId.rawValue)")
+        let rules = getRules(for: childId)
+
+        // Combine learning and reward selections into one inventory
+        var combinedSelection = FamilyActivitySelection()
+        combinedSelection.applicationTokens = rules.learningSelection.applicationTokens.union(rules.rewardSelection.applicationTokens)
+        combinedSelection.categoryTokens = rules.learningSelection.categoryTokens.union(rules.rewardSelection.categoryTokens)
+
+        // Convert tokens to base64
+        let appTokens = combinedSelection.applicationTokens.map { tokenToBase64($0) }
+        let categoryTokens = combinedSelection.categoryTokens.map { token in
+            let data = withUnsafeBytes(of: token) { Data($0) }
+            return data.base64EncodedString()
+        }
+
+        let inventoryId = "\(childId.rawValue):\(deviceId)"
+        let payload = ChildAppInventoryPayload(
+            id: inventoryId,
+            childId: childId,
+            deviceId: deviceId,
+            appTokens: appTokens,
+            categoryTokens: categoryTokens,
+            lastUpdated: Date(),
+            appCount: appTokens.count + categoryTokens.count
+        )
+
+        do {
+            try await syncService.saveAppInventory(payload, familyId: familyId)
+            print("📱 CategoryRulesManager: Successfully synced app inventory (\(payload.appCount) items)")
+        } catch {
+            print("❌ CategoryRulesManager: Failed to sync app inventory: \(error)")
+            throw error
+        }
     }
 
     /// Helper to convert ApplicationToken to base64 string

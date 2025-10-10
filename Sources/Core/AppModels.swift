@@ -142,6 +142,34 @@ public struct ChildContextPayload: Codable, Equatable {
     }
 }
 
+public struct ChildAppInventoryPayload: Codable, Equatable {
+    public let id: String // {childID}:{deviceID}
+    public let childId: ChildID
+    public let deviceId: String
+    public let appTokens: [String] // Base64-encoded ApplicationTokens
+    public let categoryTokens: [String] // Base64-encoded CategoryTokens
+    public let lastUpdated: Date
+    public let appCount: Int
+
+    public init(
+        id: String,
+        childId: ChildID,
+        deviceId: String,
+        appTokens: [String] = [],
+        categoryTokens: [String] = [],
+        lastUpdated: Date = Date(),
+        appCount: Int = 0
+    ) {
+        self.id = id
+        self.childId = childId
+        self.deviceId = deviceId
+        self.appTokens = appTokens
+        self.categoryTokens = categoryTokens
+        self.lastUpdated = lastUpdated
+        self.appCount = appCount
+    }
+}
+
 public struct PointsLedgerEntry: Codable, Identifiable {
     public enum EntryType: String, Codable { case accrual, redemption, adjustment }
     public let id: UUID

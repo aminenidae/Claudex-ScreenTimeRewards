@@ -28,6 +28,8 @@ public protocol SyncServiceProtocol {
     func deleteChild(_ childId: ChildID, familyId: FamilyID) async throws
     func fetchAppRules(familyId: FamilyID, childId: ChildID?) async throws -> [AppRulePayload]
     func saveAppRule(_ rule: AppRulePayload, familyId: FamilyID) async throws
+    func fetchAppInventory(familyId: FamilyID, childId: ChildID) async throws -> ChildAppInventoryPayload?
+    func saveAppInventory(_ inventory: ChildAppInventoryPayload, familyId: FamilyID) async throws
     func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode]
     func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws
     func deletePairingCode(_ code: String, familyId: FamilyID) async throws
@@ -203,6 +205,68 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         do {
             _ = try await self.publicDatabase.save(record)
         } catch {
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    // MARK: - App Inventory Operations
+
+    public func fetchAppInventory(familyId: FamilyID, childId: ChildID) async throws -> ChildAppInventoryPayload? {
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
+        let familyRef = CKRecord.Reference(recordID: familyRecordID, action: .none)
+        let childRecordID = CKRecord.ID(recordName: childId.rawValue)
+        let childRef = CKRecord.Reference(recordID: childRecordID, action: .none)
+
+        let predicate = NSPredicate(format: "familyRef == %@ AND childRef == %@", familyRef, childRef)
+        let query = CKQuery(recordType: CloudKitRecordType.childAppInventory, predicate: predicate)
+
+        do {
+            let (results, _) = try await self.publicDatabase.records(matching: query)
+
+            // Return the first (and should be only) inventory for this child
+            for (_, result) in results {
+                switch result {
+                case .success(let record):
+                    return try CloudKitMapper.childAppInventoryPayload(from: record)
+                case .failure(let error):
+                    print("Failed to fetch app inventory: \(error)")
+                }
+            }
+
+            return nil // No inventory found
+        } catch {
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    public func saveAppInventory(_ inventory: ChildAppInventoryPayload, familyId: FamilyID) async throws {
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
+        let recordID = CKRecord.ID(recordName: inventory.id)
+        var record: CKRecord
+
+        print("☁️ SyncService: Saving app inventory for child \(inventory.childId.rawValue) (\(inventory.appCount) apps)")
+
+        do {
+            record = try await self.publicDatabase.record(for: recordID)
+            // Update existing record
+            let updatedRecord = CloudKitMapper.childAppInventoryRecord(for: inventory, familyID: familyRecordID)
+            for key in updatedRecord.allKeys() {
+                record[key] = updatedRecord[key]
+            }
+            print("☁️   Updating existing app inventory record")
+        } catch let ckError as CKError where ckError.code == .unknownItem {
+            // Create new record
+            record = CloudKitMapper.childAppInventoryRecord(for: inventory, familyID: familyRecordID)
+            print("☁️   Creating new app inventory record")
+        } catch {
+            throw SyncError.serverError(error.localizedDescription)
+        }
+
+        do {
+            _ = try await self.publicDatabase.save(record)
+            print("☁️ SyncService: Successfully saved app inventory to CloudKit")
+        } catch {
+            print("❌ SyncService: Failed to save app inventory: \(error)")
             throw SyncError.serverError(error.localizedDescription)
         }
     }

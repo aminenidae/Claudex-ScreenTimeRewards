@@ -13,6 +13,7 @@ public enum CloudKitRecordType {
     public static let family = "Family"
     public static let childContext = "ChildContext"
     public static let appRule = "AppRule"
+    public static let childAppInventory = "ChildAppInventory"
     public static let pointsLedgerEntry = "PointsLedgerEntry"
     public static let auditEntry = "AuditEntry"
     public static let redemptionWindow = "RedemptionWindow"
@@ -277,6 +278,49 @@ public struct CloudKitMapper {
             childOpaqueId: opaqueId,
             displayName: displayName,
             pairedDeviceIds: pairedDeviceIds
+        )
+    }
+
+    // MARK: - Child App Inventory
+
+    public static func childAppInventoryRecord(
+        for payload: ChildAppInventoryPayload,
+        familyID: CKRecord.ID
+    ) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: payload.id)
+        let record = CKRecord(recordType: CloudKitRecordType.childAppInventory, recordID: recordID)
+        record["familyRef"] = CKRecord.Reference(recordID: familyID, action: .none)
+        record["childRef"] = CKRecord.Reference(recordID: CKRecord.ID(recordName: payload.childId.rawValue), action: .none)
+        record["deviceId"] = payload.deviceId
+        record["appTokens"] = payload.appTokens
+        record["categoryTokens"] = payload.categoryTokens
+        record["lastUpdated"] = payload.lastUpdated
+        record["appCount"] = payload.appCount
+        return record
+    }
+
+    public static func childAppInventoryPayload(from record: CKRecord) throws -> ChildAppInventoryPayload {
+        guard let deviceId = record["deviceId"] as? String else {
+            throw CloudKitMapperError.missingField("deviceId")
+        }
+        guard let lastUpdated = record["lastUpdated"] as? Date else {
+            throw CloudKitMapperError.missingField("lastUpdated")
+        }
+
+        let appTokens = record["appTokens"] as? [String] ?? []
+        let categoryTokens = record["categoryTokens"] as? [String] ?? []
+        let appCount = record["appCount"] as? Int ?? 0
+        let childRef = (record["childRef"] as? CKRecord.Reference)?.recordID.recordName ?? "unknown"
+        let childId = ChildID(childRef)
+
+        return ChildAppInventoryPayload(
+            id: record.recordID.recordName,
+            childId: childId,
+            deviceId: deviceId,
+            appTokens: appTokens,
+            categoryTokens: categoryTokens,
+            lastUpdated: lastUpdated,
+            appCount: appCount
         )
     }
 
