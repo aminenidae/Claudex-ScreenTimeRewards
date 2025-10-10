@@ -349,10 +349,30 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         let recordID = CKRecord.ID(recordName: code)
         print("Deleting pairing code \(code) from CloudKit public database")
         do {
-            _ = try await self.publicDatabase.deleteRecord(withID: recordID)
-            print("Successfully deleted pairing code \(code) from CloudKit public database")
+            let result = try await self.publicDatabase.deleteRecord(withID: recordID)
+            print("Successfully deleted pairing code \(code) from CloudKit public database. Result: Record deleted")
+            
+            // Add verification step to ensure the record is actually deleted
+            do {
+                _ = try await self.publicDatabase.record(for: recordID)
+                // If we reach here, the record still exists
+                print("WARNING: Record \(code) still exists after deletion attempt")
+                throw SyncError.serverError("Failed to delete pairing code \(code) from CloudKit - record still exists")
+            } catch let ckError as CKError where ckError.code == .unknownItem {
+                // This is expected - the record should not be found
+                print("Verified: Pairing code \(code) successfully deleted from CloudKit")
+            } catch {
+                print("Error verifying deletion of pairing code \(code): \(error)")
+                throw SyncError.serverError("Failed to verify deletion of pairing code \(code) from CloudKit: \(error)")
+            }
         } catch let ckError as CKError where ckError.code == .unknownItem {
             print("Pairing code \(code) not found in CloudKit; treating as already deleted")
+        } catch let ckError as CKError {
+            print("CloudKit error deleting pairing code \(code) from CloudKit public database: \(ckError)")
+            print("CloudKit error code: \(ckError.code)")
+            print("CloudKit error description: \(ckError.localizedDescription)")
+            // Re-throw CloudKit errors so they can be handled by the caller
+            throw SyncError.serverError(ckError.localizedDescription)
         } catch {
             // Don't throw here as this is a cleanup operation
             print("Error deleting pairing code \(code) from CloudKit public database: \(error)")

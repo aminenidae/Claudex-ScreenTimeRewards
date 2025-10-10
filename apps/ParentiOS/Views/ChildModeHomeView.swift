@@ -12,7 +12,7 @@ struct ChildModeHomeView: View {
     let ledger: PointsLedger
     let exemptionManager: ExemptionManager
     let redemptionService: RedemptionServiceProtocol
-    let onUnlinkRequest: () -> Void
+    // Removed onUnlinkRequest parameter since unlinking is handled by parent only
 
     @State private var showingRedemptionSheet = false
     @State private var isOffline = false // For offline banner demo
@@ -54,9 +54,6 @@ struct ChildModeHomeView: View {
                 
                 // Redeem Time Button (Primary CTA)
                 redeemTimeButton
-                
-                // Unlink Button (Secondary)
-                unlinkButton
                 
                 Spacer(minLength: 20)
             }
@@ -288,6 +285,7 @@ struct ChildModeHomeView: View {
     
     // MARK: - Unlink Button (Secondary)
     
+    /*
     private var unlinkButton: some View {
         Button(action: {
             onUnlinkRequest()
@@ -307,6 +305,7 @@ struct ChildModeHomeView: View {
         }
         .padding(.horizontal)
     }
+    */
 }
 
 // MARK: - Previews
@@ -326,8 +325,7 @@ struct ChildModeHomeView: View {
             childProfile: ChildProfile(id: ChildID("child-1"), name: "Alice", storeName: "child-child-1"),
             ledger: ledger,
             exemptionManager: exemptionManager,
-            redemptionService: redemptionService,
-            onUnlinkRequest: {}
+            redemptionService: redemptionService
         )
     }
 }
@@ -342,8 +340,7 @@ struct ChildModeHomeView: View {
             childProfile: ChildProfile(id: ChildID("child-1"), name: "Alice", storeName: "child-child-1"),
             ledger: ledger,
             exemptionManager: exemptionManager,
-            redemptionService: redemptionService,
-            onUnlinkRequest: {}
+            redemptionService: redemptionService
         )
     }
 }
@@ -361,8 +358,7 @@ struct ChildModeHomeView: View {
             childProfile: ChildProfile(id: ChildID("child-1"), name: "Alice", storeName: "child-child-1"),
             ledger: ledger,
             exemptionManager: exemptionManager,
-            redemptionService: redemptionService,
-            onUnlinkRequest: {}
+            redemptionService: redemptionService
         )
         .onAppear {
             // Simulate offline state

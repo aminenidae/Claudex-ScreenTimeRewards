@@ -85,7 +85,7 @@ public protocol PairingServiceProtocol {
     func revokePairing(for deviceId: String) throws -> ChildDevicePairing
 
     /// Delete the pairing code record from CloudKit if available
-    func removePairingFromCloud(_ pairing: ChildDevicePairing, familyId: FamilyID) async
+    func removePairingFromCloud(_ pairing: ChildDevicePairing, familyId: FamilyID) async throws
 
     /// Get all pairings for a child
     func getPairings(for childId: ChildID) -> [ChildDevicePairing]
@@ -302,7 +302,7 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         return pairing
     }
 
-    public func removePairingFromCloud(_ pairing: ChildDevicePairing, familyId: FamilyID) async {
+    public func removePairingFromCloud(_ pairing: ChildDevicePairing, familyId: FamilyID) async throws {
         guard let syncService else {
             print("PairingService: No sync service configured; skipping CloudKit unlink for code \(pairing.pairingCode)")
             return
@@ -310,8 +310,11 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
 
         do {
             try await syncService.deletePairingCode(pairing.pairingCode, familyId: familyId)
+            print("PairingService: Successfully deleted pairing code \(pairing.pairingCode) from CloudKit")
         } catch {
             print("PairingService: Failed to delete pairing code \(pairing.pairingCode) from CloudKit: \(error)")
+            // Re-throw the error so it can be handled by the caller
+            throw error
         }
     }
 
@@ -347,9 +350,13 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         }.value
         print("PairingService: Retrieved \(cloudCodes.count) pairing codes from CloudKit")
         
-        var addedCount = 0
-        var uploadedCount = 0
-        var skippedCount = 0
+        // Use a class to hold mutable state to avoid concurrency issues
+        class SyncStats {
+            var addedCount = 0
+            var uploadedCount = 0
+            var skippedCount = 0
+        }
+        let stats = SyncStats()
 
         // Track codes that exist in CloudKit to avoid unnecessary uploads
         var cloudCodeIds = Set<String>()
@@ -379,19 +386,19 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                             )
                             self.pairings[deviceId] = pairing
                             print("PairingService: ✅ Created pairing from used CloudKit code \(code.code) for device \(deviceId) → child \(code.childId)")
-                            addedCount += 1
+                            stats.addedCount += 1
                         } else {
                             print("PairingService: Pairing already exists for device \(deviceId)")
-                            skippedCount += 1
+                            stats.skippedCount += 1
                         }
                     } else if code.isValid {
                         // Code is valid and unused - add to active codes
                         self.activeCodes[code.code] = code
                         print("PairingService: Added pairing code from CloudKit: \(code.code) for child: \(code.childId)")
-                        addedCount += 1
+                        stats.addedCount += 1
                     } else {
                         print("PairingService: Skipped invalid cloud code \(code.code) (expired: \(code.isExpired), used: \(code.isUsed), usedByDeviceId: \(code.usedByDeviceId ?? "nil"))")
-                        skippedCount += 1
+                        stats.skippedCount += 1
                     }
                 } else {
                     print("PairingService: Cloud code \(code.code) already exists locally")
@@ -469,7 +476,9 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
             // This prevents overwriting child's updates
             if cloudCodeIds.contains(code.code) && !code.isUsed {
                 print("PairingService: Skipped local code \(code.code) (already in CloudKit, not modified)")
-                skippedCount += 1
+                await MainActor.run {
+                    stats.skippedCount += 1
+                }
                 continue
             }
 
@@ -484,13 +493,17 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
                         print("PairingService: CloudKit save completed in \(saveEndTime - saveStartTime)s")
                     }.value
                     print("PairingService: Uploaded pairing code to CloudKit: \(code.code)")
-                    uploadedCount += 1
+                    await MainActor.run {
+                        stats.uploadedCount += 1
+                    }
                 } catch {
                     print("PairingService: Failed to upload pairing code \(code.code) to CloudKit: \(error)")
                 }
             } else {
                 print("PairingService: Skipped local code \(code.code) (expired without use)")
-                skippedCount += 1
+                await MainActor.run {
+                    stats.skippedCount += 1
+                }
             }
         }
 
@@ -505,8 +518,11 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         }
         
         let totalTime = CFAbsoluteTimeGetCurrent() - startTime
-        print("PairingService: Sync complete for family \(familyId): Added \(addedCount) codes from CloudKit, uploaded \(uploadedCount) codes to CloudKit, skipped \(skippedCount) invalid codes. Total time: \(totalTime)s")
-        print("PairingService: Total active codes: \(self.activeCodes.count)")
+        // Print final results
+        await MainActor.run {
+            print("PairingService: Sync complete for family \(familyId): Added \(stats.addedCount) codes from CloudKit, uploaded \(stats.uploadedCount) codes to CloudKit, skipped \(stats.skippedCount) invalid codes. Total time: \(totalTime)s")
+            print("PairingService: Total active codes: \(self.activeCodes.count)")
+        }
     }
 
     private func reconcilePairingsFromCodes() {

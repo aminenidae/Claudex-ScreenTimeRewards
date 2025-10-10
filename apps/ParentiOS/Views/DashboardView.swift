@@ -113,11 +113,40 @@ struct DashboardView: View {
     
     private func revokePairing(for deviceId: String) {
         do {
-            _ = try pairingService.revokePairing(for: deviceId)
+            let pairing = try pairingService.revokePairing(for: deviceId)
             // Notify the user that the pairing was revoked
             print("Successfully revoked pairing for device: \(deviceId)")
 
-            // Refresh the UI
+            // Force immediate UI update after local revocation
+            pairingService.objectWillChange.send()
+
+            // Remove pairing from CloudKit as well to ensure it's unlinked across all devices
+            Task {
+                let familyId = FamilyID("default-family")
+                do {
+                    try await pairingService.removePairingFromCloud(pairing, familyId: familyId)
+                    print("Successfully removed pairing from CloudKit for device: \(deviceId)")
+                    
+                    // After successful CloudKit removal, force UI update
+                    await MainActor.run {
+                        pairingService.objectWillChange.send()
+                    }
+                } catch {
+                    print("Error removing pairing from CloudKit for device: \(deviceId), error: \(error)")
+                    // Handle the error appropriately - maybe show an alert to the user
+                    await MainActor.run {
+                        // Update UI to show error state if needed
+                        viewModel.errorMessage = "Failed to unlink device from Cloud: \(error.localizedDescription)"
+                    }
+                }
+                
+                // Refresh the dashboard view model regardless of success or failure
+                await MainActor.run {
+                    viewModel.objectWillChange.send()
+                }
+            }
+
+            // Refresh the dashboard view model
             viewModel.objectWillChange.send()
         } catch {
             print("Failed to revoke pairing for device: \(deviceId), error: \(error)")

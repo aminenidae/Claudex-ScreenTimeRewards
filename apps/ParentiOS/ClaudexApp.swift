@@ -219,16 +219,6 @@ struct ChildModeView: View {
         content
             .navigationTitle("Child Mode")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if currentPairing != nil {
-                        Button("Unlink") {
-                            print("Child Mode: unlink button tapped (toolbar)")
-                            alertContext = .confirmUnlink
-                        }
-                    }
-                }
-            }
             .onAppear(perform: refreshPairing)
             .onReceive(pairingService.objectWillChange) { _ in
                 refreshPairing()
@@ -268,18 +258,8 @@ struct ChildModeView: View {
                     childProfile: childProfile,
                     ledger: childrenManager.ledger,
                     exemptionManager: childrenManager.exemptionManager,
-                    redemptionService: childrenManager.redemptionService,
-                    onUnlinkRequest: {
-                        alertContext = .confirmUnlink
-                    }
+                    redemptionService: childrenManager.redemptionService
                 )
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Unlink") {
-                            alertContext = .confirmUnlink
-                        }
-                    }
-                }
             } else {
                 // Fallback to original view if child profile not found
                 ScrollView {
@@ -319,6 +299,7 @@ struct ChildModeView: View {
                         )
                         .padding(.horizontal)
 
+                        /*
                         Button(role: .destructive) {
                             alertContext = .confirmUnlink
                         } label: {
@@ -326,6 +307,7 @@ struct ChildModeView: View {
                                 .font(.headline)
                         }
                         .buttonStyle(.borderedProminent)
+                        */
 
                         Spacer(minLength: 20)
                     }
@@ -389,7 +371,7 @@ struct ChildModeView: View {
 
             Task {
                 let familyId = FamilyID("default-family")
-                await pairingService.removePairingFromCloud(pairing, familyId: familyId)
+                try await pairingService.removePairingFromCloud(pairing, familyId: familyId)
             }
         } catch {
             print("Error unlinking device: \(error.localizedDescription)")
