@@ -80,8 +80,8 @@ struct AppCategorizationView: View {
                         }
 
                         CategorySection(
-                            title: "Learning Apps",
-                            subtitle: "Earn points when used",
+                            title: "Learning Categories",
+                            subtitle: "Select categories like Education, Productivity",
                             icon: "graduationcap.fill",
                             iconColor: .green,
                             summary: summary.learningDescription,
@@ -91,8 +91,8 @@ struct AppCategorizationView: View {
                         .padding(.horizontal)
 
                         CategorySection(
-                            title: "Reward Apps",
-                            subtitle: "Require points to unlock",
+                            title: "Reward Categories",
+                            subtitle: "Select categories like Games, Entertainment",
                             icon: "star.fill",
                             iconColor: .orange,
                             summary: summary.rewardDescription,
@@ -539,11 +539,50 @@ struct AppCategorizationView: View {
 private struct InstructionsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("How it works")
-                .font(.headline)
-            Text("Learning apps earn points automatically. Reward apps stay blocked until children redeem their points for screen time.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            HStack {
+                Image(systemName: "square.grid.2x2.fill")
+                    .foregroundStyle(.blue)
+                Text("How it works")
+                    .font(.headline)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Select **categories** (like Education or Games) to classify apps:")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                HStack(alignment: .top, spacing: 8) {
+                    Text("•")
+                    Text("**Learning categories** earn points automatically")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(alignment: .top, spacing: 8) {
+                    Text("•")
+                    Text("**Reward categories** stay blocked until children redeem points")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Divider()
+                .padding(.vertical, 4)
+
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Why categories?")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    Text("Categories work across devices. Individual apps selected from your device won't match apps on your child's device due to Apple's privacy protections.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
         .padding()
         .background(
@@ -689,9 +728,9 @@ private struct InventoryInfoCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Image(systemName: "apps.iphone")
+                Image(systemName: "hand.raised.fill")
                     .foregroundStyle(.blue)
-                Text("App Inventory")
+                Text("Privacy-Preserving App Inventory")
                     .font(.headline)
                 Spacer()
                 if isLoading {
@@ -702,47 +741,72 @@ private struct InventoryInfoCard: View {
 
             if let inventory = inventory {
                 VStack(alignment: .leading, spacing: 8) {
-                    if inventory.appTokens.isEmpty && !inventory.categoryTokens.isEmpty {
-                        // Warning: only categories selected (won't work cross-device)
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                            Text("\(childName) selected only categories (\(inventory.categoryTokens.count) items)")
-                                .font(.subheadline)
+                    // Show inventory summary
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        VStack(alignment: .leading, spacing: 4) {
+                            if !inventory.categoryTokens.isEmpty && !inventory.appTokens.isEmpty {
+                                Text("\(childName) synced \(inventory.categoryTokens.count) categor\(inventory.categoryTokens.count == 1 ? "y" : "ies") and \(inventory.appTokens.count) app\(inventory.appTokens.count == 1 ? "" : "s")")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            } else if !inventory.categoryTokens.isEmpty {
+                                Text("\(childName) synced \(inventory.categoryTokens.count) categor\(inventory.categoryTokens.count == 1 ? "y" : "ies")")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            } else if !inventory.appTokens.isEmpty {
+                                Text("\(childName) synced \(inventory.appTokens.count) app\(inventory.appTokens.count == 1 ? "" : "s")")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                            }
+                            Text("You can see counts, but not specific names — this protects \(childName)'s privacy.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
+                    }
 
-                        Text("Categories don't work across devices. Ask \(childName) to select individual apps instead.")
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    } else {
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    // Privacy explanation
+                    VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                            Text("\(childName) has categorized \(inventory.appTokens.count) app\(inventory.appTokens.count == 1 ? "" : "s")")
-                                .font(.subheadline)
+                            Image(systemName: "info.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.blue)
+                            Text("Best Practice: Use Categories")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.blue)
                         }
+                        Text("Select categories (like Education, Games, Social) from the buttons below. Categories work across devices, while individual apps are device-specific for privacy.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     HStack {
                         Image(systemName: "clock.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tertiary)
                             .font(.caption)
                         Text("Last synced: \(formattedDate(inventory.lastUpdated))")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.tertiary)
                     }
                 }
             } else if !isLoading {
-                HStack {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.secondary)
-                    Text("No app inventory synced yet")
-                        .font(.subheadline)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(.secondary)
+                        Text("No inventory synced yet")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("After \(childName) categorizes their apps, the inventory count will appear here automatically.")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Text("After categorizing apps, the inventory will sync automatically.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding()

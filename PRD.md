@@ -6,11 +6,13 @@ Version: 1.0 (MVP)
 
 Owners: Product + Engineering
 
-Last Updated: 2025-10-10
+Last Updated: 2025-10-11 (Architectural Pivot: Child Device as Primary)
 
 ## 1. Overview
 
-This PRD defines the MVP for a reward-based screen time management app that reframes screen time from a restrictive model into a positive, earned-privilege system. Parents configure which apps are “learning” vs “reward,” set point rates for learning, and children convert earned points into time allowances for reward apps. The app uses Apple’s Screen Time APIs with the Family Controls entitlement to monitor app usage and apply app shields/exemptions.
+This PRD defines the MVP for a reward-based screen time management app that reframes screen time from a restrictive model into a positive, earned-privilege system. Parents configure which apps are "learning" vs "reward" **on the child's device** (via PIN-protected Parent Mode), set point rates for learning, and children convert earned points into time allowances for reward apps. The app uses Apple's Screen Time APIs with the Family Controls entitlement to monitor app usage and apply app shields/exemptions.
+
+**Important Architectural Note:** Due to Apple's Family Controls privacy model, app categorization and shield configuration must occur on the child's device where the apps are installed. Tokens (ApplicationToken) are device-specific and cannot be used across devices. Parent devices serve as monitoring dashboards with read-only oversight. See docs/ADR-001-child-device-configuration.md for details.
 
 ## 2. Goals
 
@@ -36,9 +38,14 @@ This PRD defines the MVP for a reward-based screen time management app that refr
 
 ## 5. Users & Roles
 
-- Parent Admin (Parent Mode within app): Full control; can authorize children via system UI, set point rates, categorize apps, redeem, review history.
-- Co-Parent (Parent Mode): Same as Parent by default; optionally restricted on destructive actions; all actions audited.
-- Child (Child Mode within app): No configuration; can view points and request redemption; child surfaces are informational/request-based only.
+- **Parent Admin (Parent Mode):**
+  - **On Parent Device:** Child profile management, pairing, dashboard monitoring (read-only), data export, point adjustments
+  - **On Child Device (PIN-Protected):** Full configuration control including app categorization (Learning/Reward), point rates, redemption rules, shield management
+  - Physical access to child's device required for initial setup and rule changes
+
+- **Co-Parent (Parent Mode):** Same as Parent by default; optionally restricted on destructive actions; all actions audited.
+
+- **Child (Child Mode on Child Device):** No configuration access; can view points balance, request redemption, view active reward time countdown; child surfaces are informational/request-based only.
 
 ## 6. User Stories (MVP)
 
@@ -55,8 +62,8 @@ US-03 Child Pairing (App Instance)
 - Acceptance: Pairing completes under 2 minutes; incorrect code is handled; revocation supported; unlink removes CloudKit pairing record and local cache.
 
 US-04 App Categorization
-- As a parent, I can label apps as “learning” or “reward,” including category-based defaults and manual overrides.
-- Acceptance: Selected apps/categories persist; conflicts resolved deterministically; overrides win over defaults.
+- As a parent, I can label apps as "learning" or "reward" on my child's device (via PIN-protected Parent Mode), including category-based defaults and manual overrides.
+- Acceptance: Selected apps/categories persist; conflicts resolved deterministically; overrides win over defaults; tokens work for shielding because configuration happens on same device.
 
 US-05 Point Accrual
 - As a child, I earn points while actively using learning apps.
@@ -177,6 +184,60 @@ FR-14 Child Mode
 - Modules: Core (models/services), ScreenTimeService (FamilyControls/DeviceActivity/ManagedSettings), PointsEngine, ShieldController, Sync (CloudKit), UI, Notifications, Report Extension.
 - Data Layer: CloudKit (shared DB) for families, child contexts, rules, balances, transactions, audit entries.
 - Extensions: DeviceActivityReport for weekly summaries.
+
+**Architecture (Post-Pivot 2025-10-11):**
+
+```
+Parent Device (Monitoring & Oversight)
+├── Child Profile Management
+│   ├── Add/remove children (via Apple system UI)
+│   ├── Generate pairing codes
+│   └── Manage multi-child roster
+├── Dashboard (Read-Only Monitoring)
+│   ├── Points balance per child
+│   ├── Learning time statistics
+│   ├── Redemption history
+│   └── Active shield status
+├── Data Management
+│   ├── Export data (CSV/JSON)
+│   ├── Point adjustments (manual)
+│   └── Audit log viewing
+└── CloudKit Sync (Read from child)
+
+Child Device (Primary Configuration + Enforcement)
+├── Parent Mode (PIN-Protected) ⭐ PRIMARY CONFIG
+│   ├── App Categorization (Learning/Reward)
+│   │   └── Uses local ApplicationTokens (works!)
+│   ├── Points Configuration
+│   │   ├── Accrual rates (points/minute)
+│   │   ├── Daily caps
+│   │   └── Idle timeout settings
+│   ├── Redemption Rules
+│   │   ├── Min/max redemption amounts
+│   │   ├── Points-to-time ratio
+│   │   └── Stacking policies
+│   └── CloudKit Sync (Write configuration)
+├── Child Mode (Regular Use)
+│   ├── Points Balance Display
+│   ├── Redemption Requests
+│   ├── Active Reward Time Countdown
+│   └── Recent Activity History
+└── Enforcement Layer (Uses Local Tokens ✅)
+    ├── PointsEngine (accrual tracking)
+    ├── ShieldController (ManagedSettings)
+    │   └── Uses same-device tokens (reliable!)
+    ├── ExemptionManager (timed allowances)
+    ├── DeviceActivityMonitor (usage tracking)
+    └── RedemptionService (point conversion)
+```
+
+**Why This Architecture:**
+- **ApplicationTokens are device-specific** - Cannot be transferred or decoded across devices
+- **ManagedSettings requires same-device tokens** - Shields only work with tokens from the same device
+- **Aligns with Apple's Privacy Model** - Similar to how Screen Time is configured on-device
+- **Reliable Enforcement** - Configuration and enforcement colocated ensures tokens always work
+
+**See docs/ADR-001-child-device-configuration.md for detailed rationale.**
 
 ## 11. Data Model (Initial)
 
@@ -400,7 +461,43 @@ EP-14 Dev Experience & QA Infrastructure — Phase: MVP
 - S-1404 UI Tests: Critical flows (onboarding, redemption). Acceptance: Stable.
 - S-1405 Fixtures & Test Data: Deterministic seeds. Acceptance: Shared in repo. ✅ **DONE** - Test fixtures for PointsEngine and Ledger
 
-## 24. Implementation Status (as of 2025-10-05)
+## 24. Architectural Pivot: Child Device as Primary Configuration Point (2025-10-11)
+
+**Critical Discovery:**
+During EP-03 implementation, we discovered that Apple's ApplicationTokens are device-specific and cannot be used across devices. This has fundamental implications for the product architecture.
+
+**The Issue:**
+- Parent device FamilyActivityPicker shows parent's apps (not child's)
+- Tokens from parent's device cannot shield apps on child's device
+- `ManagedSettings.shield.applications = [TokenFromParentDevice]` fails silently
+- Enforcement layer broken with original parent-centric architecture
+
+**The Solution:**
+Restructure to make child's device the primary configuration point:
+- **Parent Mode moves to child's device** (PIN-protected)
+- **Parent device becomes monitoring dashboard** (read-only)
+- **Tokens always work** (configuration and enforcement colocated)
+
+**Impact:**
+- Requires physical access to child's device for setup
+- Not fully remote (can't change rules from parent's device)
+- Aligns with Apple's Screen Time model (configure on-device)
+- Ensures reliable enforcement (tokens from same device)
+
+**References:**
+- ADR-001: docs/ADR-001-child-device-configuration.md
+- Progress Log: docs/progress-log.md (2025-10-11 entry)
+- Metadata Spike: apps/ParentiOS/Utils/MetadataExtractionSpike.swift
+
+**Implementation Plan:**
+1. Phase 1: Documentation (complete)
+2. Phase 2: Child device Parent Mode UI
+3. Phase 3: Parent dashboard simplification
+4. Phase 4: Testing & validation
+
+---
+
+## 25. Implementation Status (as of 2025-10-11)
 
 **Completed Epics:**
 - ✅ EP-04: Points Engine & Integrity - Full implementation with session-based accrual, idle timeout, daily caps, ledger persistence with MainActor isolation

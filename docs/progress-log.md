@@ -4,6 +4,171 @@ Track major milestones and implementation progress for Claudex Screen Time Rewar
 
 ---
 
+## 2025-10-11 | MAJOR PIVOT: Child Device as Primary Configuration Point 🔄
+
+### Critical Discovery: ApplicationToken Cross-Device Limitation
+
+**The Problem:**
+During implementation of privacy-preserving app inventory UI, we uncovered a fundamental architectural issue that affects the entire product design.
+
+**Token Limitation Discovered:**
+- ApplicationTokens are **device-specific opaque identifiers**
+- Cannot be decoded, transferred, or used across devices
+- Parent's device FamilyActivityPicker shows parent's apps (not child's)
+- Tokens from parent's device **do not work** for shielding apps on child's device
+
+**The Breaking Point:**
+This isn't just a UI issue - it breaks the core enforcement mechanism:
+
+```
+1. Parent selects "TikTok" on their device → Token_A
+2. Token_A syncs to CloudKit
+3. Child's device downloads Token_A
+4. Child's device tries: ManagedSettings.shield.applications = [Token_A]
+5. FAILS ❌ - Token_A doesn't match child's TikTok (Token_B)
+6. Child's TikTok stays unblocked!
+```
+
+**Metadata Extraction Spike Results:**
+- Attempted `accessibilityLabel` traversal: 0% name extraction
+- Attempted `ManagedSettings.Application` API: returned nil for both `localizedDisplayName` and `bundleIdentifier`
+- Icon extraction worked (100%), but names are intentionally hidden
+- Confirmed: Apple's privacy model prevents cross-device app identification
+
+### Architectural Decision
+
+**Decision:** Restructure the app to make **child's device the primary configuration point**.
+
+**New Architecture:**
+
+```
+Parent Device (Monitoring & Oversight)
+├── Child Profile Management (pairing, adding children)
+├── Dashboard (read-only monitoring)
+│   ├── Points balance
+│   ├── Learning time
+│   ├── Redemption history
+│   └── Shield status
+├── Data Export (CSV/JSON)
+└── Point Adjustments (manual overrides)
+
+Child Device (Primary Configuration + Enforcement)
+├── Parent Mode (PIN-Protected) ⭐ NEW
+│   ├── App Categorization (Learning/Reward)
+│   ├── Points Configuration (rates, caps, ratios)
+│   ├── Redemption Rules (min/max, stacking)
+│   └── Shield Management
+├── Child Mode (Regular Use)
+│   ├── Points Balance Display
+│   ├── Redemption Requests
+│   └── Active Shield Countdown
+└── Enforcement (uses local tokens ✅)
+    ├── ShieldController
+    ├── PointsEngine
+    └── ExemptionManager
+```
+
+**Key Changes:**
+1. **Parent Mode moves to child's device** - PIN-protected configuration UI
+2. **Parent device becomes monitoring dashboard** - Read-only oversight
+3. **Tokens always work** - Configuration and enforcement on same device
+4. **Aligns with Apple's model** - Similar to Screen Time (configure on device itself)
+
+### Why This is the Only Solution
+
+**Platform Constraints:**
+- ✅ ApplicationTokens are device-specific (confirmed by Apple documentation)
+- ✅ ManagedSettings requires same-device tokens (tested and validated)
+- ✅ No API for cross-device token resolution (no workaround exists)
+- ✅ Privacy by design (Apple intentionally prevents parent from seeing child's app names)
+
+**Alternatives Considered:**
+
+1. **Category-Only Selection** ❌
+   - Still shows parent's apps (confusing UX)
+   - Categories might not work reliably either
+   - Less granular control
+
+2. **Child Selects, Parent Approves** 🤔
+   - More complex flow
+   - Child sees what they're selecting
+   - Possible future enhancement
+
+3. **APNs for Remote Triggering** 📱
+   - Doesn't solve core token issue
+   - Nice-to-have enhancement for UX
+
+### Impact Assessment
+
+**Positive:**
+- ✅ Reliable app shielding (tokens always match)
+- ✅ Clear UX ("settings live where apps are")
+- ✅ Aligned with platform (like Screen Time)
+- ✅ Privacy-preserving (respects Apple's model)
+
+**Negative:**
+- ❌ Requires physical access to child's device for setup
+- ❌ Not fully remote (can't change rules from parent's device)
+- ❌ Pivot required (existing parent-side UI must be rebuilt)
+
+### Implementation Plan
+
+**Phase 1: Documentation (Current)**
+- ✅ ADR-001 created (docs/ADR-001-child-device-configuration.md)
+- 🔄 Update PRD with new architecture
+- 🔄 Update checklists to reflect child-device focus
+- 🔄 Create migration plan
+
+**Phase 2: Child Device Parent Mode**
+- [ ] Design PIN-protected parent mode
+- [ ] Move AppCategorizationView to child app
+- [ ] Implement points configuration UI
+- [ ] Implement redemption rules UI
+
+**Phase 3: Parent Dashboard Simplification**
+- [ ] Remove app categorization UI
+- [ ] Keep monitoring dashboard (read-only)
+- [ ] Keep data export
+- [ ] Keep point adjustments
+
+**Phase 4: Testing & Validation**
+- [ ] Test end-to-end setup flow (both devices)
+- [ ] Validate shields work with same-device tokens
+- [ ] Update user guide
+
+### Files Changed
+
+**Documentation:**
+- Created: `docs/ADR-001-child-device-configuration.md`
+- Updated: `docs/progress-log.md` (this file)
+- Pending: `PRD.md`, `docs/checklists.md`
+
+**Code Changes Pending:**
+- Move `apps/ParentiOS/Views/AppCategorizationView.swift` → child device
+- Simplify parent device dashboard
+- Add PIN protection to child's parent mode
+- Update CloudKit sync direction
+
+### References
+
+- **ADR-001:** docs/ADR-001-child-device-configuration.md
+- **Metadata Spike:** apps/ParentiOS/Utils/MetadataExtractionSpike.swift
+- **Issue Tracker:** docs/issues/app-categorization-family-sharing-issue.md
+- **Apple Documentation:** Family Controls framework limitations
+
+### Lessons Learned
+
+**Critical Insight:**
+> Apple's Family Controls framework is designed for **same-device configuration**, not remote parental control. When platform constraints conflict with product vision, architecture must adapt to the platform, not fight it.
+
+**For Future Projects:**
+1. Spike critical platform assumptions BEFORE building UI
+2. Test cross-device scenarios early
+3. Read documentation carefully (limitations are often subtle)
+4. Be ready to pivot when platform dictates architecture
+
+---
+
 ## 2025-10-10 | Phase 2: Child App Inventory Sync for Custom Picker ✅
 
 ### Issue Summary

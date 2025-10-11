@@ -8,10 +8,9 @@ import PointsEngine
 #if canImport(ScreenTimeService)
 import ScreenTimeService
 #endif
-#if canImport(ParentiOS)
-import ParentiOS
-#endif
 // SyncKit files are compiled directly into the target, no import needed
+// PINManager is available directly in the ParentiOS module
+// import PINManager
 
 @available(iOS 16.0, *)
 struct ParentModeView: View {

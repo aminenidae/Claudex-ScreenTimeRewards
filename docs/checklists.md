@@ -2,6 +2,13 @@
 
 This file lists practical, testable checklists aligned with the PRD and feasibility spikes to help engineers and QA validate the MVP.
 
+**IMPORTANT (2025-10-11): Architectural Pivot**
+Due to Apple's ApplicationToken device-specific limitation, the app architecture has been restructured:
+- **Child's device = Primary configuration point** (PIN-protected Parent Mode for app categorization and settings)
+- **Parent's device = Monitoring dashboard** (read-only oversight, data export, point adjustments)
+- This ensures ApplicationTokens work reliably for shielding (same-device tokens)
+- See docs/ADR-001-child-device-configuration.md for full rationale
+
 ## 1) Spikes Completion (from docs/feasibility.md)
 - [x] P0-1: DeviceActivity foreground monitoring validated (±5% of manual checks) — Infrastructure ready
 - [x] P0-2: ManagedSettings shields + timed exemptions validated (re-lock ≤5s) — Testing guide ready, physical device testing pending
@@ -29,6 +36,8 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
 - [x] Manual app overrides persist and take precedence over defaults — Per-child Learning/Reward classification
 - [x] Conflicts resolved deterministically and explained in UI — Conflict detection and resolution implemented
 - [x] CloudKit sync for app rules implemented — ApplicationToken→base64 conversion, automatic sync on selection (pending permission update)
+- [ ] **[POST-PIVOT]** App categorization UI moved to child device's PIN-protected Parent Mode
+- [ ] **[POST-PIVOT]** Parent device dashboard shows read-only category summary (synced from child)
 
 ## 4) Points Engine Correctness
 - [x] Accrual only during foreground, unlocked usage
@@ -204,7 +213,43 @@ This file lists practical, testable checklists aligned with the PRD and feasibil
   - [ ] S-1404 UI tests critical flows
   - [x] S-1405 Fixtures/test data — Test fixtures for PointsEngine and Ledger
 
-## 17) Definition of Ready (DoR) Per Story
+## 17) Architectural Pivot Implementation (2025-10-11)
+**Child Device Parent Mode (PIN-Protected Configuration):**
+- [ ] Design and implement PIN authentication for parent mode on child device
+- [ ] Move AppCategorizationView UI to child device app
+- [ ] Move points configuration UI (rates, caps, timeouts) to child device
+- [ ] Move redemption rules UI (min/max, ratios, stacking) to child device
+- [ ] Implement CategoryRulesManager on child device with local token usage
+- [ ] Test shield enforcement with same-device tokens (should work reliably)
+
+**Parent Device Dashboard Simplification:**
+- [ ] Remove app categorization UI from parent device
+- [ ] Create read-only category summary view (synced from child)
+- [ ] Keep monitoring dashboard (points, learning time, redemptions)
+- [ ] Keep data export functionality (CSV/JSON)
+- [ ] Keep manual point adjustments (remote)
+- [ ] Update ParentModeView to reflect monitoring-only role
+
+**CloudKit Sync Direction Updates:**
+- [ ] Child device writes configuration (app rules, points settings, redemption rules)
+- [ ] Parent device reads configuration (displays in dashboard)
+- [ ] Bidirectional sync for point adjustments (parent can override)
+- [ ] Audit log tracks which device made changes
+
+**User Experience & Documentation:**
+- [ ] Create setup flow guide (requires both devices initially)
+- [ ] Add in-app explanations for why configuration happens on child's device
+- [ ] Update App Store screenshots showing new setup flow
+- [ ] Test end-to-end with both devices (parent setup → child enforcement)
+
+**Testing & Validation:**
+- [ ] Verify ApplicationTokens work for shielding (same-device)
+- [ ] Confirm shields apply correctly to selected apps
+- [ ] Test PIN protection prevents child from accessing parent mode
+- [ ] Validate CloudKit sync between child config → parent dashboard
+- [ ] Test multi-parent scenario (both parents read from child's config)
+
+## 18) Definition of Ready (DoR) Per Story
 - [ ] Clear user story and acceptance criteria in PRD
 - [ ] Design mock(s) or wireframes attached (if UI)
 - [ ] API/entitlement needs identified and feasible

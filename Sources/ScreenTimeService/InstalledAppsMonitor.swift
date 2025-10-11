@@ -1,5 +1,6 @@
 #if canImport(FamilyControls) && !os(macOS)
 import Foundation
+import SwiftUI
 import FamilyControls
 import ManagedSettings
 #if canImport(Core)
@@ -129,6 +130,8 @@ public class InstalledAppsMonitor: ObservableObject {
 
 #else
 // Stub for non-iOS platforms
+import SwiftUI
+
 @available(iOS 16.0, *)
 public class InstalledAppsMonitor: ObservableObject {
     public init() {}
