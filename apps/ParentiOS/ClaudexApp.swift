@@ -11,6 +11,9 @@ import Core
 #if canImport(UIKit)
 import UIKit
 #endif
+#if canImport(FamilyControls)
+import FamilyControls
+#endif
 
 @main
 struct ClaudexScreenTimeRewardsApp: App {
@@ -195,6 +198,8 @@ struct ChildModeView: View {
     @State private var currentPairing: ChildDevicePairing?
     @State private var alertContext: AlertContext?
     @State private var isLoadingChildren = false
+    @State private var showAppEnumeration = false
+    @State private var appEnumerationComplete = false
 
     private let deviceId: String
 
@@ -231,7 +236,19 @@ struct ChildModeView: View {
     @ViewBuilder
     private var content: some View {
         if let pairing = currentPairing {
-            pairedContent(for: pairing)
+            if showAppEnumeration && !appEnumerationComplete {
+                // Show app enumeration step
+                AppEnumerationView(
+                    childId: pairing.childId,
+                    deviceId: deviceId,
+                    onComplete: {
+                        appEnumerationComplete = true
+                        showAppEnumeration = false
+                    }
+                )
+            } else {
+                pairedContent(for: pairing)
+            }
         } else {
             ChildLinkingView(
                 prefilledCode: pendingPairingCode,
@@ -353,6 +370,38 @@ struct ChildModeView: View {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             await childrenManager.refreshChildrenFromCloud(familyId: FamilyID("default-family"))
             isLoadingChildren = false
+
+            // Check if app inventory already exists
+            #if canImport(CloudKit)
+            if let syncService = childrenManager.syncService {
+                do {
+                    let inventory = try await syncService.fetchAppInventory(
+                        familyId: FamilyID("default-family"),
+                        childId: pairing.childId
+                    )
+
+                    if inventory == nil || inventory!.appCount == 0 {
+                        // No inventory or empty inventory - show enumeration step
+                        showAppEnumeration = true
+                        appEnumerationComplete = false
+                        print("📱 No app inventory found - showing enumeration step")
+                    } else {
+                        // Inventory exists - skip enumeration
+                        showAppEnumeration = false
+                        appEnumerationComplete = true
+                        print("📱 App inventory exists (\(inventory!.appCount) apps) - skipping enumeration")
+                    }
+                } catch {
+                    // Error fetching inventory - show enumeration to be safe
+                    showAppEnumeration = true
+                    appEnumerationComplete = false
+                    print("📱 Error checking inventory - showing enumeration step: \(error)")
+                }
+            }
+            #else
+            showAppEnumeration = false
+            appEnumerationComplete = true
+            #endif
         }
     }
 
@@ -554,5 +603,193 @@ struct AuthorizationLoadingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - App Enumeration View
+
+@available(iOS 16.0, *)
+struct AppEnumerationView: View {
+    let childId: ChildID
+    let deviceId: String
+    let onComplete: () -> Void
+
+    @EnvironmentObject private var syncService: SyncService
+    @State private var selectedApps = FamilyActivitySelection()
+    @State private var showingPicker = false
+    @State private var isUploading = false
+    @State private var uploadError: String?
+
+    var body: some View {
+        VStack(spacing: 24) {
+            VStack(spacing: 12) {
+                Image(systemName: "apps.iphone")
+                    .font(.system(size: 60))
+                    .foregroundStyle(.blue)
+
+                Text("Select Your Apps")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Text("Help us show your parent only the apps you have on this device. This is a one-time setup.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            .padding(.top, 40)
+
+            VStack(spacing: 16) {
+                if selectedApps.applicationTokens.isEmpty && selectedApps.categoryTokens.isEmpty {
+                    Text("No apps selected yet")
+                        .font(.headline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(spacing: 8) {
+                        if selectedApps.applicationTokens.count > 0 {
+                            Text("\(selectedApps.applicationTokens.count) apps selected")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                        }
+
+                        if selectedApps.categoryTokens.count > 0 {
+                            Text("\(selectedApps.categoryTokens.count) categories selected")
+                                .font(selectedApps.applicationTokens.isEmpty ? .headline : .subheadline)
+                                .foregroundStyle(selectedApps.applicationTokens.isEmpty ? .primary : .secondary)
+                        }
+                    }
+                }
+
+                Button {
+                    showingPicker = true
+                } label: {
+                    Label(
+                        (selectedApps.applicationTokens.isEmpty && selectedApps.categoryTokens.isEmpty) ? "Select All Your Apps" : "Update Selection",
+                        systemImage: "square.grid.2x2"
+                    )
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(isUploading)
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+            )
+            .padding(.horizontal)
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
+                    Text("1️⃣").font(.title3)
+                    Text("Tap 'Select All Your Apps' above").font(.subheadline)
+                }
+                HStack(alignment: .top, spacing: 12) {
+                    Text("2️⃣").font(.title3)
+                    Text("Choose all the apps installed on this device").font(.subheadline)
+                }
+                HStack(alignment: .top, spacing: 12) {
+                    Text("3️⃣").font(.title3)
+                    Text("Tap 'Continue' when done").font(.subheadline)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(.tertiarySystemBackground)))
+            .padding(.horizontal)
+
+            Spacer()
+
+            if let error = uploadError {
+                Text("Error: \(error)")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .padding(.horizontal)
+            }
+
+            Button {
+                uploadInventory()
+            } label: {
+                if isUploading {
+                    HStack {
+                        ProgressView().progressViewStyle(.circular).tint(.white)
+                        Text("Uploading...")
+                    }
+                } else {
+                    Text("Continue")
+                }
+            }
+            .font(.headline)
+            .frame(maxWidth: .infinity)
+            .padding()
+            .background((selectedApps.applicationTokens.isEmpty && selectedApps.categoryTokens.isEmpty) ? Color.gray : Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(12)
+            .padding(.horizontal)
+            .disabled((selectedApps.applicationTokens.isEmpty && selectedApps.categoryTokens.isEmpty) || isUploading)
+
+            Button {
+                onComplete()
+            } label: {
+                Text("Skip for Now").font(.subheadline).foregroundStyle(.secondary)
+            }
+            .padding(.bottom)
+            .disabled(isUploading)
+        }
+        .navigationTitle("App Setup")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: $showingPicker) {
+            FamilyActivityPicker(selection: $selectedApps)
+        }
+    }
+
+    private func uploadInventory() {
+        #if canImport(CloudKit)
+        guard !selectedApps.applicationTokens.isEmpty || !selectedApps.categoryTokens.isEmpty else { return }
+        isUploading = true
+        uploadError = nil
+
+        Task {
+            do {
+                print("📱 AppEnumerationView: Starting app inventory upload")
+
+                let appTokens = selectedApps.applicationTokens.map { token in
+                    withUnsafeBytes(of: token) { Data($0) }.base64EncodedString()
+                }
+                let categoryTokens = selectedApps.categoryTokens.map { token in
+                    withUnsafeBytes(of: token) { Data($0) }.base64EncodedString()
+                }
+
+                let inventoryId = "\(childId.rawValue):\(deviceId)"
+                let payload = ChildAppInventoryPayload(
+                    id: inventoryId,
+                    childId: childId,
+                    deviceId: deviceId,
+                    appTokens: appTokens,
+                    categoryTokens: categoryTokens,
+                    lastUpdated: Date(),
+                    appCount: appTokens.count + categoryTokens.count
+                )
+
+                try await syncService.saveAppInventory(payload, familyId: FamilyID("default-family"))
+                print("📱 AppEnumerationView: Successfully uploaded \(payload.appCount) apps to CloudKit")
+
+                await MainActor.run {
+                    isUploading = false
+                    onComplete()
+                }
+            } catch {
+                print("❌ AppEnumerationView: Failed to upload inventory: \(error)")
+                await MainActor.run {
+                    isUploading = false
+                    uploadError = error.localizedDescription
+                }
+            }
+        }
+        #else
+        onComplete()
+        #endif
     }
 }

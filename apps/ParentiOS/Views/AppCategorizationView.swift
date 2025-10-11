@@ -1,5 +1,6 @@
 import SwiftUI
 import FamilyControls
+import ManagedSettings
 #if canImport(Core)
 import Core
 #endif
@@ -180,30 +181,64 @@ struct AppCategorizationView: View {
             }
         }
         .sheet(isPresented: $showingLearningPicker) {
-            if let child = selectedChild, isChildPaired(child.id) {
+            if let child = selectedChild, isChildPaired(child.id), let inventory = appInventory, !inventory.appTokens.isEmpty {
+                // Use filtered picker only if inventory has individual app tokens
+                FilteredAppPickerView(
+                    childName: child.name,
+                    inventory: inventory,
+                    currentLearning: getCurrentLearningTokens(for: child.id),
+                    currentReward: getCurrentRewardTokens(for: child.id),
+                    onSave: { tokens in
+                        updateLearningFromTokens(tokens, for: child.id)
+                    },
+                    category: .learning
+                )
+                .onAppear {
+                    print("🎯 FilteredAppPickerView (Learning) opened with \(inventory.appTokens.count) individual apps")
+                }
+            } else if let child = selectedChild, isChildPaired(child.id) {
+                // Fallback to regular picker if no inventory or only categories
                 FamilyActivityPicker(
                     selection: learningSelectionBinding
                 )
                 .onAppear {
-                    print("🎯 FamilyActivityPicker (Learning) opened for child: \(child.name) (\(child.id.rawValue))")
-                }
-                .onDisappear {
-                    print("🎯 FamilyActivityPicker (Learning) closed for child: \(child.name)")
+                    if let inventory = appInventory, inventory.appTokens.isEmpty && !inventory.categoryTokens.isEmpty {
+                        print("🎯 FamilyActivityPicker (Learning) - inventory only has categories, using fallback picker")
+                    } else {
+                        print("🎯 FamilyActivityPicker (Learning) opened - no inventory available")
+                    }
                 }
             } else {
                 EmptyView()
             }
         }
         .sheet(isPresented: $showingRewardPicker) {
-            if let child = selectedChild, isChildPaired(child.id) {
+            if let child = selectedChild, isChildPaired(child.id), let inventory = appInventory, !inventory.appTokens.isEmpty {
+                // Use filtered picker only if inventory has individual app tokens
+                FilteredAppPickerView(
+                    childName: child.name,
+                    inventory: inventory,
+                    currentLearning: getCurrentLearningTokens(for: child.id),
+                    currentReward: getCurrentRewardTokens(for: child.id),
+                    onSave: { tokens in
+                        updateRewardFromTokens(tokens, for: child.id)
+                    },
+                    category: .reward
+                )
+                .onAppear {
+                    print("🎯 FilteredAppPickerView (Reward) opened with \(inventory.appTokens.count) individual apps")
+                }
+            } else if let child = selectedChild, isChildPaired(child.id) {
+                // Fallback to regular picker if no inventory or only categories
                 FamilyActivityPicker(
                     selection: rewardSelectionBinding
                 )
                 .onAppear {
-                    print("🎯 FamilyActivityPicker (Reward) opened for child: \(child.name) (\(child.id.rawValue))")
-                }
-                .onDisappear {
-                    print("🎯 FamilyActivityPicker (Reward) closed for child: \(child.name)")
+                    if let inventory = appInventory, inventory.appTokens.isEmpty && !inventory.categoryTokens.isEmpty {
+                        print("🎯 FamilyActivityPicker (Reward) - inventory only has categories, using fallback picker")
+                    } else {
+                        print("🎯 FamilyActivityPicker (Reward) opened - no inventory available")
+                    }
                 }
             } else {
                 EmptyView()
@@ -356,6 +391,109 @@ struct AppCategorizationView: View {
         validationMessage = message
         showingValidationSummary = true
         print("📱 AppCategorizationView: Validation - \(message)")
+    }
+
+    // MARK: - Token Management
+
+    private func getCurrentLearningTokens(for childId: ChildID) -> Set<String> {
+        let selection = rulesManager.getRules(for: childId).learningSelection
+        return encodeSelectionToTokens(selection)
+    }
+
+    private func getCurrentRewardTokens(for childId: ChildID) -> Set<String> {
+        let selection = rulesManager.getRules(for: childId).rewardSelection
+        return encodeSelectionToTokens(selection)
+    }
+
+    private func encodeSelectionToTokens(_ selection: FamilyActivitySelection) -> Set<String> {
+        var tokens = Set<String>()
+
+        // Encode application tokens
+        for token in selection.applicationTokens {
+            let data = withUnsafeBytes(of: token) { Data($0) }
+            tokens.insert(data.base64EncodedString())
+        }
+
+        // Encode category tokens
+        for token in selection.categoryTokens {
+            let data = withUnsafeBytes(of: token) { Data($0) }
+            tokens.insert(data.base64EncodedString())
+        }
+
+        return tokens
+    }
+
+    private func updateLearningFromTokens(_ tokens: Set<String>, for childId: ChildID) {
+        guard let inventory = appInventory else { return }
+        let selection = createSelection(from: tokens, inventory: inventory)
+        rulesManager.updateLearningApps(for: childId, selection: selection)
+        print("📱 Updated learning apps: \(tokens.count) tokens selected")
+    }
+
+    private func updateRewardFromTokens(_ tokens: Set<String>, for childId: ChildID) {
+        guard let inventory = appInventory else { return }
+        let selection = createSelection(from: tokens, inventory: inventory)
+        rulesManager.updateRewardApps(for: childId, selection: selection)
+        print("📱 Updated reward apps: \(tokens.count) tokens selected")
+    }
+
+    private func createSelection(from tokens: Set<String>, inventory: ChildAppInventoryPayload) -> FamilyActivitySelection {
+        var selection = FamilyActivitySelection()
+
+        // Decode application tokens
+        let appTokens = tokens.filter { inventory.appTokens.contains($0) }
+        for tokenString in appTokens {
+            if let token = decodeApplicationToken(from: tokenString) {
+                selection.applicationTokens.insert(token)
+            }
+        }
+
+        // Decode category tokens
+        let catTokens = tokens.filter { inventory.categoryTokens.contains($0) }
+        for tokenString in catTokens {
+            if let token = decodeCategoryToken(from: tokenString) {
+                selection.categoryTokens.insert(token)
+            }
+        }
+
+        return selection
+    }
+
+    private func decodeApplicationToken(from base64: String) -> ApplicationToken? {
+        guard let data = Data(base64Encoded: base64) else {
+            print("⚠️ Failed to decode base64 for app token")
+            return nil
+        }
+
+        let expectedSize = MemoryLayout<ApplicationToken>.size
+        guard data.count == expectedSize else {
+            print("⚠️ App token size mismatch: got \(data.count), expected \(expectedSize)")
+            return nil
+        }
+
+        // ApplicationTokens from child device cannot be decoded on parent device
+        // This is a Family Controls limitation - ALL tokens are device-specific
+        print("⚠️ Skipping app token - cross-device tokens not supported by Family Controls")
+        return nil
+    }
+
+    private func decodeCategoryToken(from base64: String) -> ManagedSettings.ActivityCategoryToken? {
+        guard let data = Data(base64Encoded: base64) else {
+            print("⚠️ Failed to decode base64 for category token")
+            return nil
+        }
+
+        let expectedSize = MemoryLayout<ManagedSettings.ActivityCategoryToken>.size
+        guard data.count == expectedSize else {
+            print("⚠️ Category token size mismatch: got \(data.count), expected \(expectedSize)")
+            return nil
+        }
+
+        // Category tokens from child device may not be decodable on parent device
+        // This is a limitation of Family Controls cross-device token usage
+        // For now, we skip categories in the filtered picker
+        print("⚠️ Skipping category token - cross-device category tokens not supported")
+        return nil
     }
 
     // MARK: - Bindings
@@ -564,11 +702,25 @@ private struct InventoryInfoCard: View {
 
             if let inventory = inventory {
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Text("\(childName) has categorized \(inventory.appCount) app\(inventory.appCount == 1 ? "" : "s")")
-                            .font(.subheadline)
+                    if inventory.appTokens.isEmpty && !inventory.categoryTokens.isEmpty {
+                        // Warning: only categories selected (won't work cross-device)
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text("\(childName) selected only categories (\(inventory.categoryTokens.count) items)")
+                                .font(.subheadline)
+                        }
+
+                        Text("Categories don't work across devices. Ask \(childName) to select individual apps instead.")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    } else {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text("\(childName) has categorized \(inventory.appTokens.count) app\(inventory.appTokens.count == 1 ? "" : "s")")
+                                .font(.subheadline)
+                        }
                     }
 
                     HStack {
@@ -604,5 +756,298 @@ private struct InventoryInfoCard: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+}
+@available(iOS 16.0, *)
+struct FilteredAppPickerView: View {
+    let childName: String
+    let inventory: ChildAppInventoryPayload
+    let currentLearning: Set<String> // Base64 tokens already in learning
+    let currentReward: Set<String> // Base64 tokens already in reward
+    let onSave: (Set<String>) -> Void
+    let category: AppClassification
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedTokens: Set<String> = []
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Header info
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("\(childName) has \(inventory.appCount) app\(inventory.appCount == 1 ? "" : "s") on their device")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Text("Select which apps should be \(category == .learning ? "Learning" : "Reward") apps")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
+                .background(Color(.secondarySystemBackground))
+
+                Divider()
+
+                // App list
+                if inventory.appTokens.isEmpty && inventory.categoryTokens.isEmpty {
+                    EmptyInventoryView(childName: childName)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            // Individual apps
+                            ForEach(Array(inventory.appTokens.enumerated()), id: \.offset) { index, tokenString in
+                                if let token = decodeToken(from: tokenString) {
+                                    AppRow(
+                                        token: token,
+                                        tokenString: tokenString,
+                                        isSelected: selectedTokens.contains(tokenString),
+                                        badge: getBadge(for: tokenString),
+                                        onToggle: { toggleSelection(tokenString) }
+                                    )
+                                    .onAppear {
+                                        print("📱 Rendered app token at index \(index)")
+                                    }
+
+                                    if index < inventory.appTokens.count - 1 {
+                                        Divider()
+                                            .padding(.leading, 72)
+                                    }
+                                } else {
+                                    Text("Failed to decode app \(index + 1)")
+                                        .foregroundStyle(.red)
+                                        .padding()
+                                        .onAppear {
+                                            print("❌ Failed to decode app token at index \(index): \(tokenString.prefix(20))...")
+                                        }
+                                }
+                            }
+
+                            // Categories
+                            if !inventory.categoryTokens.isEmpty {
+                                Section {
+                                    ForEach(Array(inventory.categoryTokens.enumerated()), id: \.offset) { index, tokenString in
+                                        if let token = decodeCategoryToken(from: tokenString) {
+                                            CategoryRow(
+                                                token: token,
+                                                tokenString: tokenString,
+                                                isSelected: selectedTokens.contains(tokenString),
+                                                badge: getBadge(for: tokenString),
+                                                onToggle: { toggleSelection(tokenString) }
+                                            )
+
+                                            if index < inventory.categoryTokens.count - 1 {
+                                                Divider()
+                                                    .padding(.leading, 72)
+                                            }
+                                        }
+                                    }
+                                } header: {
+                                    Text("Categories")
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding()
+                                        .background(Color(.tertiarySystemBackground))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(category == .learning ? "Learning Apps" : "Reward Apps")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        onSave(selectedTokens)
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+            .onAppear {
+                // Initialize with current selection for this category
+                selectedTokens = category == .learning ? currentLearning : currentReward
+            }
+        }
+    }
+
+    private func toggleSelection(_ token: String) {
+        if selectedTokens.contains(token) {
+            selectedTokens.remove(token)
+        } else {
+            selectedTokens.insert(token)
+        }
+    }
+
+    private func getBadge(for token: String) -> String? {
+        if category == .learning && currentReward.contains(token) {
+            return "Reward"
+        } else if category == .reward && currentLearning.contains(token) {
+            return "Learning"
+        }
+        return nil
+    }
+
+    private func decodeToken(from base64: String) -> ApplicationToken? {
+        guard let data = Data(base64Encoded: base64) else {
+            print("⚠️ FilteredPicker: Failed to decode base64 for app token")
+            return nil
+        }
+
+        let expectedSize = MemoryLayout<ApplicationToken>.size
+        guard data.count == expectedSize else {
+            print("⚠️ FilteredPicker: App token size mismatch: got \(data.count), expected \(expectedSize)")
+            return nil
+        }
+
+        // ApplicationTokens from child device cannot be decoded on parent device
+        // This is a Family Controls platform limitation
+        print("⚠️ FilteredPicker: Skipping app token - cross-device not supported")
+        return nil
+    }
+
+    private func decodeCategoryToken(from base64: String) -> ManagedSettings.ActivityCategoryToken? {
+        guard let data = Data(base64Encoded: base64) else {
+            print("⚠️ FilteredPicker: Failed to decode base64 for category token")
+            return nil
+        }
+
+        let expectedSize = MemoryLayout<ManagedSettings.ActivityCategoryToken>.size
+        guard data.count == expectedSize else {
+            print("⚠️ FilteredPicker: Category token size mismatch: got \(data.count), expected \(expectedSize)")
+            return nil
+        }
+
+        // Category tokens from child device cannot be decoded on parent device
+        // This is a Family Controls limitation - tokens are device-specific
+        // Skip categories in filtered picker (they won't render anyway)
+        print("⚠️ FilteredPicker: Skipping category - cross-device tokens not supported")
+        return nil
+    }
+}
+
+// MARK: - App Row
+
+@available(iOS 16.0, *)
+private struct AppRow: View {
+    let token: ApplicationToken
+    let tokenString: String
+    let isSelected: Bool
+    let badge: String?
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 16) {
+                // Selection indicator
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(isSelected ? Color.blue : Color(.tertiaryLabel))
+                    .frame(width: 24)
+
+                // App icon and name from FamilyControls
+                Label(token)
+                    .labelStyle(.titleAndIcon)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Badge if app is in other category
+                if let badge = badge {
+                    Text(badge)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.8))
+                        .cornerRadius(4)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Category Row
+
+@available(iOS 16.0, *)
+private struct CategoryRow: View {
+    let token: ManagedSettings.ActivityCategoryToken
+    let tokenString: String
+    let isSelected: Bool
+    let badge: String?
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            HStack(spacing: 16) {
+                // Selection indicator
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(isSelected ? Color.blue : Color(.tertiaryLabel))
+                    .frame(width: 24)
+
+                // Category icon and name from FamilyControls
+                Label(token)
+                    .labelStyle(.titleAndIcon)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Badge if category is in other category
+                if let badge = badge {
+                    Text(badge)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.8))
+                        .cornerRadius(4)
+                }
+
+                // Category indicator
+                Image(systemName: "folder.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Empty State
+
+@available(iOS 16.0, *)
+private struct EmptyInventoryView: View {
+    let childName: String
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "tray")
+                .font(.system(size: 60))
+                .foregroundStyle(.secondary)
+
+            Text("No Apps Found")
+                .font(.title3)
+                .fontWeight(.semibold)
+
+            Text("\(childName) hasn't selected any apps on their device yet.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .frame(maxHeight: .infinity)
+        .padding()
     }
 }
