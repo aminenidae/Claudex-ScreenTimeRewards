@@ -217,10 +217,11 @@ struct ModeSelectionView: View {
                 }
             }
             .navigationDestination(isPresented: $navigateToParentMode) {
-                ParentModeView()
+                ParentDeviceParentModeView()
                     .environmentObject(authorizationCoordinator)
                     .environmentObject(childrenManager)
                     .environmentObject(pairingService)
+                    .environmentObject(pinManager)
                     .onDisappear {
                         pinManager.lock()
                     }

@@ -415,129 +415,17 @@ struct ModeSelectionView: View {
 ### Step 2.1: Create ParentDeviceParentModeView (Level 1)
 **File**: `apps/ParentiOS/Views/ParentDeviceParentModeView.swift` (NEW)
 
-```swift
-import SwiftUI
-#if canImport(Core)
-import Core
-#endif
+- Displays a Level 1 dashboard with child tabs, aggregated points, recent activity, and quick links into per-child configuration.
+- Includes toolbar controls for linking child devices and re-locking Parent Mode.
+- Shows the authorization banner at the top so parents can re-request Screen Time access if needed.
 
-@available(iOS 16.0, *)
-struct ParentDeviceParentModeView: View {
-    @EnvironmentObject var childrenManager: ChildrenManager
-    @EnvironmentObject var pinManager: PINManager
+**Status:** ✅ Implemented (2025-10-11)
 
-    var body: some View {
-        NavigationStack {
-            TabView {
-                // Tab for each child
-                ForEach(childrenManager.children) { child in
-                    ChildDashboardTab(child: child)
-                        .tabItem {
-                            Label(child.name, systemImage: "person.circle")
-                        }
-                }
-
-                // Account Tab (future)
-                AccountTabView()
-                    .tabItem {
-                        Label("Account", systemImage: "gear")
-                    }
-            }
-            .navigationTitle("Family Dashboard")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { pinManager.lock() }) {
-                        Label("Lock", systemImage: "lock.fill")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@available(iOS 16.0, *)
-struct ChildDashboardTab: View {
-    let child: ChildProfile
-    @EnvironmentObject var childrenManager: ChildrenManager
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // Aggregated points balance
-                DashboardCard {
-                    VStack(alignment: .leading) {
-                        Text("Total Points")
-                            .font(.headline)
-                        Text("\(getAggregatedPoints()) pts")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                    }
-                }
-
-                // Per-app breakdown
-                DashboardCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Points by App")
-                            .font(.headline)
-
-                        // TODO: Display per-app balances
-                        ForEach(getAppBalances(), id: \.appId) { balance in
-                            HStack {
-                                Text(balance.appName)
-                                Spacer()
-                                Text("\(balance.points) pts")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-
-                // Navigate to configuration
-                NavigationLink {
-                    ChildDeviceParentModeView()
-                        .environmentObject(childrenManager)
-                } label: {
-                    Label("Configure \(child.name)'s Settings", systemImage: "gearshape")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundStyle(.white)
-                        .cornerRadius(12)
-                }
-                .padding(.horizontal)
-            }
-            .padding()
-        }
-    }
-
-    private func getAggregatedPoints() -> Int {
-        // TODO: Sum all app balances for this child
-        return 0
-    }
-
-    private func getAppBalances() -> [(appId: String, appName: String, points: Int)] {
-        // TODO: Get per-app balances
-        return []
-    }
-}
-
-@available(iOS 16.0, *)
-struct AccountTabView: View {
-    var body: some View {
-        Text("Account & Subscription Settings")
-            .font(.headline)
-            .foregroundStyle(.secondary)
-    }
-}
-```
 
 ### Step 2.2: Keep Existing ChildDeviceParentModeView (Level 2)
 **File**: `apps/ParentiOS/Views/ChildDeviceParentModeView.swift`
 
-**No major changes needed** - this becomes Level 2 (per-child configuration).
-
-Navigation: `ParentDeviceParentModeView` → Select child → `ChildDeviceParentModeView`
+**Status:** ✅ Implemented (2025-10-11) – `ParentDeviceParentModeView` now sets `childrenManager.selectedChildId` before navigating so the existing Level 2 screen opens with the chosen child context.
 
 ---
 

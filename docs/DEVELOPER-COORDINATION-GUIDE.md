@@ -192,12 +192,13 @@ This guide helps you get up to speed on the current state of the project after t
 ### Priority 2: Two-Level Parent Mode Structure
 
 **Effort**: 4-6 hours
-**Status**: Documented, ready after Phase 1
+**Status**: ✅ Phase 2.1 & 2.2 implemented; ready for QA and polish
 **Reference**: `docs/implementation-plan-2025-10-11-final.md` Phase 2
 
-**Steps**:
-1. **Phase 2.1**: Create `apps/ParentiOS/Views/ParentDeviceParentModeView.swift` (family dashboard)
-2. **Phase 2.2**: Add navigation from Level 1 → Level 2 (per-child config)
+**What to verify**:
+- Parent Mode opens into the new dashboard with one tab per child plus the Account placeholder.
+- Linking a child device from the dashboard still works (toolbar button → pairing sheet).
+- Selecting a child drills into the existing `ChildDeviceParentModeView` with the correct child preselected.
 
 **Testing**:
 - Parent Mode → Family dashboard (Level 1)

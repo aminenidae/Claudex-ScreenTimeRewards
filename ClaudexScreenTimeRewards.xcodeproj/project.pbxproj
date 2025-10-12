@@ -26,6 +26,7 @@
 		43A4BFE72E9AA98D00005648 /* ChildDeviceParentModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFE62E9AA98D00005648 /* ChildDeviceParentModeView.swift */; };
 		43A4BFE92E9B5DC800005648 /* DeviceRoleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFE82E9B5DC800005648 /* DeviceRoleManager.swift */; };
 		43A4BFEB2E9B5E2F00005648 /* DeviceRoleSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFEA2E9B5E2F00005648 /* DeviceRoleSetupView.swift */; };
+		43A4C0012E9B81D700005648 /* ParentDeviceParentModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4C0002E9B81D700005648 /* ParentDeviceParentModeView.swift */; };
 		4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4D89FB4BB9434E9541282E /* RedemptionService.swift */; };
 		5C88686AC522427197256D46 /* AppCategorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */; };
 		62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */; };
@@ -75,6 +76,7 @@
 		43A4BFE62E9AA98D00005648 /* ChildDeviceParentModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildDeviceParentModeView.swift; sourceTree = "<group>"; };
 		43A4BFE82E9B5DC800005648 /* DeviceRoleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/DeviceRoleManager.swift; sourceTree = "<group>"; };
 		43A4BFEA2E9B5E2F00005648 /* DeviceRoleSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceRoleSetupView.swift; sourceTree = "<group>"; };
+		43A4C0002E9B81D700005648 /* ParentDeviceParentModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentDeviceParentModeView.swift; sourceTree = "<group>"; };
 		5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExporter.swift; sourceTree = "<group>"; };
 		6075ADFFD2904E07AF741291 /* RedemptionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionsCard.swift; sourceTree = "<group>"; };
 		6A98C0711BAE449B807EB55F /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
@@ -121,6 +123,7 @@
 			children = (
 				43A4BFEA2E9B5E2F00005648 /* DeviceRoleSetupView.swift */,
 				43A4BFE62E9AA98D00005648 /* ChildDeviceParentModeView.swift */,
+				43A4C0002E9B81D700005648 /* ParentDeviceParentModeView.swift */,
 				43A4BFE42E9AA97A00005648 /* PINEntryView.swift */,
 				43A4BFE22E9AA96D00005648 /* PINSetupView.swift */,
 				432A8AA82E94AC6500E03796 /* ActiveRewardTimeView.swift */,
@@ -379,6 +382,7 @@
 				432A8A9F2E92C7F000E03796 /* ChildRedemptionView.swift in Sources */,
 				6D28F1A6090F4DB9839CDE78 /* ExportView.swift in Sources */,
 				43A4BFEB2E9B5E2F00005648 /* DeviceRoleSetupView.swift in Sources */,
+				43A4C0012E9B81D700005648 /* ParentDeviceParentModeView.swift in Sources */,
 				43A4BFE52E9AA97A00005648 /* PINEntryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
