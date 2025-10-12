@@ -4,17 +4,28 @@ import Core
 #endif
 
 public protocol PointsEngineProtocol {
-    func startSession(childId: ChildID, at time: Date) -> UsageSession
+    func startSession(childId: ChildID, appId: AppIdentifier?, at time: Date) -> UsageSession
     func updateActivity(session: UsageSession, at time: Date) -> UsageSession
     func endSession(session: UsageSession, config: PointsConfiguration, at time: Date) -> (session: UsageSession, pointsEarned: Int)
     func calculatePoints(for session: UsageSession, config: PointsConfiguration) -> Int
     func getTodayPoints(childId: ChildID) -> Int
-    func canAccruePoints(childId: ChildID, config: PointsConfiguration) -> Bool
+    func getTodayPoints(childId: ChildID, appId: AppIdentifier) -> Int
+    func canAccruePoints(childId: ChildID, appId: AppIdentifier?, config: PointsConfiguration) -> Bool
 }
 
 public final class PointsEngine: PointsEngineProtocol {
-    private var activeSessions: [ChildID: UsageSession] = [:]
-    private var dailyAccruals: [ChildID: [Date: Int]] = [:]
+    private struct SessionKey: Hashable {
+        let childId: ChildID
+        let appIdRaw: String?
+    }
+
+    private struct ChildDailyAccruals {
+        var totals: [Date: Int] = [:]
+        var perApp: [AppIdentifier: [Date: Int]] = [:]
+    }
+
+    private var activeSessions: [SessionKey: UsageSession] = [:]
+    private var dailyAccruals: [ChildID: ChildDailyAccruals] = [:]
     private let calendar = Calendar.current
 
     public init() {}
@@ -22,14 +33,15 @@ public final class PointsEngine: PointsEngineProtocol {
     // MARK: - Session Management
 
     /// Start a new learning session for a child
-    public func startSession(childId: ChildID, at time: Date = Date()) -> UsageSession {
+    public func startSession(childId: ChildID, appId: AppIdentifier? = nil, at time: Date = Date()) -> UsageSession {
         let session = UsageSession(
             childId: childId,
+            appId: appId,
             startTime: time,
             endTime: nil,
             lastActivityTime: time
         )
-        activeSessions[childId] = session
+        activeSessions[sessionKey(childId: childId, appId: appId)] = session
         return session
     }
 
@@ -37,7 +49,7 @@ public final class PointsEngine: PointsEngineProtocol {
     public func updateActivity(session: UsageSession, at time: Date = Date()) -> UsageSession {
         var updated = session
         updated.lastActivityTime = time
-        activeSessions[session.childId] = updated
+        activeSessions[sessionKey(for: session)] = updated
         return updated
     }
 
@@ -50,14 +62,31 @@ public final class PointsEngine: PointsEngineProtocol {
 
         // Record daily accrual
         let today = calendar.startOfDay(for: time)
-        let currentDaily = dailyAccruals[session.childId, default: [:]][today, default: 0]
-        let cappedPoints = min(points, config.dailyCapPoints - currentDaily)
+        var childAccruals = dailyAccruals[session.childId, default: ChildDailyAccruals()]
 
-        if cappedPoints > 0 {
-            dailyAccruals[session.childId, default: [:]][today, default: 0] += cappedPoints
+        let currentAppDaily: Int
+        if let appId = session.appId {
+            currentAppDaily = childAccruals.perApp[appId]?[today] ?? 0
+        } else {
+            currentAppDaily = childAccruals.totals[today] ?? 0
         }
 
-        activeSessions[session.childId] = nil
+        let remaining = max(0, config.dailyCapPoints - currentAppDaily)
+        let cappedPoints = min(points, remaining)
+
+        if cappedPoints > 0 {
+            childAccruals.totals[today, default: 0] += cappedPoints
+
+            if let appId = session.appId {
+                var perApp = childAccruals.perApp[appId] ?? [:]
+                perApp[today, default: 0] += cappedPoints
+                childAccruals.perApp[appId] = perApp
+            }
+
+            dailyAccruals[session.childId] = childAccruals
+        }
+
+        activeSessions[sessionKey(for: session)] = nil
 
         return (completed, cappedPoints)
     }
@@ -103,22 +132,29 @@ public final class PointsEngine: PointsEngineProtocol {
     /// Get total points accrued today for a child
     public func getTodayPoints(childId: ChildID) -> Int {
         let today = calendar.startOfDay(for: Date())
-        return dailyAccruals[childId, default: [:]][today, default: 0]
+        return dailyAccruals[childId]?.totals[today] ?? 0
+    }
+
+    /// Get total points accrued today for a child/app combination
+    public func getTodayPoints(childId: ChildID, appId: AppIdentifier) -> Int {
+        let today = calendar.startOfDay(for: Date())
+        return dailyAccruals[childId]?.perApp[appId]?[today] ?? 0
     }
 
     /// Check if child can still accrue points today (under daily cap)
-    public func canAccruePoints(childId: ChildID, config: PointsConfiguration) -> Bool {
-        getTodayPoints(childId: childId) < config.dailyCapPoints
+    public func canAccruePoints(childId: ChildID, appId: AppIdentifier? = nil, config: PointsConfiguration) -> Bool {
+        let current = appId.map { getTodayPoints(childId: childId, appId: $0) } ?? getTodayPoints(childId: childId)
+        return current < config.dailyCapPoints
     }
 
     // MARK: - State Access (for testing/debugging)
 
-    public func getActiveSession(childId: ChildID) -> UsageSession? {
-        activeSessions[childId]
+    public func getActiveSession(childId: ChildID, appId: AppIdentifier? = nil) -> UsageSession? {
+        activeSessions[sessionKey(childId: childId, appId: appId)]
     }
 
     public func resetDailyAccruals(childId: ChildID) {
-        dailyAccruals[childId] = [:]
+        dailyAccruals[childId] = ChildDailyAccruals()
     }
 
     // MARK: - Legacy method (deprecated)
@@ -126,5 +162,15 @@ public final class PointsEngine: PointsEngineProtocol {
     @available(*, deprecated, message: "Use session-based methods instead")
     public func accrue(pointsPerMinute: Int, minutes: Int) -> Int {
         max(0, pointsPerMinute * minutes)
+    }
+}
+
+private extension PointsEngine {
+    private func sessionKey(for session: UsageSession) -> SessionKey {
+        sessionKey(childId: session.childId, appId: session.appId)
+    }
+
+    private func sessionKey(childId: ChildID, appId: AppIdentifier?) -> SessionKey {
+        SessionKey(childId: childId, appIdRaw: appId?.rawValue)
     }
 }

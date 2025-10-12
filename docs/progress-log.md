@@ -2,6 +2,24 @@
 
 Track major milestones and implementation progress for Claudex Screen Time Rewards MVP.
 
+## 2025-10-12 | Phase 2 Level 2 Scaffold + Per-App Ledger Foundations 🧱
+
+### ChildDeviceParentModeView Redesign (Level 2)
+- Added tabbed layout (Apps / Points / Rewards / Settings) with child context header.
+- Apps tab reuses existing categorization UI, scoped to the selected child.
+- Points & Rewards tabs currently show "coming soon" messaging pending per-app ledger work (Phase 3).
+- Settings tab retains PIN management and CloudKit maintenance tools.
+- Navigation from the parent dashboard pre-selects `childrenManager.selectedChildId` before presenting the Level 2 view.
+
+### Per-App Points Foundations (Option A)
+- Introduced `AppIdentifier` and updated `PointsLedgerEntry` to include `appId` metadata.
+- `PointsLedger` now records optional per-app entries, exposes per-app balances, and keeps backward-compatible helpers.
+- `RedemptionService` accepts optional `AppIdentifier` for future per-app redemption logic while maintaining legacy global behaviour.
+- Added tests covering per-app balance aggregation.
+- `PointsEngine` now tracks sessions per app, enforces daily caps individually, and exposes helpers for fetching per-app daily totals; unit tests cover the new behaviour.
+
+**Next:** Surface the active learning app identifier from DeviceActivity into `LearningSessionCoordinator`, wire per-app redemption flows, and replace the Points/Rewards tab placeholders with live configuration + analytics.
+
 ---
 
 ## 2025-10-11 | MAJOR PIVOT: Child Device as Primary Configuration Point 🔄

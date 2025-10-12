@@ -9,9 +9,9 @@ This guide helps you get up to speed on the current state of the project after t
 ## 🎯 Start Here: What You Need to Know
 
 ### Current Status
-- ✅ **Documentation**: Updated again after Phase 1 implementation (plan & guide refreshed)
-- ⚠️ **Code**: Phase 1 (device role detection + mode selection) merged locally, needs simulator/device QA
-- 🔄 **Next Step**: Validate the new flow on parent vs child devices, then proceed to Phase 2 dashboard work
+- ✅ **Documentation**: Updated through Phase 3 accrual work (plan & guide refreshed)
+- ✅ **Code**: Phase 1 + Phase 2 Level 1/2 scaffolds landed; Phase 3 per-app ledger wiring has begun (PointsEngine + LearningSessionCoordinator updated)
+- 🔄 **Next Step**: Surface the active learning app identifier from DeviceActivity, then light up the Level 2 Points/Rewards tabs with real data
 
 ### What Happened This Session
 1. **Attempted PIN authentication implementation** → UI broken (Continue button not visible)
@@ -189,45 +189,34 @@ This guide helps you get up to speed on the current state of the project after t
 
 ---
 
-### Priority 2: Two-Level Parent Mode Structure
+### Priority 2: Per-App Points System (Phase 3)
 
-**Effort**: 4-6 hours (dashboard done) + additional work for Level 2 refactor
-**Status**: ✅ Level 1 dashboard shipped; ⚠️ Level 2 (`ChildDeviceParentModeView`) redesign pending
-**Reference**: `docs/implementation-plan-2025-10-11-final.md` Phase 2, `docs/architecture-confirmed-2025-10-11.md`
+**Effort**: 2-3 days total (now partially complete)
+**Status**: 🟡 PointsEngine + LearningSessionCoordinator supply per-app balances; UI + redemption updates pending
+**Reference**: `docs/implementation-plan-2025-10-11-final.md` Phase 3, `docs/architecture-confirmed-2025-10-11.md`
 
 **Next actions**:
-1. Redesign `ChildDeviceParentModeView` into the four-tab layout (Apps / Points / Rewards / Settings) per the confirmed architecture.
-2. Resolve the per-app points data-model ambiguity (user picked Option B global pool but also wants per-app balances/partial redemption).
-3. Once clarified, wire per-app accrual and redemption UI (depends on Phase 3 ledger work) and ensure navigation from the dashboard preselects the right child and tab.
+1. Surface the active learning app identifier from DeviceActivity notifications so sessions accrue against the correct `AppIdentifier`.
+2. Update Level 2 Points/Rewards tabs to display live per-app balances, point rates, and redemption rules instead of placeholder copy.
+3. Extend `RedemptionService` flows + tests to spend from specific app balances (and to aggregate when multiple apps contribute to a redemption).
 
 **Testing**:
-- Parent Mode → Family dashboard (Level 1)
-- Select child → Per-child configuration (Level 2)
+- Unit: mixed per-app accrual + daily cap enforcement (`PointsEngineTests` already cover base cases; add DeviceActivity-driven coverage once identifiers flow through).
+- UI: Navigate Parent Mode Level 1 → select child → switch across Level 2 tabs and validate per-app metrics + editing flows.
 
 ---
 
 ## 🔧 Current Codebase State
 
-### Git Status
-- **Branch**: `main`
-- **Last Commit**: `a5591a2` - WIP: PIN authentication and duplicate cleanup (has known issues)
-- **Clean Working Directory**: Yes (all changes committed)
-
 ### Build Status
-- ✅ **Compiles**: Yes (Xcode build succeeds)
-- ❌ **UX Broken**: PIN setup Continue button not visible
-- ❌ **Architecture Wrong**: Gear icon in Child Mode (being removed)
+- ✅ **Compiles**: Yes (latest Xcode build + manual QA confirmed during Phase 2 roll-out)
+- ⚠️ **Open Issues**: PIN setup Continue button still clipped on smaller devices; duplicate-child cleanup remains unreliable.
+- ⚠️ **Warnings**: Clean up unused `result` in `SyncService` + redundant `await` warnings when time permits.
 
-### What's Tracked in Git
-**New Files** (created this session, tracked):
-- `apps/ParentiOS/Services/PINManager.swift` (241 LOC) - PIN authentication logic
-- `apps/ParentiOS/Views/PINSetupView.swift` (315 LOC) - PIN creation flow (UI broken)
-- `apps/ParentiOS/Views/PINEntryView.swift` (240 LOC) - PIN entry (has Submit button)
-- `apps/ParentiOS/Views/ChildDeviceParentModeView.swift` (339 LOC) - 4-tab parent mode (wrong architecture)
-
-**Modified Files** (this session):
-- `apps/ParentiOS/ViewModels/ChildrenManager.swift` - De-duplication (doesn't work)
-- `apps/ParentiOS/ClaudexApp.swift` - Gear icon added (will be removed)
+### Tracking Notes
+- Device role flow, Level 1 dashboard, and Level 2 shell are merged locally; keep running QA on real devices after each change.
+- Per-app accrual logic now sits behind DeviceActivity notifications—until app identifiers are plumbed, ledger entries still default to global balances.
+- CloudKit schema updates (DevicePairing record type) were drafted—double-check in production container before shipping.
 
 ---
 

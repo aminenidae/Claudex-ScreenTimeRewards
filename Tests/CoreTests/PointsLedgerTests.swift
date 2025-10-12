@@ -80,6 +80,32 @@ final class PointsLedgerTests: XCTestCase {
         XCTAssertEqual(ledger.getBalance(childId: childId), 65)
     }
 
+    func testGetBalancePerApp() {
+        let mathApp = AppIdentifier("app.math")
+        let readingApp = AppIdentifier("app.reading")
+
+        ledger.recordAccrual(childId: childId, appId: mathApp, points: 100)
+        ledger.recordAccrual(childId: childId, appId: readingApp, points: 50)
+        ledger.recordRedemption(childId: childId, appId: mathApp, points: 40)
+
+        XCTAssertEqual(ledger.getBalance(childId: childId, appId: mathApp), 60)
+        XCTAssertEqual(ledger.getBalance(childId: childId, appId: readingApp), 50)
+        XCTAssertEqual(ledger.getBalance(childId: childId), 110)
+    }
+
+    func testGetBalancesDictionary() {
+        let mathApp = AppIdentifier("app.math")
+        let readingApp = AppIdentifier("app.reading")
+
+        ledger.recordAccrual(childId: childId, appId: mathApp, points: 20)
+        ledger.recordAccrual(childId: childId, appId: readingApp, points: 30)
+        ledger.recordAdjustment(childId: childId, appId: mathApp, points: 10, reason: "Bonus")
+
+        let balances = ledger.getBalances(childId: childId)
+        XCTAssertEqual(balances[mathApp], 30)
+        XCTAssertEqual(balances[readingApp], 30)
+    }
+
     // MARK: - Query Tests
 
     func testGetEntriesOrdered() {

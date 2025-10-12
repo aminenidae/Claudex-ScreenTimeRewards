@@ -151,6 +151,11 @@ public struct ChildContextPayload: Codable, Equatable {
     }
 }
 
+public struct AppIdentifier: Hashable, Codable, Sendable {
+    public let rawValue: String
+    public init(_ rawValue: String) { self.rawValue = rawValue }
+}
+
 public struct ChildAppInventoryPayload: Codable, Equatable {
     public let id: String // {childID}:{deviceID}
     public let childId: ChildID
@@ -211,17 +216,31 @@ public struct PointsLedgerEntry: Codable, Identifiable {
     public enum EntryType: String, Codable { case accrual, redemption, adjustment }
     public let id: UUID
     public let childId: ChildID
+    public let appId: AppIdentifier?
     public let type: EntryType
     public let amount: Int
     public let timestamp: Date
-    public init(id: UUID = .init(), childId: ChildID, type: EntryType, amount: Int, timestamp: Date = .init()) {
-        self.id = id; self.childId = childId; self.type = type; self.amount = amount; self.timestamp = timestamp
+    public init(
+        id: UUID = .init(),
+        childId: ChildID,
+        appId: AppIdentifier? = nil,
+        type: EntryType,
+        amount: Int,
+        timestamp: Date = .init()
+    ) {
+        self.id = id
+        self.childId = childId
+        self.appId = appId
+        self.type = type
+        self.amount = amount
+        self.timestamp = timestamp
     }
 }
 
 public struct UsageSession: Codable, Identifiable {
     public let id: UUID
     public let childId: ChildID
+    public let appId: AppIdentifier?
     public let startTime: Date
     public var endTime: Date?
     public var lastActivityTime: Date
@@ -230,9 +249,17 @@ public struct UsageSession: Codable, Identifiable {
         return max(0, end.timeIntervalSince(startTime))
     }
 
-    public init(id: UUID = .init(), childId: ChildID, startTime: Date = .init(), endTime: Date? = nil, lastActivityTime: Date = .init()) {
+    public init(
+        id: UUID = .init(),
+        childId: ChildID,
+        appId: AppIdentifier? = nil,
+        startTime: Date = .init(),
+        endTime: Date? = nil,
+        lastActivityTime: Date = .init()
+    ) {
         self.id = id
         self.childId = childId
+        self.appId = appId
         self.startTime = startTime
         self.endTime = endTime
         self.lastActivityTime = lastActivityTime
@@ -316,11 +343,27 @@ public enum ExemptionStackingPolicy: String, Codable {
 
 @MainActor
 public protocol PointsLedgerProtocol {
-    func recordAccrual(childId: ChildID, points: Int, timestamp: Date) -> PointsLedgerEntry
-    func recordRedemption(childId: ChildID, points: Int, timestamp: Date) -> PointsLedgerEntry
-    func recordAdjustment(childId: ChildID, points: Int, reason: String, timestamp: Date) -> PointsLedgerEntry
+    func recordAccrual(childId: ChildID, appId: AppIdentifier?, points: Int, timestamp: Date) -> PointsLedgerEntry
+    func recordRedemption(childId: ChildID, appId: AppIdentifier?, points: Int, timestamp: Date) -> PointsLedgerEntry
+    func recordAdjustment(childId: ChildID, appId: AppIdentifier?, points: Int, reason: String, timestamp: Date) -> PointsLedgerEntry
     func getBalance(childId: ChildID) -> Int
+    func getBalance(childId: ChildID, appId: AppIdentifier) -> Int
+    func getBalances(childId: ChildID) -> [AppIdentifier: Int]
     func getEntries(childId: ChildID) -> [PointsLedgerEntry]
     func getEntries(childId: ChildID, limit: Int?) -> [PointsLedgerEntry]
     func getEntriesInRange(childId: ChildID, from: Date, to: Date) -> [PointsLedgerEntry]
+}
+
+public extension PointsLedgerProtocol {
+    func recordAccrual(childId: ChildID, points: Int, timestamp: Date = Date()) -> PointsLedgerEntry {
+        recordAccrual(childId: childId, appId: nil, points: points, timestamp: timestamp)
+    }
+
+    func recordRedemption(childId: ChildID, points: Int, timestamp: Date = Date()) -> PointsLedgerEntry {
+        recordRedemption(childId: childId, appId: nil, points: points, timestamp: timestamp)
+    }
+
+    func recordAdjustment(childId: ChildID, points: Int, reason: String, timestamp: Date = Date()) -> PointsLedgerEntry {
+        recordAdjustment(childId: childId, appId: nil, points: points, reason: reason, timestamp: timestamp)
+    }
 }

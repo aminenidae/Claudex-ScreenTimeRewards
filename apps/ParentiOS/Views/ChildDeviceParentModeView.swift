@@ -11,249 +11,165 @@ import Core
 /// - Manage Parent Mode settings
 @available(iOS 16.0, *)
 struct ChildDeviceParentModeView: View {
+    enum Tab: Hashable { case apps, points, rewards, settings }
+
     @EnvironmentObject private var childrenManager: ChildrenManager
     @EnvironmentObject private var rulesManager: CategoryRulesManager
     @EnvironmentObject private var pinManager: PINManager
     @EnvironmentObject private var learningCoordinator: LearningSessionCoordinator
     @EnvironmentObject private var rewardCoordinator: RewardCoordinator
 
+    @State private var selectedTab: Tab = .apps
+
+    private var child: ChildProfile? {
+        if let id = childrenManager.selectedChildId {
+            return childrenManager.children.first(where: { $0.id == id })
+        }
+        return childrenManager.children.first
+    }
+
     var body: some View {
         NavigationStack {
-            TabView {
-                // Tab 1: App Categorization (uses local tokens!)
-                AppCategorizationView()
-                    .tabItem {
-                        Label("Apps", systemImage: "square.grid.2x2")
-                    }
+            if let child {
+                VStack(spacing: 16) {
+                    HeaderView(child: child)
 
-                // Tab 2: Points Configuration
-                PointsConfigurationView()
-                    .tabItem {
-                        Label("Points", systemImage: "star.fill")
-                    }
+                    TabView(selection: $selectedTab) {
+                        AppCategorizationView()
+                            .tag(Tab.apps)
+                            .tabItem { Label("Apps", systemImage: "square.grid.2x2") }
 
-                // Tab 3: Redemption Rules
-                RedemptionRulesView()
-                    .tabItem {
-                        Label("Rewards", systemImage: "gift.fill")
-                    }
+                        PerAppPointsConfigurationView(child: child)
+                            .tag(Tab.points)
+                            .tabItem { Label("Points", systemImage: "star.fill") }
 
-                // Tab 4: Parent Mode Settings
-                ParentModeSettingsView()
-                    .tabItem {
-                        Label("Settings", systemImage: "gear")
-                    }
-            }
-            .navigationTitle("Parent Mode")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        pinManager.lock()
-                    }) {
-                        Label("Lock", systemImage: "lock.fill")
+                        PerAppRewardsConfigurationView(child: child)
+                            .tag(Tab.rewards)
+                            .tabItem { Label("Rewards", systemImage: "gift.fill") }
+
+                        ParentModeSettingsView()
+                            .tag(Tab.settings)
+                            .tabItem { Label("Settings", systemImage: "gear") }
                     }
                 }
-            }
-            .onAppear {
-                pinManager.updateLastActivity()
+                .padding(.top)
+            } else {
+                VStack(spacing: 16) {
+                    Image(systemName: "person.crop.circle.badge.questionmark")
+                        .font(.system(size: 72))
+                        .foregroundStyle(.secondary)
+
+                    Text("No Child Selected")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+
+                    Text("Select a child from the parent dashboard to configure their rules, or pair a device to create a new profile.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal)
+                }
             }
         }
+        .navigationTitle("Parent Mode")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button { pinManager.lock() } label: {
+                    Label("Lock", systemImage: "lock.fill")
+                }
+            }
+        }
+        .onAppear {
+            pinManager.updateLastActivity()
+            if childrenManager.selectedChildId == nil, let child {
+                childrenManager.selectedChildId = child.id
+            }
+        }
+        .onChange(of: selectedTab) { _ in
+            pinManager.updateLastActivity()
+        }
+    }
+
+    @ViewBuilder
+    private func HeaderView(child: ChildProfile) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(child.name)
+                .font(.title2)
+                .fontWeight(.semibold)
+            Text("Configure learning apps, points, rewards, and settings for this child.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
     }
 }
 
 // MARK: - Points Configuration View
 
 @available(iOS 16.0, *)
-struct PointsConfigurationView: View {
+struct PerAppPointsConfigurationView: View {
     @EnvironmentObject private var childrenManager: ChildrenManager
     @EnvironmentObject private var pinManager: PINManager
-
-    @State private var pointsPerMinute: Int = 10
-    @State private var dailyCapPoints: Int = 600
-    @State private var idleTimeoutMinutes: Int = 3
-    @State private var showingSaveConfirmation = false
+    let child: ChildProfile
 
     var body: some View {
-        Form {
-            Section {
-                Text("Configure how children earn points for using learning apps")
+        List {
+            Section("Per-App Point Rates") {
+                Text("Per-app point configuration will live here. Phase 3 will surface each learning app with adjustable points-per-minute and daily caps once the per-app ledger lands.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Point Accrual") {
-                Stepper("Points per minute: \(pointsPerMinute)", value: $pointsPerMinute, in: 1...50)
-
-                Stepper("Daily cap: \(dailyCapPoints) points", value: $dailyCapPoints, in: 100...2000, step: 50)
-
-                Picker("Idle timeout", selection: $idleTimeoutMinutes) {
-                    Text("1 minute").tag(1)
-                    Text("3 minutes").tag(3)
-                    Text("5 minutes").tag(5)
-                    Text("10 minutes").tag(10)
-                }
+            Section("Coming Soon") {
+                Text("• List each learning app with current point rate\n• Allow parents to adjust rate and daily cap per app\n• Show when the child hits the reward cap for the day")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
-            Section("Preview") {
-                HStack {
-                    Text("1 hour of learning earns")
-                    Spacer()
-                    Text("\(pointsPerMinute * 60) points")
-                        .foregroundStyle(.green)
-                        .fontWeight(.semibold)
-                }
-
-                HStack {
-                    Text("Daily cap reached after")
-                    Spacer()
-                    Text("\(dailyCapPoints / pointsPerMinute) minutes")
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Section {
-                Text("Points stop accruing after \(idleTimeoutMinutes) minute\(idleTimeoutMinutes == 1 ? "" : "s") of inactivity")
-                    .font(.caption)
+            Section("Current Defaults") {
+                Text("Points accrue using the global settings until per-app controls are implemented.")
+                    .font(.footnote)
                     .foregroundStyle(.tertiary)
             }
-
-            Button("Save Configuration") {
-                saveConfiguration()
-            }
-            .frame(maxWidth: .infinity)
         }
-        .navigationTitle("Points Configuration")
-        .alert("Saved", isPresented: $showingSaveConfirmation) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Points configuration has been saved and will sync to other devices")
-        }
-        .onAppear {
-            pinManager.updateLastActivity()
-            loadConfiguration()
-        }
-    }
-
-    private func loadConfiguration() {
-        // TODO: Load from CloudKit or local storage
-        // For now, use defaults from PointsConfiguration
-        let defaultConfig = PointsConfiguration.default
-        pointsPerMinute = defaultConfig.pointsPerMinute
-        dailyCapPoints = defaultConfig.dailyCapPoints
-        idleTimeoutMinutes = Int(defaultConfig.idleTimeoutSeconds / 60)
-    }
-
-    private func saveConfiguration() {
-        // TODO: Save to CloudKit
-        let config = PointsConfiguration(
-            pointsPerMinute: pointsPerMinute,
-            dailyCapPoints: dailyCapPoints,
-            idleTimeoutSeconds: TimeInterval(idleTimeoutMinutes * 60)
-        )
-
-        print("⚙️ PointsConfigurationView: Saving config: \(config)")
-        // TODO: Sync to CloudKit
-
-        showingSaveConfirmation = true
-        pinManager.updateLastActivity()
+        .listStyle(.insetGrouped)
+        .navigationTitle("Points")
+        .onAppear { pinManager.updateLastActivity() }
     }
 }
 
 // MARK: - Redemption Rules View
 
 @available(iOS 16.0, *)
-struct RedemptionRulesView: View {
+struct PerAppRewardsConfigurationView: View {
     @EnvironmentObject private var childrenManager: ChildrenManager
     @EnvironmentObject private var pinManager: PINManager
-
-    @State private var pointsPerMinute: Int = 10
-    @State private var minRedemptionPoints: Int = 30
-    @State private var maxRedemptionPoints: Int = 600
-    @State private var stackingPolicy: ExemptionStackingPolicy = .extend
-    @State private var showingSaveConfirmation = false
+    let child: ChildProfile
 
     var body: some View {
-        Form {
-            Section {
-                Text("Configure how children convert points into reward time")
+        List {
+            Section("Per-App Reward Rules") {
+                Text("Future work will list each reward app, allowing parents to set points required, partial redemption thresholds, and stacking policies.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Redemption Rates") {
-                Stepper("Points per minute: \(pointsPerMinute)", value: $pointsPerMinute, in: 1...50)
-
-                Stepper("Minimum: \(minRedemptionPoints) points", value: $minRedemptionPoints, in: 10...100, step: 10)
-
-                Stepper("Maximum: \(maxRedemptionPoints) points", value: $maxRedemptionPoints, in: 100...1000, step: 50)
+            Section("Coming Soon") {
+                Text("• Configure conversion rates per reward app\n• Support partial vs. full unlocks\n• Manage stacking/queueing policies")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
-            Section("Stacking Policy") {
-                Picker("When redeeming during active time", selection: $stackingPolicy) {
-                    Text("Replace current time").tag(ExemptionStackingPolicy.replace)
-                    Text("Extend current time").tag(ExemptionStackingPolicy.extend)
-                    Text("Queue for later").tag(ExemptionStackingPolicy.queue)
-                    Text("Block until expired").tag(ExemptionStackingPolicy.block)
-                }
+            Section("Current Behaviour") {
+                Text("Global redemption settings remain in effect until per-app controls are implemented.")
+                    .font(.footnote)
+                    .foregroundStyle(.tertiary)
             }
-
-            Section("Preview") {
-                HStack {
-                    Text("\(minRedemptionPoints) points")
-                    Spacer()
-                    Text("\(minRedemptionPoints / pointsPerMinute) minutes")
-                        .foregroundStyle(.green)
-                }
-
-                HStack {
-                    Text("\(maxRedemptionPoints) points")
-                    Spacer()
-                    Text("\(maxRedemptionPoints / pointsPerMinute) minutes")
-                        .foregroundStyle(.green)
-                }
-            }
-
-            Button("Save Configuration") {
-                saveConfiguration()
-            }
-            .frame(maxWidth: .infinity)
         }
-        .navigationTitle("Redemption Rules")
-        .alert("Saved", isPresented: $showingSaveConfirmation) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Redemption configuration has been saved and will sync to other devices")
-        }
-        .onAppear {
-            pinManager.updateLastActivity()
-            loadConfiguration()
-        }
-    }
-
-    private func loadConfiguration() {
-        // TODO: Load from CloudKit or local storage
-        let defaultConfig = RedemptionConfiguration.default
-        pointsPerMinute = defaultConfig.pointsPerMinute
-        minRedemptionPoints = defaultConfig.minRedemptionPoints
-        maxRedemptionPoints = defaultConfig.maxRedemptionPoints
-        // stackingPolicy = .extend // Default
-    }
-
-    private func saveConfiguration() {
-        // TODO: Save to CloudKit
-        let config = RedemptionConfiguration(
-            pointsPerMinute: pointsPerMinute,
-            minRedemptionPoints: minRedemptionPoints,
-            maxRedemptionPoints: maxRedemptionPoints,
-            maxTotalMinutes: 120 // Default
-        )
-
-        print("⚙️ RedemptionRulesView: Saving config: \(config)")
-        // TODO: Sync to CloudKit
-
-        showingSaveConfirmation = true
-        pinManager.updateLastActivity()
+        .listStyle(.insetGrouped)
+        .navigationTitle("Rewards")
+        .onAppear { pinManager.updateLastActivity() }
     }
 }
 

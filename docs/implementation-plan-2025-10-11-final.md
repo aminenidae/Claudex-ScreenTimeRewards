@@ -366,23 +366,33 @@ struct DeviceRoleSetupView: View {
 ### Step 2.2: Update ChildDeviceParentModeView for Level 2 Configuration
 **File**: `apps/ParentiOS/Views/ChildDeviceParentModeView.swift`
 
-**Status:** ⏸️ Pending implementation – view still reflects the legacy single-page layout.
+**Status:** 🟡 Base tab structure implemented (2025-10-12); Points/Rewards tabs still placeholders pending per-app ledger work.
 
-**Requirements (per architecture flow):**
-- Convert the view into a tabbed surface with four tabs: **Apps**, **Points**, **Rewards**, **Settings**.
-- `Apps` tab: manage learning/reward classification using the child’s on-device inventory (same UI as today, scoped to the selected child).
-- `Points` tab: configure per-app point accrual rules once the per-app ledger refactor lands (Phase 3 dependency).
-- `Rewards` tab: configure redemption rules per reward app, supporting partial/full redemptions.
-- `Settings` tab: screen time authorization status, PIN management, pairing management, and future advanced options.
-- Ensure navigation from `ParentDeviceParentModeView` pre-selects the correct child context and that changes propagate back to the dashboard.
+**Current state:**
+- Four-tab layout (Apps / Points / Rewards / Settings) wrapped in a NavigationStack with a child context header.
+- Apps tab reuses the existing categorization flow scoped to the selected child.
+- Points and Rewards tabs display “coming soon” messaging and will surface per-app controls once the Option A per-app ledger refactor lands (Phase 3).
+- Settings tab retains PIN management and CloudKit maintenance utilities.
+- Navigation from `ParentDeviceParentModeView` sets `childrenManager.selectedChildId` before presenting this view so the correct child context is active.
+
+**Follow-up work:**
+- Wire per-app point accrual and redemption controls when per-app balances are available.
+- Surface real per-app metrics within the new tabs.
+- Add automated tests around the tab switching/state once functionality is complete.
 
 ---
 
 ## Phase 3: Per-App Points System (MAJOR REFACTOR)
 
-**Status**: Documentation only, implementation blocked on user clarification.
+**Status**: 🟡 In progress – per-app accrual logic now wired through `PointsEngine`; UI integration still pending.
 
-See questions in `architecture-confirmed-2025-10-11.md` lines 225-269.
+- Added `AppIdentifier` and extended `PointsLedgerEntry` / `PointsLedger` / `RedemptionService` to carry optional app context.
+- `PointsEngine` now tracks active sessions per app, enforces daily caps per app, and exposes `getTodayPoints(childId:appId:)` helpers for dashboards.
+- `LearningSessionCoordinator` records per-app ledger entries (currently defaulting to global until app identifiers are surfaced from DeviceActivity events).
+- Maintained backward-compatible helpers so existing global flows continue to work while per-app data accumulates.
+- Points & Rewards tabs in Level 2 still surface placeholders awaiting per-app configuration UI.
+
+Next steps: surface the active learning app from DeviceActivity into `LearningSessionCoordinator`, build per-app redemption workflows, and replace the Points/Rewards placeholders with live data visualisations. See updated answers in `architecture-confirmed-2025-10-11.md` lines 262-277.
 
 ---
 
@@ -399,11 +409,14 @@ See questions in `architecture-confirmed-2025-10-11.md` lines 225-269.
 2. `apps/ParentiOS/Views/DeviceRoleSetupView.swift`
 3. `apps/ParentiOS/Views/ParentDeviceParentModeView.swift`
 
-### Modified Files (4)
-1. `Sources/Core/AppModels.swift` - Add DeviceRole enum
-2. `Sources/Core/PairingService.swift` - Add deviceRole field, getPairingForDevice()
-3. `apps/ParentiOS/ClaudexApp.swift` - Add DeviceRoleManager, fix mode selection, remove gear icon
-4. `apps/ParentiOS/Views/ChildModeHomeView.swift` - Remove gear icon (if exists)
+### Modified Files
+1. `Sources/Core/AppModels.swift` – DeviceRole enum + per-app points model (`AppIdentifier`, ledger entry updates).
+2. `Sources/Core/PairingService.swift` – Device role persistence and CloudKit helpers.
+3. `Sources/PointsEngine/PointsLedger.swift` – Supports optional per-app balances and queries.
+4. `Sources/PointsEngine/RedemptionService.swift` – Accepts optional per-app context.
+5. `apps/ParentiOS/ClaudexApp.swift` – Mode selection → parent dashboard navigation.
+6. `apps/ParentiOS/Views/ParentDeviceParentModeView.swift` – Level 1 dashboard.
+7. `apps/ParentiOS/Views/ChildDeviceParentModeView.swift` – New four-tab layout (Apps/Points/Rewards/Settings).
 
 ### Deleted Code
 - Gear icon in ChildModeView toolbar
@@ -421,7 +434,7 @@ See questions in `architecture-confirmed-2025-10-11.md` lines 225-269.
 5. ✅ Phase 1.5: Update PairingService
 6. ✅ Phase 2.1: Create ParentDeviceParentModeView (Level 1)
 7. ✅ Phase 2.2: Update navigation to Level 2
-8. ⏸️ Phase 3: Per-app points (awaiting clarification)
+8. 🟡 Phase 3: Per-app points system (data model groundwork in progress)
 9. ⏸️ Phase 4: PIN UI fix
 
 ---

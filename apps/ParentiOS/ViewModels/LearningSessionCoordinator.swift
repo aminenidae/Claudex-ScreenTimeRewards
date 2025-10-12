@@ -15,7 +15,7 @@ final class LearningSessionCoordinator: ObservableObject {
     private let pointsEngine: PointsEngine
     private let pointsLedger: PointsLedger
     private let scheduleCoordinator = ActivityScheduleCoordinator()
-    private let configurationProvider: (ChildID) -> PointsConfiguration
+    private let configurationProvider: (ChildID, AppIdentifier?) -> PointsConfiguration
 
     private var cancellables = Set<AnyCancellable>()
     private var notificationTokens: [NSObjectProtocol] = []
@@ -26,7 +26,7 @@ final class LearningSessionCoordinator: ObservableObject {
         rulesManager: CategoryRulesManager,
         pointsEngine: PointsEngine,
         pointsLedger: PointsLedger,
-        configurationProvider: @escaping (ChildID) -> PointsConfiguration = { _ in .default }
+        configurationProvider: @escaping (ChildID, AppIdentifier?) -> PointsConfiguration = { _, _ in .default }
     ) {
         self.rulesManager = rulesManager
         self.pointsEngine = pointsEngine
@@ -125,12 +125,12 @@ final class LearningSessionCoordinator: ObservableObject {
     private func beginSession(for childId: ChildID, startTime: Date) {
         guard activeSessions[childId] == nil else { return }
 
-        let config = configurationProvider(childId)
-        guard pointsEngine.canAccruePoints(childId: childId, config: config) else {
+        let config = configurationProvider(childId, nil)
+        guard pointsEngine.canAccruePoints(childId: childId, appId: nil, config: config) else {
             return
         }
 
-        var session = pointsEngine.startSession(childId: childId, at: startTime)
+        var session = pointsEngine.startSession(childId: childId, appId: nil, at: startTime)
         session.lastActivityTime = startTime
         activeSessions[childId] = session
     }
@@ -148,12 +148,12 @@ final class LearningSessionCoordinator: ObservableObject {
     }
 
     private func finalizeSession(_ session: UsageSession, endTime: Date) {
-        let config = configurationProvider(session.childId)
+        let config = configurationProvider(session.childId, session.appId)
         var completed = session
         completed.endTime = endTime
         let result = pointsEngine.endSession(session: completed, config: config, at: endTime)
         if result.pointsEarned > 0 {
-            _ = pointsLedger.recordAccrual(childId: session.childId, points: result.pointsEarned, timestamp: endTime)
+            _ = pointsLedger.recordAccrual(childId: session.childId, appId: session.appId, points: result.pointsEarned, timestamp: endTime)
         }
     }
 }
@@ -177,7 +177,7 @@ final class LearningSessionCoordinator: ObservableObject {
         rulesManager: CategoryRulesManager,
         pointsEngine: Any,
         pointsLedger: Any,
-        configurationProvider: @escaping (ChildID) -> PointsConfiguration = { _ in .default }
+        configurationProvider: @escaping (ChildID, AppIdentifier?) -> PointsConfiguration = { _, _ in .default }
     ) {}
 }
 #endif

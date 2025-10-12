@@ -132,6 +132,50 @@ final class PointsEngineTests: XCTestCase {
         XCTAssertEqual(engine.getTodayPoints(childId: childId), 50)
     }
 
+    func testPerAppAccrualsRespectDailyCapsIndependently() {
+        engine.resetDailyAccruals(childId: childId)
+
+        let mathApp = AppIdentifier("app.math")
+        let readingApp = AppIdentifier("app.reading")
+        let config = PointsConfiguration(pointsPerMinute: 10, dailyCapPoints: 100, idleTimeoutSeconds: 180)
+        let startTime = Date()
+
+        // Math app hits the cap (10 minutes * 10 = 100)
+        let mathSession = engine.startSession(childId: childId, appId: mathApp, at: startTime)
+        let mathEnd = startTime.addingTimeInterval(600)
+        let mathResult = engine.endSession(session: mathSession, config: config, at: mathEnd)
+
+        XCTAssertEqual(mathResult.pointsEarned, 100)
+        XCTAssertEqual(engine.getTodayPoints(childId: childId, appId: mathApp), 100)
+        XCTAssertFalse(engine.canAccruePoints(childId: childId, appId: mathApp, config: config))
+
+        // Reading app still has full cap available and should accrue normally
+        let readingStart = mathEnd
+        let readingSession = engine.startSession(childId: childId, appId: readingApp, at: readingStart)
+        let readingEnd = readingStart.addingTimeInterval(300)
+        let readingResult = engine.endSession(session: readingSession, config: config, at: readingEnd)
+
+        XCTAssertEqual(readingResult.pointsEarned, 50)
+        XCTAssertEqual(engine.getTodayPoints(childId: childId, appId: readingApp), 50)
+        XCTAssertTrue(engine.canAccruePoints(childId: childId, appId: readingApp, config: config))
+
+        // Global total should combine both apps
+        XCTAssertEqual(engine.getTodayPoints(childId: childId), 150)
+    }
+
+    func testEndSessionWithoutAppIdentifierStillTracksGlobalTotal() {
+        engine.resetDailyAccruals(childId: childId)
+
+        let config = PointsConfiguration(pointsPerMinute: 10, dailyCapPoints: 100, idleTimeoutSeconds: 180)
+        let startTime = Date()
+        let session = engine.startSession(childId: childId, at: startTime)
+        let endTime = startTime.addingTimeInterval(600)
+        let result = engine.endSession(session: session, config: config, at: endTime)
+
+        XCTAssertEqual(result.pointsEarned, 100)
+        XCTAssertEqual(engine.getTodayPoints(childId: childId), 100)
+    }
+
     // MARK: - Multiple Children Tests
 
     func testMultipleChildrenIndependentAccruals() {

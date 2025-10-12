@@ -15,14 +15,34 @@ public protocol RedemptionServiceProtocol {
     func redeem(
         childId: ChildID,
         points: Int,
-        config: RedemptionConfiguration
+        config: RedemptionConfiguration,
+        appId: AppIdentifier?
     ) throws -> EarnedTimeWindow
 
     func canRedeem(
         childId: ChildID,
         points: Int,
-        config: RedemptionConfiguration
+        config: RedemptionConfiguration,
+        appId: AppIdentifier?
     ) -> Result<Int, RedemptionError>
+}
+
+public extension RedemptionServiceProtocol {
+    func redeem(
+        childId: ChildID,
+        points: Int,
+        config: RedemptionConfiguration = .default
+    ) throws -> EarnedTimeWindow {
+        try redeem(childId: childId, points: points, config: config, appId: nil)
+    }
+
+    func canRedeem(
+        childId: ChildID,
+        points: Int,
+        config: RedemptionConfiguration = .default
+    ) -> Result<Int, RedemptionError> {
+        canRedeem(childId: childId, points: points, config: config, appId: nil)
+    }
 }
 
 public final class RedemptionService: RedemptionServiceProtocol {
@@ -38,7 +58,8 @@ public final class RedemptionService: RedemptionServiceProtocol {
     public func canRedeem(
         childId: ChildID,
         points: Int,
-        config: RedemptionConfiguration = .default
+        config: RedemptionConfiguration = .default,
+        appId: AppIdentifier? = nil
     ) -> Result<Int, RedemptionError> {
         // Check minimum
         guard points >= config.minRedemptionPoints else {
@@ -51,7 +72,12 @@ public final class RedemptionService: RedemptionServiceProtocol {
         }
 
         // Check balance
-        let balance = ledger.getBalance(childId: childId)
+        let balance: Int
+        if let appId = appId {
+            balance = ledger.getBalance(childId: childId, appId: appId)
+        } else {
+            balance = ledger.getBalance(childId: childId)
+        }
         guard balance >= points else {
             return .failure(.insufficientBalance(available: balance, required: points))
         }
@@ -65,10 +91,11 @@ public final class RedemptionService: RedemptionServiceProtocol {
     public func redeem(
         childId: ChildID,
         points: Int,
-        config: RedemptionConfiguration = .default
+        config: RedemptionConfiguration = .default,
+        appId: AppIdentifier? = nil
     ) throws -> EarnedTimeWindow {
         // Validate
-        switch canRedeem(childId: childId, points: points, config: config) {
+        switch canRedeem(childId: childId, points: points, config: config, appId: appId) {
         case .success:
             break
         case .failure(let error):
@@ -80,7 +107,7 @@ public final class RedemptionService: RedemptionServiceProtocol {
         let durationSeconds = minutes * 60.0
 
         // Record redemption in ledger (deduct points)
-        _ = ledger.recordRedemption(childId: childId, points: points, timestamp: Date())
+        _ = ledger.recordRedemption(childId: childId, appId: appId, points: points, timestamp: Date())
 
         // Create earned time window
         let window = EarnedTimeWindow(

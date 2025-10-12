@@ -27,9 +27,10 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
     // MARK: - Recording Transactions
 
     @MainActor
-    public func recordAccrual(childId: ChildID, points: Int, timestamp: Date = Date()) -> PointsLedgerEntry {
+    public func recordAccrual(childId: ChildID, appId: AppIdentifier? = nil, points: Int, timestamp: Date = Date()) -> PointsLedgerEntry {
         let entry = PointsLedgerEntry(
             childId: childId,
+            appId: appId,
             type: .accrual,
             amount: points,
             timestamp: timestamp
@@ -43,9 +44,10 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
     }
 
     @MainActor
-    public func recordRedemption(childId: ChildID, points: Int, timestamp: Date = Date()) -> PointsLedgerEntry {
+    public func recordRedemption(childId: ChildID, appId: AppIdentifier? = nil, points: Int, timestamp: Date = Date()) -> PointsLedgerEntry {
         let entry = PointsLedgerEntry(
             childId: childId,
+            appId: appId,
             type: .redemption,
             amount: -abs(points), // Redemptions are negative
             timestamp: timestamp
@@ -60,9 +62,10 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
     }
 
     @MainActor
-    public func recordAdjustment(childId: ChildID, points: Int, reason: String, timestamp: Date = Date()) -> PointsLedgerEntry {
+    public func recordAdjustment(childId: ChildID, appId: AppIdentifier? = nil, points: Int, reason: String, timestamp: Date = Date()) -> PointsLedgerEntry {
         let entry = PointsLedgerEntry(
             childId: childId,
+            appId: appId,
             type: .adjustment,
             amount: points,
             timestamp: timestamp
@@ -89,6 +92,27 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
             entries
                 .filter { $0.childId == childId }
                 .reduce(0) { $0 + $1.amount }
+        }
+    }
+
+    public func getBalance(childId: ChildID, appId: AppIdentifier) -> Int {
+        queue.sync {
+            entries
+                .filter { $0.childId == childId && $0.appId == appId }
+                .reduce(0) { $0 + $1.amount }
+        }
+    }
+
+    public func getBalances(childId: ChildID) -> [AppIdentifier: Int] {
+        queue.sync {
+            var balances: [AppIdentifier: Int] = [:]
+            entries
+                .filter { $0.childId == childId }
+                .forEach { entry in
+                    guard let appId = entry.appId else { return }
+                    balances[appId, default: 0] += entry.amount
+                }
+            return balances
         }
     }
 
