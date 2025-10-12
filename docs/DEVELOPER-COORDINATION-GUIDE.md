@@ -191,14 +191,14 @@ This guide helps you get up to speed on the current state of the project after t
 
 ### Priority 2: Two-Level Parent Mode Structure
 
-**Effort**: 4-6 hours
-**Status**: ✅ Phase 2.1 & 2.2 implemented; ready for QA and polish
-**Reference**: `docs/implementation-plan-2025-10-11-final.md` Phase 2
+**Effort**: 4-6 hours (dashboard done) + additional work for Level 2 refactor
+**Status**: ✅ Level 1 dashboard shipped; ⚠️ Level 2 (`ChildDeviceParentModeView`) redesign pending
+**Reference**: `docs/implementation-plan-2025-10-11-final.md` Phase 2, `docs/architecture-confirmed-2025-10-11.md`
 
-**What to verify**:
-- Parent Mode opens into the new dashboard with one tab per child plus the Account placeholder.
-- Linking a child device from the dashboard still works (toolbar button → pairing sheet).
-- Selecting a child drills into the existing `ChildDeviceParentModeView` with the correct child preselected.
+**Next actions**:
+1. Redesign `ChildDeviceParentModeView` into the four-tab layout (Apps / Points / Rewards / Settings) per the confirmed architecture.
+2. Resolve the per-app points data-model ambiguity (user picked Option B global pool but also wants per-app balances/partial redemption).
+3. Once clarified, wire per-app accrual and redemption UI (depends on Phase 3 ledger work) and ensure navigation from the dashboard preselects the right child and tab.
 
 **Testing**:
 - Parent Mode → Family dashboard (Level 1)

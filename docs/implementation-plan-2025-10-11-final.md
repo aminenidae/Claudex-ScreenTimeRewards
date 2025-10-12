@@ -363,10 +363,18 @@ struct DeviceRoleSetupView: View {
 **Status:** ✅ Implemented (2025-10-11)
 
 
-### Step 2.2: Keep Existing ChildDeviceParentModeView (Level 2)
+### Step 2.2: Update ChildDeviceParentModeView for Level 2 Configuration
 **File**: `apps/ParentiOS/Views/ChildDeviceParentModeView.swift`
 
-**Status:** ✅ Implemented (2025-10-11) – `ParentDeviceParentModeView` now sets `childrenManager.selectedChildId` before navigating so the existing Level 2 screen opens with the chosen child context.
+**Status:** ⏸️ Pending implementation – view still reflects the legacy single-page layout.
+
+**Requirements (per architecture flow):**
+- Convert the view into a tabbed surface with four tabs: **Apps**, **Points**, **Rewards**, **Settings**.
+- `Apps` tab: manage learning/reward classification using the child’s on-device inventory (same UI as today, scoped to the selected child).
+- `Points` tab: configure per-app point accrual rules once the per-app ledger refactor lands (Phase 3 dependency).
+- `Rewards` tab: configure redemption rules per reward app, supporting partial/full redemptions.
+- `Settings` tab: screen time authorization status, PIN management, pairing management, and future advanced options.
+- Ensure navigation from `ParentDeviceParentModeView` pre-selects the correct child context and that changes propagate back to the dashboard.
 
 ---
 

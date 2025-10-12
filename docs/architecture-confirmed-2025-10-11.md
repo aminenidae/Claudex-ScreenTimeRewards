@@ -226,37 +226,37 @@ ModeSelectionView
 
 ### Display & UX
 1. **Child Mode Points Display**:
-   - Show aggregated total? Or list per-app balances?
+   - Show aggregated total? Or list per-app balances? Per App balances.
    - Example: "Total: 500 points" or "Khan Academy: 200, Duolingo: 300"
 
 2. **Redemption Flow**:
    - How does child select which app to unlock?
-   - UI: Dropdown? Grid of app icons? List?
-   - Can child see their balance for each app before selecting?
+   - UI: Dropdown? Grid of app icons? List? Grid of app icons with points
+   - Can child see their balance for each app before selecting? YES
 
 3. **Partial Redemption**:
    - Child has 200 points in Khan Academy
    - Wants to unlock Instagram (costs 300 points)
-   - Flow: Use 200 from Khan Academy, 100 from Duolingo?
-   - Or: Show error "Not enough points in Khan Academy"?
+   - Flow: Use 200 from Khan Academy, 100 from Duolingo? Yes
+   - Or: Show error "Not enough points in Khan Academy"? No
 
 4. **Zero Balance Apps**:
-   - If child has 0 points in a learning app, show it as 0?
-   - Or hide apps with 0 balance?
+   - If child has 0 points in a learning app, show it as 0? Yes
+   - Or hide apps with 0 balance? No
 
 ### Configuration
 5. **Per-App Point Rules**:
-   - Each learning app has its own points-per-minute?
+   - Each learning app has its own points-per-minute? YES (Configured by Parent)
    - Example: Khan Academy = 10 pts/min, Duolingo = 15 pts/min?
-   - Or: All learning apps earn same rate?
+   - Or: All learning apps earn same rate? No
 
 6. **Per-App Daily Cap**:
-   - Each learning app has its own daily cap?
-   - Or: Global daily cap across all learning apps?
+   - Each learning app has its own daily cap? YES (Configured by Parent)
+   - Or: Global daily cap across all learning apps? NO (but parent will set the total daily cap of reward apps)
 
 7. **Cross-App Redemption**:
-   - Can points from any learning app unlock any reward app?
-   - Or: Khan Academy points only unlock Education-tagged rewards?
+   - Can points from any learning app unlock any reward app? YES
+   - Or: Khan Academy points only unlock Education-tagged rewards? No
 
 ### Data Model
 8. **Point Tracking**:
@@ -266,7 +266,15 @@ ModeSelectionView
    - Option B: Global pool with per-app earning rates
      - `childId → total balance`
      - Earn at different rates per app, but single pool
-   - Which model matches your vision?
+   - Which model matches your vision? Option A
+
+### User Responses (2025-10-12)
+- Show per-app balances in Child Mode (grid of app icons with points) and surface balances before redemption.
+- Partial redemption can combine points from multiple learning apps automatically; do not block when a single app lacks sufficient points.
+- Apps with zero balance should remain visible (display `0`).
+- Parents configure points-per-minute and daily caps per learning app; they also define a total daily cap for reward apps.
+- Any learning app’s points can unlock any reward app.
+- **Data model choice:** Option A – maintain balances per app. (Earlier Option B response retracted to avoid conflict with per-app balances.)
 
 ---
 
