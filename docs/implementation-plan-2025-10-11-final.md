@@ -330,69 +330,10 @@ struct DeviceRoleSetupView: View {
    - Hide Child Mode if deviceRole == .parent
 4. Remove gear icon from ChildModeView
 
-```swift
-@StateObject private var deviceRoleManager: DeviceRoleManager
+- `ClaudexApp` now presents `DeviceRoleSetupView` until the role is known, then loads `ModeSelectionView` with the appropriate buttons.
+- Parent Mode authentication uses the existing PIN setup/entry flow before navigating into `ParentDeviceParentModeView`.
+- Child Mode appears only on `.child` devices; parent devices see an informational card instead.
 
-Group {
-    if isPriming {
-        ProgressView("Preparing...")
-    } else if !deviceRoleManager.isRoleSet {
-        DeviceRoleSetupView()
-            .environmentObject(deviceRoleManager)
-            .environmentObject(childrenManager)
-    } else {
-        ModeSelectionView(pendingPairingCode: $pendingPairingCode)
-            .environmentObject(deviceRoleManager)
-            .environmentObject(pinManager)
-            // other environment objects unchanged
-    }
-}
-
-struct ModeSelectionView: View {
-    @EnvironmentObject private var deviceRoleManager: DeviceRoleManager
-    @EnvironmentObject private var pinManager: PINManager
-    @Binding var pendingPairingCode: String?
-
-    @State private var navigateToParentMode = false
-    @State private var navigateToChildMode = false
-    @State private var showingPINEntry = false
-    @State private var showingPINSetup = false
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 24) {
-                Button { handleParentModeTap() } label: {
-                    ModeButton(title: "Parent Mode", subtitle: "Configure rules, review points, approve redemptions")
-                }
-
-                if deviceRoleManager.deviceRole == .child {
-                    Button { navigateToChildMode = true } label: {
-                        ModeButton(title: "Child Mode", subtitle: "Earn points, see rewards, request more time")
-                    }
-                } else {
-                    ModeInfoCard(
-                        title: "Child Mode Hidden",
-                        message: "Child Mode is available only on devices registered as child devices."
-                    )
-                }
-            }
-            .navigationDestination(isPresented: $navigateToParentMode) {
-                ParentModeView()
-                    .onDisappear { pinManager.lock() }
-            }
-            .navigationDestination(isPresented: $navigateToChildMode) {
-                ChildModeView(pendingPairingCode: $pendingPairingCode)
-            }
-        }
-        .sheet(isPresented: $showingPINEntry, onDismiss: openParentModeIfAuthenticated) {
-            PINEntryView().environmentObject(pinManager)
-        }
-        .sheet(isPresented: $showingPINSetup, onDismiss: openParentModeIfAuthenticated) {
-            PINSetupView().environmentObject(pinManager)
-        }
-    }
-}
-```
 
 **Status:** ✅ Implemented (2025-10-11)
 
