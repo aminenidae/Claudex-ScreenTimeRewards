@@ -169,6 +169,210 @@ Child Device (Primary Configuration + Enforcement)
 
 ---
 
+## 2025-10-11 Evening | Architecture Refinement & Device Role Detection Planning 📋
+
+### Session Summary
+
+**Goal**: Implement Phase 1 of post-pivot architecture (PIN authentication + Parent Mode on child device)
+
+**Outcome**: Multiple implementation attempts failed, comprehensive documentation created, next phase planned
+
+### What Was Attempted (But Failed)
+
+**1. PIN Authentication System**
+- ✅ **Created**: PINManager.swift, PINSetupView.swift, PINEntryView.swift (241-315 LOC each)
+- ✅ **Compiles**: All code builds successfully
+- ❌ **UI Broken**: PIN setup Continue button not visible (3 fix attempts failed)
+  - Attempt 1: Reduced spacing (24→12px)
+  - Attempt 2: Made elements smaller (icons, buttons, dots)
+  - Attempt 3: Added ScrollView wrapper
+  - **Result**: Button still off-screen, user cannot complete setup
+
+**2. Duplicate Children Cleanup**
+- ✅ **Created**: De-duplication logic in ChildrenManager.swift
+- ✅ **Created**: Cleanup UI in ChildDeviceParentModeView.swift
+- ❌ **Doesn't Work**: Cleanup failed, user manually cleaned CloudKit
+  - Issue 1: De-duplication uses name (should use ChildID)
+  - Issue 2: Many test children with same name from testing
+  - Issue 3: CloudKit deletion doesn't work as expected
+
+**3. ChildDeviceParentModeView with 4 Tabs**
+- ✅ **Created**: Apps, Points, Rewards, Settings tabs
+- ⚠️ **Architecture Wrong**: Accessed via gear icon in Child Mode
+  - Issue: Gear icon gives child access to parent configuration
+  - Fix: Move authentication to mode selection level
+
+### User Feedback & Frustrations
+
+**Critical Issues Raised**:
+1. "nothing was fixed" - Multiple failed attempts wasted time
+2. "you tried three times to fix the UI issue...you failed" - PIN Continue button still not visible
+3. "you were unable to fix the duplicated kids" - Cleanup feature doesn't work
+4. "You are wasting our time" - Need proper documentation for coordination
+
+**User Requirements**:
+- ✅ Documentation BEFORE coding (prioritize)
+- ✅ Progress tracking for team coordination
+- ✅ No more trial-and-error without planning
+- ✅ Clear reference for other developers
+
+### Architecture Clarification Received
+
+**User Confirmed**:
+1. **Parent Mode** on child's device:
+   - Configure app categories (Learning/Reward) ✅
+   - Set points rules PER APP (not global) 🔴 MAJOR CHANGE
+   - Monitor child's activity ✅
+   - Setup screentime config ✅
+   - **PIN-protected at mode selection level** (not inside Parent Mode)
+
+2. **Child Mode** on child's device:
+   - See points balance (per-app display) ✅
+   - Redeem points PER APP (partial or full) 🔴 MAJOR CHANGE
+   - Remaining points can go to other apps ✅
+   - See active reward time ✅
+
+3. **Key Decisions**:
+   - **No gear icon** - Parent authenticates as "parent/organizer/guardian" at mode selection
+   - **Two-level Parent Mode**: Family dashboard (Level 1) → Per-child config (Level 2)
+   - **Per-app points system** required (NOT global points per child)
+   - **Device role detection** approved (hide Child Mode on parent devices)
+
+### Critical Discovery: Per-App Points System Required
+
+**Current Implementation** (WRONG):
+- PointsLedger: `childId → total points balance`
+- Global points-per-minute configuration
+- Global redemption from single pool
+
+**Required Implementation** (CORRECT):
+- PointsLedger: `childId → appId → points balance`
+- Per-app points-per-minute configuration
+- Per-app redemption (can use multiple apps' points for one redemption)
+
+**Impact**: 2-3 day refactor of entire points system (data model, engine, UI)
+
+### Documentation Created (6 New Files)
+
+**1. Implementation Plan** (`docs/implementation-plan-2025-10-11-final.md`)
+- Complete Phase 1 & 2 implementation details
+- Device role detection (~6-8 hours)
+- Two-level Parent Mode structure (~4-6 hours)
+- Testing plan
+
+**2. Session Progress** (`docs/session-progress-2025-10-11.md`)
+- What was attempted and failed
+- Known issues and blockers
+- Files changed with status
+
+**3. Code Changes Log** (`docs/code-changes-2025-10-11.md`)
+- Detailed file-by-file changes
+- Why each change was made
+- What's wrong with each change
+- Rollback instructions
+
+**4. Architecture Confirmed** (`docs/architecture-confirmed-2025-10-11.md`)
+- User clarifications and decisions
+- 8 questions about per-app points system
+- Action plan prioritization
+
+**5. Device Role Detection Analysis** (`docs/device-role-detection-analysis.md`)
+- Feasibility analysis (YES, using CloudKit)
+- Implementation approach (~6-8 hours)
+- No conflict with Apple's rules
+
+**6. Developer Coordination Guide** (`docs/DEVELOPER-COORDINATION-GUIDE.md`) ⭐
+- **Master reference for other developers**
+- What to read (priority order)
+- What NOT to work on
+- What TO work on
+- Current codebase state
+
+### Files Changed This Session
+
+**New Files Created** (4):
+- `apps/ParentiOS/Services/PINManager.swift` (241 LOC) - PIN authentication logic ✅
+- `apps/ParentiOS/Views/PINSetupView.swift` (315 LOC) - PIN creation (UI broken) ❌
+- `apps/ParentiOS/Views/PINEntryView.swift` (240 LOC) - PIN entry (has Submit button) ✅
+- `apps/ParentiOS/Views/ChildDeviceParentModeView.swift` (339 LOC) - 4-tab config (wrong architecture) ⚠️
+
+**Modified Files** (5):
+- `apps/ParentiOS/ViewModels/ChildrenManager.swift` - De-duplication (doesn't work) ❌
+- `apps/ParentiOS/Views/ChildDeviceParentModeView.swift` - Cleanup button (doesn't work) ❌
+- `apps/ParentiOS/Views/PINEntryView.swift` - Submit button added ✅
+- `apps/ParentiOS/Views/PINSetupView.swift` - Layout fixes (still broken) ❌
+- `docs/architecture-confirmed-2025-10-11.md` - User modifications ✅
+
+### Build Status
+- ✅ **Compiles**: Xcode build succeeds (Debug-iphoneos)
+- ❌ **UX Broken**: PIN setup UI not usable
+- ❌ **Architecture Wrong**: Gear icon placement incorrect
+- ⚠️ **WIP Commit**: All changes committed with known issues documented
+
+### Next Phase: Device Role Detection + Mode Selection Fix
+
+**Approved by User**: Ready to implement after documentation review
+
+**Phase 1** (6-8 hours):
+1. Add DeviceRole enum (.parent | .child)
+2. Create DeviceRoleManager service
+3. Create DeviceRoleSetupView (first launch)
+4. Update ClaudexApp.swift:
+   - Remove gear icon from Child Mode ✂️
+   - Add PIN protection at mode selection level 🔐
+   - Hide Child Mode on parent devices 👁️
+5. Update PairingService (add deviceRole field)
+
+**Phase 2** (4-6 hours):
+1. Create ParentDeviceParentModeView (family dashboard)
+2. Navigation to ChildDeviceParentModeView (per-child config)
+3. Display aggregated points per child
+
+**Phase 3** (BLOCKED):
+- Per-app points system refactor
+- Awaiting user answers to 8 design questions
+
+### Lessons Learned
+
+**Critical Insights**:
+1. **Document before coding** - Planning prevents wasted attempts
+2. **Test on real devices** - Simulator may have different layout issues
+3. **Ask for clarification** - Don't assume architecture, get user confirmation
+4. **Coordinate with team** - Other developers need clear documentation
+5. **Track progress properly** - Update PRD, checklists, progress-log
+
+**For Future Sessions**:
+- ✅ Create action plan BEFORE writing code
+- ✅ Get user approval on plan
+- ✅ Document known issues clearly
+- ✅ Commit frequently with clear messages
+- ✅ Update all project documentation (not just new docs)
+
+### References
+
+- **Master Reference**: `docs/DEVELOPER-COORDINATION-GUIDE.md` ⭐
+- **Implementation Plan**: `docs/implementation-plan-2025-10-11-final.md`
+- **Session Progress**: `docs/session-progress-2025-10-11.md`
+- **Code Changes**: `docs/code-changes-2025-10-11.md`
+- **Architecture Confirmed**: `docs/architecture-confirmed-2025-10-11.md`
+- **Device Role Analysis**: `docs/device-role-detection-analysis.md`
+
+### Status
+
+- ✅ **Documentation**: Complete (6 new docs + coordination guide)
+- ⚠️ **Code**: Work-in-progress with known issues
+- 🚀 **Next**: Awaiting user approval to start Phase 1 implementation
+- 📋 **Coordination**: Developer guide created for team reference
+
+**Commits**:
+- `1b0a28f` - Session progress documentation
+- `6762c79` - Architecture confirmation
+- `f1e36d8` - Device role detection analysis
+- `a1bd50c` - Final implementation plan
+- `a5591a2` - WIP: PIN authentication (has known issues)
+
+---
+
 ## 2025-10-10 | Phase 2: Child App Inventory Sync for Custom Picker ✅
 
 ### Issue Summary
