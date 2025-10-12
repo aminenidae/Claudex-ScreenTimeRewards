@@ -22,7 +22,8 @@ import FamilyControls
 struct ClaudexScreenTimeRewardsApp: App {
     @StateObject private var authorizationCoordinator = ScreenTimeAuthorizationCoordinator()
     @StateObject private var childrenManager: ChildrenManager
-    @StateObject private var pairingService = PairingService()
+    @StateObject private var pairingService: PairingService
+    @StateObject private var deviceRoleManager: DeviceRoleManager
     @StateObject private var rulesManager = CategoryRulesManager()
     @StateObject private var ledger: PointsLedger
     @StateObject private var learningCoordinator: LearningSessionCoordinator
@@ -72,6 +73,12 @@ struct ClaudexScreenTimeRewardsApp: App {
         #else
         self._rewardCoordinator = StateObject(wrappedValue: RewardCoordinator())
         #endif
+
+        let pairingService = PairingService()
+        self._pairingService = StateObject(wrappedValue: pairingService)
+
+        let deviceRoleManager = DeviceRoleManager(pairingService: pairingService)
+        self._deviceRoleManager = StateObject(wrappedValue: deviceRoleManager)
     }
 
     var body: some Scene {
@@ -80,6 +87,13 @@ struct ClaudexScreenTimeRewardsApp: App {
                 Group {
                     if isPriming {
                         ProgressView("Preparing...")
+                    } else if !deviceRoleManager.isRoleSet {
+                        DeviceRoleSetupView()
+                            .environmentObject(deviceRoleManager)
+                            .environmentObject(childrenManager)
+                            .task {
+                                await deviceRoleManager.loadDeviceRole()
+                            }
                     } else {
                         ModeSelectionView(pendingPairingCode: $pendingPairingCode)
                             .environmentObject(authorizationCoordinator)
@@ -91,6 +105,7 @@ struct ClaudexScreenTimeRewardsApp: App {
                             .environmentObject(rewardCoordinator)
                             .environmentObject(syncService)
                             .environmentObject(pinManager)
+                            .environmentObject(deviceRoleManager)
                             .onOpenURL { url in
                                 handleDeepLink(url)
                             }
@@ -145,8 +160,13 @@ struct ModeSelectionView: View {
     @EnvironmentObject private var learningCoordinator: LearningSessionCoordinator
     @EnvironmentObject private var rewardCoordinator: RewardCoordinator
     @EnvironmentObject private var pinManager: PINManager
+    @EnvironmentObject private var deviceRoleManager: DeviceRoleManager
     @Binding var pendingPairingCode: String?
+
     @State private var navigateToChildMode = false
+    @State private var navigateToParentMode = false
+    @State private var showingPINEntry = false
+    @State private var showingPINSetup = false
 
     var body: some View {
         NavigationStack {
@@ -159,33 +179,30 @@ struct ModeSelectionView: View {
                     Text("Claudex Screen Time Rewards")
                         .font(.title2)
                         .fontWeight(.semibold)
-                    Text("Select how this device will be used. Parent mode requires Face ID / Touch ID / passcode; child mode shows their points and rewards.")
+                    Text("Select how this device will be used. Parent Mode is PIN-protected; Child Mode is available only on child devices.")
                         .font(.subheadline)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                 }
 
                 VStack(spacing: 16) {
-                    NavigationLink {
-                        ParentModeView()
-                            .environmentObject(authorizationCoordinator)
-                            .environmentObject(childrenManager)
-                            .environmentObject(pairingService)
+                    Button {
+                        handleParentModeTap()
                     } label: {
                         ModeButton(title: "Parent Mode", subtitle: "Configure rules, review points, approve redemptions")
                     }
 
-                    NavigationLink(isActive: $navigateToChildMode) {
-                        ChildModeView(pendingPairingCode: $pendingPairingCode)
-                            .environmentObject(authorizationCoordinator)
-                            .environmentObject(childrenManager)
-                            .environmentObject(pairingService)
-                            .environmentObject(rulesManager)
-                            .environmentObject(learningCoordinator)
-                            .environmentObject(rewardCoordinator)
-                            .environmentObject(pinManager)
-                    } label: {
-                        ModeButton(title: "Child Mode", subtitle: "Earn points, see rewards, request more time")
+                    if deviceRoleManager.deviceRole == .child {
+                        Button {
+                            navigateToChildMode = true
+                        } label: {
+                            ModeButton(title: "Child Mode", subtitle: "Earn points, see rewards, request more time")
+                        }
+                    } else {
+                        ModeInfoCard(
+                            title: "Child Mode Hidden",
+                            message: "Child Mode is available only on devices registered as child devices."
+                        )
                     }
                 }
 
@@ -193,11 +210,54 @@ struct ModeSelectionView: View {
             }
             .padding()
             .task { await authorizationCoordinator.refreshStatus() }
+            .task { await deviceRoleManager.loadDeviceRole() }
             .onChange(of: pendingPairingCode) { newValue in
-                if newValue != nil {
+                if newValue != nil, deviceRoleManager.deviceRole == .child {
                     navigateToChildMode = true
                 }
             }
+            .navigationDestination(isPresented: $navigateToParentMode) {
+                ParentModeView()
+                    .environmentObject(authorizationCoordinator)
+                    .environmentObject(childrenManager)
+                    .environmentObject(pairingService)
+                    .onDisappear {
+                        pinManager.lock()
+                    }
+            }
+            .navigationDestination(isPresented: $navigateToChildMode) {
+                ChildModeView(pendingPairingCode: $pendingPairingCode)
+                    .environmentObject(authorizationCoordinator)
+                    .environmentObject(childrenManager)
+                    .environmentObject(pairingService)
+                    .environmentObject(rulesManager)
+                    .environmentObject(learningCoordinator)
+                    .environmentObject(rewardCoordinator)
+            }
+        }
+        .sheet(isPresented: $showingPINEntry, onDismiss: openParentModeIfAuthenticated) {
+            PINEntryView()
+                .environmentObject(pinManager)
+        }
+        .sheet(isPresented: $showingPINSetup, onDismiss: openParentModeIfAuthenticated) {
+            PINSetupView()
+                .environmentObject(pinManager)
+        }
+    }
+
+    private func handleParentModeTap() {
+        if !pinManager.isPINSet {
+            showingPINSetup = true
+        } else if pinManager.isAuthenticated {
+            navigateToParentMode = true
+        } else {
+            showingPINEntry = true
+        }
+    }
+
+    private func openParentModeIfAuthenticated() {
+        if pinManager.isAuthenticated {
+            navigateToParentMode = true
         }
     }
 }
@@ -206,7 +266,6 @@ struct ModeSelectionView: View {
 struct ChildModeView: View {
     @EnvironmentObject private var childrenManager: ChildrenManager
     @EnvironmentObject private var pairingService: PairingService
-    @EnvironmentObject private var pinManager: PINManager
     @EnvironmentObject private var rulesManager: CategoryRulesManager
     @EnvironmentObject private var learningCoordinator: LearningSessionCoordinator
     @EnvironmentObject private var rewardCoordinator: RewardCoordinator
@@ -217,9 +276,6 @@ struct ChildModeView: View {
     @State private var isLoadingChildren = false
     @State private var showAppEnumeration = false
     @State private var appEnumerationComplete = false
-    @State private var showingParentModeSetup = false
-    @State private var showingParentModeEntry = false
-    @State private var showingParentMode = false
 
     private let deviceId: String
 
@@ -244,17 +300,6 @@ struct ChildModeView: View {
         content
             .navigationTitle("Child Mode")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if currentPairing != nil {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button {
-                            attemptParentModeAccess()
-                        } label: {
-                            Label("Parent Mode", systemImage: "gear.circle")
-                        }
-                    }
-                }
-            }
             .onAppear(perform: refreshPairing)
             .onReceive(pairingService.objectWillChange) { _ in
                 refreshPairing()
@@ -262,49 +307,6 @@ struct ChildModeView: View {
             .alert(item: $alertContext) { context in
                 makeAlert(for: context)
             }
-            .sheet(isPresented: $showingParentModeSetup) {
-                PINSetupView()
-                    .environmentObject(pinManager)
-                    .onDisappear {
-                        if pinManager.isAuthenticated {
-                            showingParentMode = true
-                        }
-                    }
-            }
-            .sheet(isPresented: $showingParentModeEntry) {
-                PINEntryView()
-                    .environmentObject(pinManager)
-                    .onDisappear {
-                        if pinManager.isAuthenticated {
-                            showingParentMode = true
-                        }
-                    }
-            }
-            .fullScreenCover(isPresented: $showingParentMode) {
-                ChildDeviceParentModeView()
-                    .environmentObject(childrenManager)
-                    .environmentObject(rulesManager)
-                    .environmentObject(pinManager)
-                    .environmentObject(learningCoordinator)
-                    .environmentObject(rewardCoordinator)
-                    .onDisappear {
-                        // Clear authentication when Parent Mode is closed
-                        pinManager.lock()
-                    }
-            }
-    }
-
-    private func attemptParentModeAccess() {
-        if !pinManager.isPINSet {
-            // First time - show PIN setup
-            showingParentModeSetup = true
-        } else if pinManager.isAuthenticated {
-            // Already authenticated - show Parent Mode directly
-            showingParentMode = true
-        } else {
-            // PIN is set but not authenticated - show PIN entry
-            showingParentModeEntry = true
-        }
     }
 
     @ViewBuilder
@@ -631,6 +633,28 @@ struct AuthorizationStatusBanner: View {
         case .error:
             return "exclamationmark.triangle"
         }
+    }
+}
+
+@available(iOS 16.0, *)
+private struct ModeInfoCard: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.secondarySystemBackground))
+        )
     }
 }
 

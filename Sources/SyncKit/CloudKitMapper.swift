@@ -18,6 +18,7 @@ public enum CloudKitRecordType {
     public static let auditEntry = "AuditEntry"
     public static let redemptionWindow = "RedemptionWindow"
     public static let pairingCode = "PairingCode"
+    public static let devicePairing = "DevicePairing"
 }
 
 public enum CloudKitMapperError: Error {
@@ -244,6 +245,68 @@ public struct CloudKitMapper {
             isUsed: isUsed,
             usedAt: usedAt,
             usedByDeviceId: usedByDeviceId
+        )
+    }
+
+    // MARK: - Device Pairing
+
+    public static func devicePairingRecord(
+        for payload: DevicePairingPayload,
+        familyID: CKRecord.ID
+    ) -> CKRecord {
+        let recordID = CKRecord.ID(recordName: payload.id)
+        let record = CKRecord(recordType: CloudKitRecordType.devicePairing, recordID: recordID)
+        applyDevicePairing(payload, to: record, familyID: familyID)
+        return record
+    }
+
+    public static func applyDevicePairing(
+        _ payload: DevicePairingPayload,
+        to record: CKRecord,
+        familyID: CKRecord.ID
+    ) {
+        record["familyRef"] = CKRecord.Reference(recordID: familyID, action: .none)
+
+        if let childId = payload.childId {
+            let childRecordID = CKRecord.ID(recordName: childId.rawValue)
+            record["childRef"] = CKRecord.Reference(recordID: childRecordID, action: .none)
+        } else {
+            record["childRef"] = nil
+        }
+
+        record["deviceId"] = payload.deviceId
+        record["deviceName"] = payload.deviceName
+        record["deviceRole"] = payload.deviceRole.rawValue
+        record["pairedAt"] = payload.pairedAt
+    }
+
+    public static func devicePairingPayload(from record: CKRecord) throws -> DevicePairingPayload {
+        let deviceId = (record["deviceId"] as? String) ?? record.recordID.recordName
+
+        guard let roleRaw = record["deviceRole"] as? String,
+              let role = DeviceRole(rawValue: roleRaw) else {
+            throw CloudKitMapperError.missingField("deviceRole")
+        }
+
+        guard let pairedAt = record["pairedAt"] as? Date else {
+            throw CloudKitMapperError.missingField("pairedAt")
+        }
+
+        let deviceName = record["deviceName"] as? String ?? "Unknown Device"
+        let familyRef = record["familyRef"] as? CKRecord.Reference
+        let familyId = familyRef.map { FamilyID($0.recordID.recordName) }
+
+        let childRef = record["childRef"] as? CKRecord.Reference
+        let childId = childRef.map { ChildID($0.recordID.recordName) }
+
+        return DevicePairingPayload(
+            id: record.recordID.recordName,
+            childId: childId,
+            deviceId: deviceId,
+            deviceName: deviceName,
+            deviceRole: role,
+            pairedAt: pairedAt,
+            familyId: familyId
         )
     }
 

@@ -9,9 +9,9 @@ This guide helps you get up to speed on the current state of the project after t
 ## 🎯 Start Here: What You Need to Know
 
 ### Current Status
-- ✅ **Documentation**: Fully updated (6 new docs created)
-- ⚠️ **Code**: Work-in-progress with known issues (WIP commit)
-- 🚀 **Next Phase**: Device role detection + mode selection fix (approved, ready to implement)
+- ✅ **Documentation**: Updated again after Phase 1 implementation (plan & guide refreshed)
+- ⚠️ **Code**: Phase 1 (device role detection + mode selection) merged locally, needs simulator/device QA
+- 🔄 **Next Step**: Validate the new flow on parent vs child devices, then proceed to Phase 2 dashboard work
 
 ### What Happened This Session
 1. **Attempted PIN authentication implementation** → UI broken (Continue button not visible)
@@ -168,23 +168,24 @@ This guide helps you get up to speed on the current state of the project after t
 
 ## ✅ What TO Work On
 
-### Priority 1: Device Role Detection + Mode Selection Fix
+### Priority 1: Verify Device Role Detection + Mode Selection
 
-**Effort**: 6-8 hours
-**Status**: Fully documented, ready to implement
-**Reference**: `docs/implementation-plan-2025-10-11-final.md`
+**Effort**: 2-3 hours (QA + follow-up fixes)
+**Status**: Code landed locally; awaiting simulator/device validation
+**Reference**: `docs/implementation-plan-2025-10-11-final.md` (Phase 1 now marked as implemented)
 
-**Steps** (in order):
-1. **Phase 1.1**: Add DeviceRole enum to `Sources/Core/AppModels.swift`
-2. **Phase 1.2**: Create `apps/ParentiOS/Services/DeviceRoleManager.swift`
-3. **Phase 1.3**: Create `apps/ParentiOS/Views/DeviceRoleSetupView.swift`
-4. **Phase 1.4**: Update `apps/ParentiOS/ClaudexApp.swift` (remove gear icon, fix mode selection)
-5. **Phase 1.5**: Update `Sources/Core/PairingService.swift` (add deviceRole field)
+**What to Test**:
+- Child device first launch → DeviceRoleSetupView → select child → confirm ModeSelection shows both modes
+- Parent device first launch → DeviceRoleSetupView → register as parent → verify Child Mode hidden & info card displayed
+- Parent Mode access → PIN setup/entry triggered before navigation; check `pinManager.lock()` resets on exit
+- Deep link (`claudex://pair/<code>`) on parent device → ensure navigation does **not** force Child Mode
+- Build the ParentiOS target in Xcode (CLI `xcodebuild` is blocked in this sandbox because CoreSimulator cannot start)
+- Child-device flow should automatically fetch CloudKit children when none are cached locally, and surface the selector once records arrive (no manual retry necessary)
 
-**Testing**:
-- First launch on child device → see both modes
-- First launch on parent device → see Parent Mode only
-- PIN protection at mode selection level
+**Follow-ups if issues surface**:
+1. Double-check `DevicePairingPayload` syncing via `SyncService` (CloudKit logs in console)
+2. Confirm `deviceRoleManager.isRoleSet` persists across relaunch via `UserDefaults`
+3. Update documentation/test log with QA results
 
 ---
 

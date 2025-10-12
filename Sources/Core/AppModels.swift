@@ -5,6 +5,9 @@ public protocol PairingSyncServiceProtocol {
     func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode]
     func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws
     func deletePairingCode(_ code: String, familyId: FamilyID) async throws
+    func fetchDevicePairings(familyId: FamilyID) async throws -> [DevicePairingPayload]
+    func saveDevicePairing(_ pairing: DevicePairingPayload, familyId: FamilyID) async throws
+    func deleteDevicePairing(deviceId: String, familyId: FamilyID) async throws
 }
 
 // Note: CloudKitDebugging protocol and NoOpCloudKitDebugger are now defined in CloudKitDebugger.swift
@@ -64,6 +67,12 @@ public struct FamilyID: Hashable, Codable { public let rawValue: String; public 
 public struct ChildID: Hashable, Codable { public let rawValue: String; public init(_ v: String) { self.rawValue = v } }
 
 public enum AppClassification: String, Codable { case learning, reward }
+
+/// Identifies whether a device operates as a parent/guardian console or the child's managed device.
+public enum DeviceRole: String, Codable, Sendable {
+    case parent
+    case child
+}
 
 // MARK: - CloudKit Sync Models
 
@@ -167,6 +176,34 @@ public struct ChildAppInventoryPayload: Codable, Equatable {
         self.categoryTokens = categoryTokens
         self.lastUpdated = lastUpdated
         self.appCount = appCount
+    }
+}
+
+public struct DevicePairingPayload: Codable, Equatable {
+    public let id: String
+    public let childId: ChildID?
+    public let deviceId: String
+    public let deviceName: String
+    public let deviceRole: DeviceRole
+    public let pairedAt: Date
+    public let familyId: FamilyID?
+
+    public init(
+        id: String,
+        childId: ChildID?,
+        deviceId: String,
+        deviceName: String,
+        deviceRole: DeviceRole,
+        pairedAt: Date = Date(),
+        familyId: FamilyID?
+    ) {
+        self.id = id
+        self.childId = childId
+        self.deviceId = deviceId
+        self.deviceName = deviceName
+        self.deviceRole = deviceRole
+        self.pairedAt = pairedAt
+        self.familyId = familyId
     }
 }
 

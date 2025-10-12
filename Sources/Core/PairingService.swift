@@ -114,6 +114,7 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
     // Make this public for debugging
     public private(set) var activeCodes: [String: PairingCode] = [:]
     private var pairings: [String: ChildDevicePairing] = [:] // deviceId -> pairing
+    @Published public private(set) var devicePairings: [String: DevicePairingPayload] = [:] // deviceId -> payload
 
     // Rate limiting: max 5 code generations per child per hour
     private var generationAttempts: [ChildID: [Date]] = [:]
@@ -127,6 +128,7 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
     private let codesKey = "com.claudex.pairingCodes"
     private let generationKey = "com.claudex.pairingGenerationAttempts"
     private let validationKey = "com.claudex.pairingValidationAttempts"
+    private let devicePairingsKey = "com.claudex.devicePairings"
     private let defaults: UserDefaults
 
     // Use a generic protocol instead of importing SyncKit directly
@@ -158,6 +160,62 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
     
     public func setSyncService(_ service: any PairingSyncServiceProtocol) {
         self.syncService = service
+    }
+
+    // MARK: - Device Role Helpers
+
+    public func cachedDevicePairing(for deviceId: String) -> DevicePairingPayload? {
+        devicePairings[deviceId]
+    }
+
+    public func cachedDeviceRole(for deviceId: String) -> DeviceRole? {
+        devicePairings[deviceId]?.deviceRole
+    }
+
+    @MainActor
+    public func updateCachedDevicePairing(_ pairing: DevicePairingPayload) {
+        notifyChange()
+        devicePairings[pairing.deviceId] = pairing
+        saveToPersistence()
+    }
+
+    @MainActor
+    public func removeCachedDevicePairing(deviceId: String) {
+        if devicePairings.removeValue(forKey: deviceId) != nil {
+            notifyChange()
+            saveToPersistence()
+        }
+    }
+
+    public func refreshDevicePairingsFromCloud(familyId: FamilyID) async {
+        guard let syncService else { return }
+        do {
+            let remotePairings = try await syncService.fetchDevicePairings(familyId: familyId)
+            await updateCachedDevicePairings(remotePairings)
+        } catch {
+            print("PairingService: Failed to refresh device pairings from CloudKit: \(error)")
+        }
+    }
+
+    public func saveDevicePairing(_ pairing: DevicePairingPayload, familyId: FamilyID) async throws {
+        if let syncService {
+            try await syncService.saveDevicePairing(pairing, familyId: familyId)
+        }
+        await updateCachedDevicePairing(pairing)
+    }
+
+    public func deleteDevicePairing(deviceId: String, familyId: FamilyID) async throws {
+        if let syncService {
+            try await syncService.deleteDevicePairing(deviceId: deviceId, familyId: familyId)
+        }
+        await removeCachedDevicePairing(deviceId: deviceId)
+    }
+
+    @MainActor
+    private func updateCachedDevicePairings(_ pairings: [DevicePairingPayload]) {
+        devicePairings = Dictionary(uniqueKeysWithValues: pairings.map { ($0.deviceId, $0) })
+        notifyChange()
+        saveToPersistence()
     }
 
     // MARK: Public Methods
@@ -259,6 +317,17 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         pairingNotifications.send(notification)
         lastPairingNotification = notification
         print("PairingService: Sent pairing notification for device \(deviceId)")
+
+        let devicePairingPayload = DevicePairingPayload(
+            id: pairing.deviceId,
+            childId: pairing.childId,
+            deviceId: pairing.deviceId,
+            deviceName: deviceName,
+            deviceRole: .child,
+            pairedAt: pairing.pairedAt,
+            familyId: nil
+        )
+        Task { await self.updateCachedDevicePairing(devicePairingPayload) }
 
         // Persist
         saveToPersistence()
@@ -606,6 +675,10 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
             defaults.set(encoded, forKey: codesKey)
         }
 
+        if let encoded = try? JSONEncoder().encode(Array(devicePairings.values)) {
+            defaults.set(encoded, forKey: devicePairingsKey)
+        }
+
         if let encoded = try? JSONEncoder().encode(serializeAttempts(generationAttempts)) {
             defaults.set(encoded, forKey: generationKey)
         }
@@ -626,6 +699,11 @@ public final class PairingService: ObservableObject, PairingServiceProtocol {
         if let data = defaults.data(forKey: codesKey),
            let decoded = try? JSONDecoder().decode([PairingCode].self, from: data) {
             activeCodes = Dictionary(uniqueKeysWithValues: decoded.map { ($0.code, $0) })
+        }
+
+        if let data = defaults.data(forKey: devicePairingsKey),
+           let decoded = try? JSONDecoder().decode([DevicePairingPayload].self, from: data) {
+            devicePairings = Dictionary(uniqueKeysWithValues: decoded.map { ($0.deviceId, $0) })
         }
 
         if let data = defaults.data(forKey: generationKey),

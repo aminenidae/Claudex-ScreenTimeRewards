@@ -33,6 +33,9 @@ public protocol SyncServiceProtocol {
     func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode]
     func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws
     func deletePairingCode(_ code: String, familyId: FamilyID) async throws
+    func fetchDevicePairings(familyId: FamilyID) async throws -> [DevicePairingPayload]
+    func saveDevicePairing(_ pairing: DevicePairingPayload, familyId: FamilyID) async throws
+    func deleteDevicePairing(deviceId: String, familyId: FamilyID) async throws
     func purgeExpiredPairingCodes() async throws
     func primeCloudKit() async
     #endif
@@ -379,6 +382,71 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
         }
     }
 
+    public func fetchDevicePairings(familyId: FamilyID) async throws -> [DevicePairingPayload] {
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
+        let familyRef = CKRecord.Reference(recordID: familyRecordID, action: .none)
+        let predicate = NSPredicate(format: "familyRef == %@", familyRef)
+        let query = CKQuery(recordType: CloudKitRecordType.devicePairing, predicate: predicate)
+
+        do {
+            let (results, _) = try await self.publicDatabase.records(matching: query)
+            var pairings: [DevicePairingPayload] = []
+
+            for (_, result) in results {
+                switch result {
+                case .success(let record):
+                    do {
+                        let pairing = try CloudKitMapper.devicePairingPayload(from: record)
+                        pairings.append(pairing)
+                    } catch {
+                        print("SyncService: Failed to parse device pairing: \(error)")
+                    }
+                case .failure(let error):
+                    print("SyncService: Failed to fetch device pairing record: \(error)")
+                }
+            }
+
+            return pairings
+        } catch {
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    public func saveDevicePairing(_ pairing: DevicePairingPayload, familyId: FamilyID) async throws {
+        let familyRecordID = CKRecord.ID(recordName: familyId.rawValue)
+        let recordID = CKRecord.ID(recordName: pairing.id)
+        let record: CKRecord
+
+        do {
+            record = try await self.publicDatabase.record(for: recordID)
+            CloudKitMapper.applyDevicePairing(pairing, to: record, familyID: familyRecordID)
+        } catch let ckError as CKError where ckError.code == .unknownItem {
+            let recordType = CloudKitMapper.devicePairingRecord(for: pairing, familyID: familyRecordID)
+            try await self.publicDatabase.save(recordType)
+            return
+        } catch {
+            throw SyncError.serverError(error.localizedDescription)
+        }
+
+        do {
+            _ = try await self.publicDatabase.modifyRecords(saving: [record], deleting: [])
+        } catch {
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
+    public func deleteDevicePairing(deviceId: String, familyId: FamilyID) async throws {
+        let recordID = CKRecord.ID(recordName: deviceId)
+
+        do {
+            _ = try await self.publicDatabase.deleteRecord(withID: recordID)
+        } catch let ckError as CKError where ckError.code == .unknownItem {
+            print("SyncService: Device pairing not found for deletion: \(deviceId)")
+        } catch {
+            throw SyncError.serverError(error.localizedDescription)
+        }
+    }
+
     public func primeCloudKit() async {
         print("Priming CloudKit container...")
         do {
@@ -445,5 +513,10 @@ public final class SyncService: ObservableObject, SyncServiceProtocol, PairingSy
     public func fetchPairingCodes(familyId: FamilyID) async throws -> [PairingCode] { return [] }
     public func savePairingCode(_ code: PairingCode, familyId: FamilyID) async throws { }
     public func deletePairingCode(_ code: String, familyId: FamilyID) async throws { }
+    public func fetchDevicePairings(familyId: FamilyID) async throws -> [DevicePairingPayload] { return [] }
+    public func saveDevicePairing(_ pairing: DevicePairingPayload, familyId: FamilyID) async throws { }
+    public func deleteDevicePairing(deviceId: String, familyId: FamilyID) async throws { }
+    public func purgeExpiredPairingCodes() async throws { }
+    public func primeCloudKit() async { }
     #endif
 }

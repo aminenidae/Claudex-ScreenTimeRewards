@@ -74,82 +74,109 @@ ModeSelectionView
 **File**: `Sources/Core/AppModels.swift`
 
 ```swift
-// Add near top of file with other enums
+// Added near the top of Sources/Core/AppModels.swift
 public enum DeviceRole: String, Codable, Sendable {
-    case parent    // Monitoring dashboard only
-    case child     // Full functionality (config + child mode)
+    case parent
+    case child
 }
-```
 
-**File**: `Sources/Core/PairingService.swift` (update DevicePairing)
-
-```swift
-// Update struct to include deviceRole
-public struct DevicePairing {
-    public let pairingId: String
-    public let childId: ChildID
+public struct DevicePairingPayload: Codable, Equatable {
+    public let id: String
+    public let childId: ChildID?
     public let deviceId: String
     public let deviceName: String
-    public let deviceRole: DeviceRole  // NEW FIELD
+    public let deviceRole: DeviceRole
     public let pairedAt: Date
-    public let familyId: FamilyID
-
-    public init(
-        pairingId: String,
-        childId: ChildID,
-        deviceId: String,
-        deviceName: String,
-        deviceRole: DeviceRole,  // NEW
-        pairedAt: Date,
-        familyId: FamilyID
-    ) {
-        // ... implementation
-    }
+    public let familyId: FamilyID?
 }
 ```
+
+- `PairingSyncServiceProtocol` now exposes `fetchDevicePairings`, `saveDevicePairing`, and `deleteDevicePairing` so CloudKit can round-trip device roles.
+
+**Status:** ✅ Implemented (2025-10-11)
 
 ### Step 1.2: Create DeviceRoleManager
 **File**: `apps/ParentiOS/Services/DeviceRoleManager.swift` (NEW)
 
 ```swift
-import Foundation
-import Combine
-#if canImport(Core)
-import Core
-#endif
-
 @MainActor
-class DeviceRoleManager: ObservableObject {
+final class DeviceRoleManager: ObservableObject {
+    @Published private(set) var deviceId: String
     @Published var deviceRole: DeviceRole?
     @Published var isRoleSet: Bool = false
-    @Published var deviceId: String
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String?
 
     private let pairingService: PairingService
+    private let defaults: UserDefaults
+    private let familyId: FamilyID
 
-    init(pairingService: PairingService) {
+    init(pairingService: PairingService,
+         defaults: UserDefaults = .standard,
+         familyId: FamilyID = FamilyID("default-family")) {
         self.pairingService = pairingService
-        self.deviceId = Self.getOrCreateDeviceId()
+        self.defaults = defaults
+        self.familyId = familyId
+        self.deviceId = defaults.string(forKey: "com.claudex.deviceId") ?? UUID().uuidString
+        defaults.set(deviceId, forKey: "com.claudex.deviceId")
     }
 
     func loadDeviceRole() async {
-        // Query CloudKit for this device's pairing record
-        do {
-            if let pairing = try await pairingService.getPairingForDevice(deviceId) {
-                deviceRole = pairing.deviceRole
-                isRoleSet = true
-            } else {
-                isRoleSet = false
-            }
-        } catch {
-            print("DeviceRoleManager: Failed to load role: \(error)")
-            isRoleSet = false
+        isLoading = true
+        defer { isLoading = false }
+
+        if let localPairing = pairingService.getPairing(for: deviceId) {
+            await pairingService.updateCachedDevicePairing(
+                DevicePairingPayload(
+                    id: deviceId,
+                    childId: localPairing.childId,
+                    deviceId: deviceId,
+                    deviceName: UIDevice.current.name,
+                    deviceRole: .child,
+                    pairedAt: localPairing.pairedAt,
+                    familyId: familyId
+                )
+            )
+            deviceRole = .child
+            isRoleSet = true
+            defaults.set(DeviceRole.child.rawValue, forKey: "com.claudex.deviceRole")
+            return
+        }
+
+        if let cachedRole = pairingService.cachedDeviceRole(for: deviceId) {
+            deviceRole = cachedRole
+            isRoleSet = true
+            defaults.set(cachedRole.rawValue, forKey: "com.claudex.deviceRole")
+            return
+        }
+
+        if let storedRole = defaults.string(forKey: "com.claudex.deviceRole"),
+           let role = DeviceRole(rawValue: storedRole) {
+            deviceRole = role
+            isRoleSet = true
+            return
+        }
+
+        await pairingService.refreshDevicePairingsFromCloud(familyId: familyId)
+        if let remoteRole = pairingService.cachedDeviceRole(for: deviceId) {
+            deviceRole = remoteRole
+            isRoleSet = true
+            defaults.set(remoteRole.rawValue, forKey: "com.claudex.deviceRole")
         }
     }
 
-    func setDeviceRole(_ role: DeviceRole, childId: ChildID?, familyId: FamilyID) async throws {
-        let pairing = DevicePairing(
-            pairingId: UUID().uuidString,
-            childId: childId ?? ChildID("unassigned"),
+    func setDeviceRole(_ role: DeviceRole, childId: ChildID?) async {
+        guard role == .parent || childId != nil else {
+            errorMessage = "A child must be selected for child devices."
+            return
+        }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        let payload = DevicePairingPayload(
+            id: deviceId,
+            childId: childId,
             deviceId: deviceId,
             deviceName: UIDevice.current.name,
             deviceRole: role,
@@ -157,237 +184,140 @@ class DeviceRoleManager: ObservableObject {
             familyId: familyId
         )
 
-        try await pairingService.savePairing(pairing)
-        deviceRole = role
-        isRoleSet = true
+        do {
+            try await pairingService.saveDevicePairing(payload, familyId: familyId)
+            deviceRole = role
+            isRoleSet = true
+            defaults.set(role.rawValue, forKey: "com.claudex.deviceRole")
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
-    func resetDeviceRole() {
+    func resetDeviceRole() async {
+        try? await pairingService.deleteDevicePairing(deviceId: deviceId, familyId: familyId)
+        await pairingService.removeCachedDevicePairing(deviceId: deviceId)
+        defaults.removeObject(forKey: "com.claudex.deviceRole")
         deviceRole = nil
         isRoleSet = false
-        // TODO: Delete pairing from CloudKit
-    }
-
-    private static func getOrCreateDeviceId() -> String {
-        let key = "com.claudex.deviceId"
-        if let existing = UserDefaults.standard.string(forKey: key) {
-            return existing
-        }
-        let newId = UUID().uuidString
-        UserDefaults.standard.set(newId, forKey: key)
-        return newId
     }
 }
 ```
+
+**Status:** ✅ Implemented (2025-10-11)
+
+- The child-device option now auto-refreshes CloudKit child profiles when tapped or on first appearance, so freshly paired child installs can load the parent-created child records before showing the selector UI.
 
 ### Step 1.3: Create DeviceRoleSetupView
 **File**: `apps/ParentiOS/Views/DeviceRoleSetupView.swift` (NEW)
 
 ```swift
-import SwiftUI
-#if canImport(Core)
-import Core
-#endif
-
 @available(iOS 16.0, *)
 struct DeviceRoleSetupView: View {
-    @EnvironmentObject var deviceRoleManager: DeviceRoleManager
-    @EnvironmentObject var childrenManager: ChildrenManager
+    @EnvironmentObject private var deviceRoleManager: DeviceRoleManager
+    @EnvironmentObject private var childrenManager: ChildrenManager
 
     @State private var showingChildSelector = false
-    @State private var selectedChildId: ChildID?
     @State private var isSettingRole = false
-    @State private var errorMessage: String?
+    @State private var selectedChildId: ChildID?
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 32) {
-                // Header
-                VStack(spacing: 12) {
-                    Image(systemName: "iphone.and.ipad")
-                        .font(.system(size: 60))
-                        .foregroundStyle(.blue)
-
-                    Text("Setup Device")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-
-                    Text("Is this your child's device or your device?")
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 24) {
+                VStack(spacing: 8) {
+                    Text("Who uses this device?")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    Text("Choose whether this device is for a parent/guardian or for your child. We’ll tailor the experience and security based on this choice.")
+                        .font(.body)
                         .multilineTextAlignment(.center)
+                        .foregroundStyle(.secondary)
                 }
 
-                // Device Type Selection
+                if deviceRoleManager.isLoading || isSettingRole {
+                    ProgressView()
+                }
+
                 VStack(spacing: 16) {
                     Button {
-                        showingChildSelector = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "iphone")
-                                .font(.title2)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("This is my child's device")
-                                    .font(.headline)
-                                Text("Configure and monitor on this device")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(.secondary)
+                        if childrenManager.children.isEmpty {
+                            deviceRoleManager.errorMessage = "Add a child profile before configuring a child device."
+                        } else {
+                            showingChildSelector = true
                         }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(12)
+                    } label: {
+                        RoleButtonContent(
+                            title: "This is my child's device",
+                            subtitle: "Shows both Parent Mode and Child Mode (with PIN protection)",
+                            systemImage: "iphone"
+                        )
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(deviceRoleManager.isLoading || isSettingRole)
 
                     Button {
-                        Task {
-                            await setAsParentDevice()
-                        }
+                        Task { await setRole(.parent, childId: nil) }
                     } label: {
-                        HStack {
-                            Image(systemName: "person.circle")
-                                .font(.title2)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("This is my device (parent)")
-                                    .font(.headline)
-                                Text("Monitor children from here")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Spacer()
-
-                            if isSettingRole {
-                                ProgressView()
-                            } else {
-                                Image(systemName: "chevron.right")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(12)
+                        RoleButtonContent(
+                            title: "This is my device (parent)",
+                            subtitle: "Monitoring dashboard only; Child Mode hidden",
+                            systemImage: "person.crop.circle"
+                        )
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isSettingRole)
+                    .buttonStyle(.bordered)
+                    .disabled(deviceRoleManager.isLoading || isSettingRole)
                 }
-                .padding(.horizontal)
 
-                if let error = errorMessage {
-                    Text(error)
-                        .font(.caption)
+                if let errorMessage = deviceRoleManager.errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal)
                 }
 
                 Spacer()
             }
-            .navigationTitle("Welcome")
+            .padding()
+            .navigationTitle("Set Up Device")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .task { await deviceRoleManager.loadDeviceRole() }
         .sheet(isPresented: $showingChildSelector) {
-            ChildSelectorSheetView(selectedChildId: $selectedChildId) {
-                Task {
-                    await setAsChildDevice()
-                }
-            }
-            .environmentObject(childrenManager)
-        }
-    }
-
-    private func setAsChildDevice() async {
-        guard let childId = selectedChildId else {
-            errorMessage = "Please select a child"
-            return
-        }
-
-        isSettingRole = true
-        errorMessage = nil
-
-        do {
-            try await deviceRoleManager.setDeviceRole(
-                .child,
-                childId: childId,
-                familyId: FamilyID("default-family")
-            )
-        } catch {
-            errorMessage = "Failed to set device role: \(error.localizedDescription)"
-        }
-
-        isSettingRole = false
-    }
-
-    private func setAsParentDevice() async {
-        isSettingRole = true
-        errorMessage = nil
-
-        do {
-            try await deviceRoleManager.setDeviceRole(
-                .parent,
-                childId: nil,
-                familyId: FamilyID("default-family")
-            )
-        } catch {
-            errorMessage = "Failed to set device role: \(error.localizedDescription)"
-        }
-
-        isSettingRole = false
-    }
-}
-
-// Helper view for child selection
-@available(iOS 16.0, *)
-struct ChildSelectorSheetView: View {
-    @EnvironmentObject var childrenManager: ChildrenManager
-    @Binding var selectedChildId: ChildID?
-    let onConfirm: () -> Void
-    @Environment(\.dismiss) var dismiss
-
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(childrenManager.children) { child in
+            NavigationStack {
+                List(childrenManager.children) { child in
                     Button {
                         selectedChildId = child.id
+                        Task { await setRole(.child, childId: child.id) }
+                        showingChildSelector = false
                     } label: {
                         HStack {
                             Text(child.name)
                             Spacer()
                             if selectedChildId == child.id {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.blue)
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.accentColor)
                             }
                         }
                     }
                 }
-            }
-            .navigationTitle("Select Child")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Confirm") {
-                        dismiss()
-                        onConfirm()
+                .navigationTitle("Select Child")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showingChildSelector = false }
                     }
-                    .disabled(selectedChildId == nil)
                 }
             }
         }
     }
+
+    private func setRole(_ role: DeviceRole, childId: ChildID?) async {
+        isSettingRole = true
+        defer { isSettingRole = false }
+        await deviceRoleManager.setDeviceRole(role, childId: childId)
+    }
 }
 ```
+
 
 ### Step 1.4: Update ClaudexApp.swift - Remove Gear Icon & Fix Mode Selection
 **File**: `apps/ParentiOS/ClaudexApp.swift`
@@ -401,130 +331,82 @@ struct ChildSelectorSheetView: View {
 4. Remove gear icon from ChildModeView
 
 ```swift
-// Add DeviceRoleManager
-@StateObject private var deviceRoleManager = DeviceRoleManager(pairingService: pairingService)
+@StateObject private var deviceRoleManager: DeviceRoleManager
 
-// Root view logic
-var body: some Scene {
-    WindowGroup {
-        if !deviceRoleManager.isRoleSet {
-            DeviceRoleSetupView()
-                .environmentObject(deviceRoleManager)
-                .environmentObject(childrenManager)
-                .task {
-                    await deviceRoleManager.loadDeviceRole()
-                }
-        } else {
-            ModeSelectionView()
-                .environmentObject(deviceRoleManager)
-                // ... other environment objects
-        }
+Group {
+    if isPriming {
+        ProgressView("Preparing...")
+    } else if !deviceRoleManager.isRoleSet {
+        DeviceRoleSetupView()
+            .environmentObject(deviceRoleManager)
+            .environmentObject(childrenManager)
+    } else {
+        ModeSelectionView(pendingPairingCode: $pendingPairingCode)
+            .environmentObject(deviceRoleManager)
+            .environmentObject(pinManager)
+            // other environment objects unchanged
     }
 }
 
-// Updated ModeSelectionView
 struct ModeSelectionView: View {
-    @EnvironmentObject var deviceRoleManager: DeviceRoleManager
-    @EnvironmentObject var pinManager: PINManager
+    @EnvironmentObject private var deviceRoleManager: DeviceRoleManager
+    @EnvironmentObject private var pinManager: PINManager
+    @Binding var pendingPairingCode: String?
 
+    @State private var navigateToParentMode = false
+    @State private var navigateToChildMode = false
     @State private var showingPINEntry = false
     @State private var showingPINSetup = false
 
     var body: some View {
-        VStack(spacing: 24) {
-            // Parent Mode - Always visible
-            Button {
-                // Check if PIN is set
-                if !pinManager.isPINSet {
-                    showingPINSetup = true
-                } else if pinManager.isAuthenticated {
-                    // Already authenticated - go directly
-                    navigateToParentMode()
+        NavigationStack {
+            VStack(spacing: 24) {
+                Button { handleParentModeTap() } label: {
+                    ModeButton(title: "Parent Mode", subtitle: "Configure rules, review points, approve redemptions")
+                }
+
+                if deviceRoleManager.deviceRole == .child {
+                    Button { navigateToChildMode = true } label: {
+                        ModeButton(title: "Child Mode", subtitle: "Earn points, see rewards, request more time")
+                    }
                 } else {
-                    // Need authentication
-                    showingPINEntry = true
-                }
-            } label: {
-                Label("Parent Mode", systemImage: "lock.shield")
-            }
-
-            // Child Mode - Only on child devices
-            if deviceRoleManager.deviceRole == .child {
-                NavigationLink {
-                    ChildModeHomeView()
-                } label: {
-                    Label("Child Mode", systemImage: "star")
+                    ModeInfoCard(
+                        title: "Child Mode Hidden",
+                        message: "Child Mode is available only on devices registered as child devices."
+                    )
                 }
             }
-        }
-        .sheet(isPresented: $showingPINEntry) {
-            PINEntryView()
-                .environmentObject(pinManager)
-                .onDisappear {
-                    if pinManager.isAuthenticated {
-                        navigateToParentMode()
-                    }
-                }
-        }
-        .sheet(isPresented: $showingPINSetup) {
-            PINSetupView()
-                .environmentObject(pinManager)
-                .onDisappear {
-                    if pinManager.isAuthenticated {
-                        navigateToParentMode()
-                    }
-                }
-        }
-    }
-
-    private func navigateToParentMode() {
-        // Navigate to ParentDeviceParentModeView
-        // Implementation depends on navigation structure
-    }
-}
-
-// ChildModeView - REMOVE gear icon toolbar
-// Delete or comment out:
-/*
-.toolbar {
-    if currentPairing != nil {
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button {
-                attemptParentModeAccess()  // DELETE THIS
-            } label: {
-                Label("Parent Mode", systemImage: "gear.circle")  // DELETE THIS
+            .navigationDestination(isPresented: $navigateToParentMode) {
+                ParentModeView()
+                    .onDisappear { pinManager.lock() }
             }
+            .navigationDestination(isPresented: $navigateToChildMode) {
+                ChildModeView(pendingPairingCode: $pendingPairingCode)
+            }
+        }
+        .sheet(isPresented: $showingPINEntry, onDismiss: openParentModeIfAuthenticated) {
+            PINEntryView().environmentObject(pinManager)
+        }
+        .sheet(isPresented: $showingPINSetup, onDismiss: openParentModeIfAuthenticated) {
+            PINSetupView().environmentObject(pinManager)
         }
     }
 }
-*/
 ```
 
-### Step 1.5: Update PairingService (Add getPairingForDevice)
+**Status:** ✅ Implemented (2025-10-11)
+
+### Step 1.5: Update PairingService & Sync Layers for DeviceRole
 **File**: `Sources/Core/PairingService.swift`
 
-```swift
-// Add method to query by deviceId
-public func getPairingForDevice(_ deviceId: String) async throws -> DevicePairing? {
-    #if canImport(CloudKit)
-    let predicate = NSPredicate(format: "deviceId == %@", deviceId)
-    let query = CKQuery(recordType: "DevicePairing", predicate: predicate)
+- Added `DevicePairingPayload` persistence, cached in `PairingService` alongside existing `ChildDevicePairing` data.
+- `PairingService` now exposes helpers to refresh/save/delete device pairings in CloudKit and persists them locally for offline access.
+- `CloudKitMapper` defines a new `DevicePairing` record type and maps `DevicePairingPayload` to/from CKRecord.
+- `SyncService` implements `fetchDevicePairings`, `saveDevicePairing`, and `deleteDevicePairing`, wiring through `PairingSyncServiceProtocol`.
+- `DeviceRoleManager` uses these helpers to keep local role cache synchronized and stored in `UserDefaults` for fast reloads.
 
-    let results = try await publicDatabase.records(matching: query)
+**Status:** ✅ Implemented (2025-10-11)
 
-    if let firstMatch = results.matchResults.first {
-        let record = try firstMatch.1.get()
-        // Map CKRecord to DevicePairing
-        // ... implementation
-        return mappedPairing
-    }
-
-    return nil
-    #else
-    return nil
-    #endif
-}
-```
 
 ---
 
