@@ -262,8 +262,12 @@ struct RedemptionRulesView: View {
 @available(iOS 16.0, *)
 struct ParentModeSettingsView: View {
     @EnvironmentObject private var pinManager: PINManager
+    @EnvironmentObject private var childrenManager: ChildrenManager
     @State private var showingChangePIN = false
     @State private var showingRemovePINConfirmation = false
+    @State private var showingCleanupConfirmation = false
+    @State private var cleanupInProgress = false
+    @State private var cleanupError: String?
 
     var body: some View {
         Form {
@@ -275,6 +279,33 @@ struct ParentModeSettingsView: View {
                 Button(role: .destructive, action: { showingRemovePINConfirmation = true }) {
                     Label("Remove PIN", systemImage: "lock.slash")
                 }
+            }
+
+            Section {
+                Button(action: { showingCleanupConfirmation = true }) {
+                    if cleanupInProgress {
+                        HStack {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                            Text("Cleaning up...")
+                                .foregroundStyle(.secondary)
+                        }
+                    } else {
+                        Label("Clean Up Duplicate Children", systemImage: "trash")
+                    }
+                }
+                .disabled(cleanupInProgress)
+
+                if let error = cleanupError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            } header: {
+                Text("CloudKit Maintenance")
+            } footer: {
+                Text("Remove duplicate child profiles from CloudKit. This will keep only one profile per child name.")
+                    .font(.caption)
             }
 
             Section("About") {
@@ -316,8 +347,35 @@ struct ParentModeSettingsView: View {
         } message: {
             Text("Are you sure you want to remove the PIN? Parent Mode will no longer be protected on this device.")
         }
+        .alert("Clean Up Duplicates?", isPresented: $showingCleanupConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Clean Up", role: .destructive) {
+                cleanupDuplicates()
+            }
+        } message: {
+            Text("This will delete all duplicate child profiles from CloudKit, keeping only one of each name. This action cannot be undone.")
+        }
         .onAppear {
             pinManager.updateLastActivity()
+        }
+    }
+
+    private func cleanupDuplicates() {
+        cleanupInProgress = true
+        cleanupError = nil
+
+        Task {
+            do {
+                try await childrenManager.cleanupDuplicateChildrenInCloud(familyId: FamilyID("default-family"))
+                await MainActor.run {
+                    cleanupInProgress = false
+                }
+            } catch {
+                await MainActor.run {
+                    cleanupInProgress = false
+                    cleanupError = "Cleanup failed: \(error.localizedDescription)"
+                }
+            }
         }
     }
 }

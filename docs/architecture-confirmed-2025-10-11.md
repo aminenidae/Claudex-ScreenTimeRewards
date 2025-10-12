@@ -18,7 +18,7 @@
 
 ### Key Decisions
 1. **PIN Protection**: At mode selection level (not inside Parent Mode)
-2. **Gear Icon**: Should be in Parent Mode on parent device (not in Child Mode)
+2. **Gear Icon**: Not needed. The parent should authenticate with their own PIN/biometric authentication as parent/organizer/guardian
 3. **Parent Mode Location**: On CHILD's device
 4. **Points System**: Per-app (NOT global per child)
 
@@ -33,18 +33,22 @@ App Launch
 ModeSelectionView
     ├─→ [Parent Mode] button
     │       ↓
-    │   🔐 PIN Entry (protects from child)
+    │   🔐 Authentification (protects from child)
+    │       ↓
+    │   ParentDeviceParentModeView (Monitoring Dashboard For All Family Members)
+    │       ├─ Child Tab: DashboardView (aggregated points balance)
+    │       └─ Account Tab: Manage SubscriptionView (future)
     │       ↓
     │   ChildDeviceParentModeView
-    │       ├─ Apps Tab: Configure Learning/Reward categories
-    │       ├─ Points Tab: Set points rules PER APP
-    │       ├─ Rewards Tab: Set redemption rules PER APP
+    │       ├─ Apps Tab: Configure Learning/Reward categories (App selection)
+    │       ├─ Points Tab: Set points rules PER APP (App list updates based on app selection)
+    │       ├─ Rewards Tab: Set redemption rules PER APP (App list updates based on app selection)
     │       └─ Settings Tab: Screentime config, PIN management
     │
     └─→ [Child Mode] button (no PIN)
             ↓
         ChildModeHomeView
-            ├─ Points balance (aggregated? or per-app?)
+            ├─ Points balance (per-app)
             ├─ Redeem points PER APP
             │   └─ Partial or full redemption
             │   └─ Remaining points available for other apps

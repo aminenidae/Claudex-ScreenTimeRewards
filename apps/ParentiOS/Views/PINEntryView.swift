@@ -67,8 +67,21 @@ struct PINEntryView: View {
 
                 Spacer()
 
-                // Biometric Option
+                // Submit Button
                 if !pinManager.isLockedOut {
+                    Button(action: validatePIN) {
+                        Text("Submit")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(pin.count >= 4 ? Color.blue : Color.gray)
+                            .cornerRadius(12)
+                    }
+                    .disabled(pin.count < 4)
+                    .padding(.horizontal)
+
+                    // Biometric Option
                     Button(action: tryBiometricAuth) {
                         Label("Use Face ID", systemImage: "faceid")
                             .font(.subheadline)
@@ -84,11 +97,6 @@ struct PINEntryView: View {
                     Button("Cancel") {
                         dismiss()
                     }
-                }
-            }
-            .onChange(of: pin) { newValue in
-                if newValue.count == 6 || (newValue.count >= 4 && newValue.allSatisfy({ $0.isNumber })) {
-                    validatePIN()
                 }
             }
         }

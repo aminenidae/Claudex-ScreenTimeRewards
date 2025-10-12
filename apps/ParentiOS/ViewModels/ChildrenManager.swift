@@ -200,10 +200,24 @@ class ChildrenManager: ObservableObject {
             attempt += 1
             do {
                 let payloads = try await syncService.fetchChildren(familyId: familyId)
-                let profiles = payloads.map { ChildProfile(id: $0.id, name: $0.displayName ?? "Child", storeName: $0.childOpaqueId) }
-                
+                let allProfiles = payloads.map { ChildProfile(id: $0.id, name: $0.displayName ?? "Child", storeName: $0.childOpaqueId) }
+
+                // De-duplicate children by name (keep only unique names)
+                // If there are duplicates, keep the first one encountered
+                var seenNames = Set<String>()
+                let uniqueProfiles = allProfiles.filter { profile in
+                    if seenNames.contains(profile.name) {
+                        print("ChildrenManager: Skipping duplicate child with name '\(profile.name)' (id: \(profile.id.rawValue))")
+                        return false
+                    }
+                    seenNames.insert(profile.name)
+                    return true
+                }
+
+                print("ChildrenManager: Loaded \(allProfiles.count) total children, \(uniqueProfiles.count) unique children")
+
                 await MainActor.run {
-                    self.children = profiles
+                    self.children = uniqueProfiles
                     persistChildren()
                 }
 
@@ -236,6 +250,42 @@ class ChildrenManager: ObservableObject {
             return 0
         }
         return index
+    }
+
+    /// Delete duplicate children from CloudKit, keeping only one of each name
+    func cleanupDuplicateChildrenInCloud(familyId: FamilyID) async throws {
+        guard let syncService = _syncService else {
+            print("ChildrenManager: SyncService not available for cleanup")
+            return
+        }
+
+        // Fetch all children
+        let payloads = try await syncService.fetchChildren(familyId: familyId)
+        let allProfiles = payloads.map { ChildProfile(id: $0.id, name: $0.displayName ?? "Child", storeName: $0.childOpaqueId) }
+
+        // Group by name
+        var nameToProfiles: [String: [ChildProfile]] = [:]
+        for profile in allProfiles {
+            nameToProfiles[profile.name, default: []].append(profile)
+        }
+
+        // Find duplicates to delete
+        var deleteCount = 0
+        for (name, profiles) in nameToProfiles where profiles.count > 1 {
+            // Keep the first, delete the rest
+            let toDelete = Array(profiles.dropFirst())
+            print("ChildrenManager: Found \(profiles.count) children named '\(name)', deleting \(toDelete.count) duplicates")
+
+            for profile in toDelete {
+                try await syncService.deleteChild(profile.id, familyId: familyId)
+                deleteCount += 1
+            }
+        }
+
+        print("ChildrenManager: Cleanup complete - deleted \(deleteCount) duplicate children")
+
+        // Refresh the local list
+        await refreshChildrenFromCloud(familyId: familyId)
     }
 
     // MARK: - Persistence

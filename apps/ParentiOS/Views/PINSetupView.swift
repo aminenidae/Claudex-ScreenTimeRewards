@@ -21,58 +21,60 @@ struct PINSetupView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                // Header
+            ScrollView {
                 VStack(spacing: 12) {
-                    Image(systemName: headerIcon)
-                        .font(.system(size: 60))
-                        .foregroundStyle(.blue)
+                    // Header
+                    VStack(spacing: 6) {
+                        Image(systemName: headerIcon)
+                            .font(.system(size: 40))
+                            .foregroundStyle(.blue)
+                            .padding(.top, 8)
 
-                    Text(headerTitle)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        Text(headerTitle)
+                            .font(.title3)
+                            .fontWeight(.semibold)
 
-                    Text(headerSubtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .padding(.top, 40)
-
-                Spacer()
-
-                // PIN Entry Section
-                VStack(spacing: 16) {
-                    if currentStep == .biometricOption {
-                        biometricOptionView
-                    } else {
-                        pinInputView
-                    }
-
-                    if let error = errorMessage {
-                        Text(error)
+                        Text(headerSubtitle)
                             .font(.caption)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                            .lineLimit(2)
                     }
-                }
 
-                Spacer()
+                    // PIN Entry Section
+                    VStack(spacing: 12) {
+                        if currentStep == .biometricOption {
+                            biometricOptionView
+                        } else {
+                            pinInputView
+                        }
 
-                // Action Button
-                Button(action: handleAction) {
-                    Text(actionButtonTitle)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(actionButtonEnabled ? Color.blue : Color.gray)
-                        .cornerRadius(12)
+                        if let error = errorMessage {
+                            Text(error)
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal)
+                        }
+                    }
+                    .padding(.vertical, 8)
+
+                    // Action Button
+                    Button(action: handleAction) {
+                        Text(actionButtonTitle)
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(actionButtonEnabled ? Color.blue : Color.gray)
+                            .cornerRadius(12)
+                    }
+                    .disabled(!actionButtonEnabled)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 20)
                 }
-                .disabled(!actionButtonEnabled)
-                .padding(.horizontal)
-                .padding(.bottom, 20)
             }
             .navigationTitle("Setup Parent Mode")
             .navigationBarTitleDisplayMode(.inline)
@@ -89,16 +91,17 @@ struct PINSetupView: View {
     // MARK: - Subviews
 
     private var pinInputView: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             // PIN Dots
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 ForEach(0..<6, id: \.self) { index in
                     Circle()
                         .fill(currentPIN.count > index ? Color.blue : Color.gray.opacity(0.3))
-                        .frame(width: 16, height: 16)
+                        .frame(width: 14, height: 14)
                 }
             }
-            .padding(.bottom, 24)
+            .padding(.bottom, 12)
+            .padding(.top, 8)
 
             // Number Pad
             NumberPadView(text: binding(for: currentStep))
@@ -250,7 +253,7 @@ struct PINSetupView: View {
 private struct NumberPadView: View {
     @Binding var text: String
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 20), count: 3)
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 3)
     private let buttons = [
         ["1", "2", "3"],
         ["4", "5", "6"],
@@ -259,14 +262,14 @@ private struct NumberPadView: View {
     ]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 20) {
+        LazyVGrid(columns: columns, spacing: 12) {
             ForEach(buttons.flatMap { $0 }, id: \.self) { button in
                 NumberButton(title: button, action: {
                     handleButtonTap(button)
                 })
             }
         }
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 30)
     }
 
     private func handleButtonTap(_ button: String) {
@@ -293,10 +296,10 @@ private struct NumberButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.title)
+                .font(.title2)
                 .fontWeight(.medium)
                 .foregroundStyle(title.isEmpty ? .clear : .primary)
-                .frame(width: 70, height: 70)
+                .frame(width: 60, height: 60)
                 .background(
                     Circle()
                         .fill(title.isEmpty ? Color.clear : Color(.tertiarySystemBackground))
