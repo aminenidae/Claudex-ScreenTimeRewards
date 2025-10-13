@@ -38,6 +38,7 @@ Due to Apple's ApplicationToken device-specific limitation, the app architecture
 - [x] CloudKit sync for app rules implemented — ApplicationToken→base64 conversion, automatic sync on selection (pending permission update)
 - [ ] **[POST-PIVOT]** App categorization UI moved to child device's PIN-protected Parent Mode
 - [ ] **[POST-PIVOT]** Parent device dashboard shows read-only category summary (synced from child)
+- [ ] **Category ↔ App Mapping:** Category-only selections surface concrete app entries (inventory-driven) so per-app metrics populate without manual app picks.
 
 ## 4) Points Engine Correctness
 - [x] Accrual only during foreground, unlocked usage
@@ -133,9 +134,10 @@ Due to Apple's ApplicationToken device-specific limitation, the app architecture
   - [x] S-301 Category defaults — FamilyActivityPicker integration complete
   - [x] S-302 Manual overrides with precedence — Per-child Learning/Reward classification
   - [x] S-303 Conflict resolution rules tested — Conflict detection and resolution UI implemented
-  - [x] S-304 Rule sync (<2s online) — CloudKit sync implemented with ApplicationToken→base64 conversion (pending permission update, Oct 10, 2025)
-  - [ ] S-305 Rule audits present — Deferred to EP-06 (Audit log)
-  - [ ] S-306 Custom app picker with child device filtering — Planned (see docs/issues/app-categorization-family-sharing-issue.md)
+- [x] S-304 Rule sync (<2s online) — CloudKit sync implemented with ApplicationToken→base64 conversion (pending permission update, Oct 10, 2025)
+- [ ] S-305 Rule audits present — Deferred to EP-06 (Audit log)
+- [ ] S-306 Custom app picker with child device filtering — Planned (see docs/issues/app-categorization-family-sharing-issue.md)
+- [ ] S-307 Category-only flows produce per-app metrics — Map category selections to installed app tokens on child device.
 
 - EP-04 Points Engine & Integrity
   - [x] S-401 Foreground-only accrual (±5%) — Session-based tracking implemented

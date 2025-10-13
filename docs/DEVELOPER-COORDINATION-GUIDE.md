@@ -189,20 +189,20 @@ This guide helps you get up to speed on the current state of the project after t
 
 ---
 
-### Priority 2: Per-App Polish & Child Mode Surfacing
+### Priority 2: Per-App Polish & Category Coverage
 
-**Effort**: ~1 day of UI polish + follow-up QA
-**Status**: 🟡 Core flows complete; metadata and downstream surfaces pending
+**Effort**: ~1–1.5 days (UI polish + category mapping)
+**Status**: 🟡 Core flows complete; friendly metadata and category-only support pending
 **Reference**: `docs/implementation-plan-2025-10-11-final.md` Phase 3, `docs/architecture-confirmed-2025-10-11.md`
 
 **Next actions**:
-1. Surface human-readable app metadata (name/icon) in the Level 2 Points/Rewards tables so parents aren’t staring at hashed IDs.
-2. Expose per-app balances and reward costs in Child Mode (grid + redemption flow) using `PerAppConfigurationStore` + `PointsLedger.getBalances`.
-3. Add integration tests that simulate DeviceActivity → ledger accrual → redemption to guard the cross-app deduction logic.
+1. Surface human-readable app metadata (name/icon) in the Level 2 Points/Rewards tables so parents don’t see hashed IDs.
+2. Map learning/reward **categories** to concrete app identifiers (inventory-driven) so category-only setups populate per-app metrics instead of falling back to placeholders.
+3. Expose the new per-app balances + reward costs in Child Mode (grid + redemption flow) and add integration tests for DeviceActivity → ledger → redemption.
 
 **Testing**:
-- Manual: verify editing rates/caps updates live metrics; confirm reward cost/stacking edits persist after relaunch.
-- Unit/Integration: extend automation to cover `PerAppConfigurationStore` persistence + `RedemptionService` multi-app deductions (new tests started, keep expanding once simulator permissions allow).
+- Manual: verify a category-only configuration on device now yields populated app rows once mapping lands; confirm edits persist after relaunch.
+- Unit/Integration: extend coverage for `PerAppConfigurationStore` persistence + `RedemptionService` multi-app deductions (new tests added; keep expanding once simulator permissions allow).
 
 ---
 

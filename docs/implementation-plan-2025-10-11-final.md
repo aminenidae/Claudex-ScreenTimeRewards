@@ -393,7 +393,7 @@ struct DeviceRoleSetupView: View {
 - `RedemptionService` splits redemptions across multiple learning-app balances, records usage analytics, and emits callbacks for reward history.
 - New unit tests cover per-app daily caps and cross-app redemption flows.
 
-Next steps: surface human-friendly app names/icons in the Level 2 UI, wire Child Mode dashboards to the new per-app metrics, and expand integration tests once DeviceActivity data can be simulated end-to-end.
+Next steps: surface human-friendly app names/icons in the Level 2 UI, resolve the current “category-only” gap by mapping selected categories to concrete app tokens/inventory, wire Child Mode dashboards to the new per-app metrics, and expand integration tests once DeviceActivity data can be simulated end-to-end.
 
 ---
 

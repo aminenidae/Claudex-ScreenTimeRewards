@@ -230,7 +230,8 @@ PointsLedger.recordAccrual(childId, appId: app_123456, points: 50)
 
 ### 3. Category Tokens Not Supported Yet
 - **Status**: Only individual apps (`applicationTokens`) tracked
-- **Future**: Add category-level events if needed
+- **Impact**: When parents select only categories (no explicit apps), the new Points/Rewards tabs continue to show the guidance state because no per-app DeviceActivity events fire.
+- **Future**: Map category selections to the child’s inventory so we can emit per-app events and populate metrics automatically.
 
 ---
 

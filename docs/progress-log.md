@@ -387,6 +387,7 @@ With per-app tracking now functional, the next phase is building the UI:
 - `LearningSessionCoordinator` consumes DeviceActivity events to attribute sessions to `AppIdentifier`s; global sessions stay in sync for legacy flows.
 - `RedemptionService` now allocates point deductions across all learning-app balances, records usage callbacks, and is covered by new unit tests for cross-app redemption.
 - Reward configuration UI consumes the recorded history to show unlock counts and total points spent per reward app.
+- **Device QA (2025-10-12 evening):** Running the latest build on the child device with only category selections (Education = learning, Games = reward) accrues points globally but does not yet surface per-app rows. The Points/Rewards tabs continue to show the placeholder guidance until specific application tokens are detected. Follow-up: add inventory-driven app resolution so category-only rules populate per-app metrics.
 
 **Next:** Surface friendly app metadata in the configuration UI, update Child Mode dashboards to use the new per-app balances, and add integration tests covering DeviceActivity → ledger → redemption loops.
 

@@ -384,6 +384,8 @@ EP-03 App Categorization & Rules — Phase: MVP
 - S-305 Rule Audits: Record who/when/what for changes. Acceptance: Audit entries stored. **Status: Pending**
 - **CategoryRulesManager CloudKit Integration:** ApplicationToken→base64 conversion, automatic sync on app selection, comprehensive logging with emoji prefixes. **Status: Implemented ✅ (2025-10-10, pending permission update)**
 - **Custom App Picker (In Planning):** Hybrid picker with child device app inventory to show only child's installed apps (not all Family Sharing apps). Detailed spec in docs/issues/app-categorization-family-sharing-issue.md. **Status: Planned 📝**
+- **Per-App Configuration (Phase 3):** DeviceActivity-driven per-app accrual, editable earn/spend rules, and cross-app redemption routing now live on child device Parent Mode. **Status: Completed ✅ (2025-10-12)**
+- **Category-Only Mapping:** Category selections still accrue globally; needs inventory mapping so category-only setups surface per-app metrics. **Status: Open 🚧**
 
 EP-04 Points Engine & Integrity — Phase: MVP
 - S-401 Foreground Accrual: Points accrue for foreground, unlocked learning usage. Acceptance: Matches DeviceActivity within ±5%. **Status: Completed ✅**
