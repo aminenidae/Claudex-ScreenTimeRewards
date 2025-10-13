@@ -189,24 +189,147 @@ struct PerAppPointsConfigurationView: View {
     @EnvironmentObject private var pinManager: PINManager
     let child: ChildProfile
 
+    private var discoveredLearningApps: [(appId: AppIdentifier, balance: Int, todayPoints: Int)] {
+        // Get all apps that have point entries for this child
+        let allEntries = childrenManager.ledger.getEntries(childId: child.id, limit: 1000)
+
+        // Group by appId, filter out nil (global entries)
+        var appsMap: [AppIdentifier: (balance: Int, todayPoints: Int)] = [:]
+        let today = Calendar.current.startOfDay(for: Date())
+
+        for entry in allEntries {
+            guard let appId = entry.appId else { continue }
+
+            // Calculate balance
+            let currentBalance = appsMap[appId]?.balance ?? 0
+            let newBalance = currentBalance + entry.amount
+
+            // Calculate today's points
+            let currentToday = appsMap[appId]?.todayPoints ?? 0
+            let isToday = Calendar.current.isDate(entry.timestamp, inSameDayAs: today)
+            let newToday = currentToday + (isToday && entry.type == .accrual ? entry.amount : 0)
+
+            appsMap[appId] = (balance: newBalance, todayPoints: newToday)
+        }
+
+        return appsMap.map { (appId: $0.key, balance: $0.value.balance, todayPoints: $0.value.todayPoints) }
+            .sorted { $0.balance > $1.balance }  // Sort by balance descending
+    }
+
     var body: some View {
         List {
-            Section("Per-App Point Rates") {
-                Text("Per-app point configuration will live here. Phase 3 will surface each learning app with adjustable points-per-minute and daily caps once the per-app ledger lands.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            if discoveredLearningApps.isEmpty {
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundStyle(.blue)
+                            Text("No Learning Apps Detected Yet")
+                                .font(.headline)
+                        }
 
-            Section("Coming Soon") {
-                Text("• List each learning app with current point rate\n• Allow parents to adjust rate and daily cap per app\n• Show when the child hits the reward cap for the day")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+                        Text("Learning apps will appear here automatically when \(child.name) uses them. Points are tracked individually for each app.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
 
-            Section("Current Defaults") {
-                Text("Points accrue using the global settings until per-app controls are implemented.")
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
+                        Divider()
+                            .padding(.vertical, 4)
+
+                        Text("How it works:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(alignment: .top) {
+                                Text("1.")
+                                    .fontWeight(.medium)
+                                Text("Categories classify which apps are for learning")
+                            }
+                            HStack(alignment: .top) {
+                                Text("2.")
+                                    .fontWeight(.medium)
+                                Text("\(child.name) uses an app (e.g., Khan Academy)")
+                            }
+                            HStack(alignment: .top) {
+                                Text("3.")
+                                    .fontWeight(.medium)
+                                Text("System detects it → app appears here with balance")
+                            }
+                            HStack(alignment: .top) {
+                                Text("4.")
+                                    .fontWeight(.medium)
+                                Text("You can then configure rates per individual app")
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                }
+            } else {
+                Section("Discovered Learning Apps") {
+                    ForEach(discoveredLearningApps, id: \.appId) { app in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "app.fill")
+                                    .foregroundStyle(.green)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("App \(app.appId.rawValue)")
+                                        .font(.headline)
+                                    Text("Detected through usage")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+                            }
+
+                            HStack(spacing: 20) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Total Balance")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(app.balance) pts")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Earned Today")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(app.todayPoints) pts")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.green)
+                                }
+                            }
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Configuration (Coming Soon)")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                Text("• Points per minute: 10 pts/min (default)")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                                Text("• Daily cap: 300 pts (default)")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+
+                Section("Note") {
+                    Text("Per-app configuration controls (adjust rates, set caps) will be added in the next phase. For now, all apps use default settings: 10 pts/min, 300 pts daily cap.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .listStyle(.insetGrouped)
@@ -223,24 +346,144 @@ struct PerAppRewardsConfigurationView: View {
     @EnvironmentObject private var pinManager: PINManager
     let child: ChildProfile
 
+    private var discoveredRewardApps: [(appId: AppIdentifier, timesRedeemed: Int, pointsSpent: Int)] {
+        // Get all redemption entries for this child
+        let allEntries = childrenManager.ledger.getEntries(childId: child.id, limit: 1000)
+
+        // Group by appId, count redemptions
+        var appsMap: [AppIdentifier: (timesRedeemed: Int, pointsSpent: Int)] = [:]
+
+        for entry in allEntries where entry.type == .redemption {
+            guard let appId = entry.appId else { continue }
+
+            let current = appsMap[appId] ?? (timesRedeemed: 0, pointsSpent: 0)
+            appsMap[appId] = (
+                timesRedeemed: current.timesRedeemed + 1,
+                pointsSpent: current.pointsSpent + abs(entry.amount)
+            )
+        }
+
+        return appsMap.map { (appId: $0.key, timesRedeemed: $0.value.timesRedeemed, pointsSpent: $0.value.pointsSpent) }
+            .sorted { $0.timesRedeemed > $1.timesRedeemed }  // Sort by usage
+    }
+
     var body: some View {
         List {
-            Section("Per-App Reward Rules") {
-                Text("Future work will list each reward app, allowing parents to set points required, partial redemption thresholds, and stacking policies.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            if discoveredRewardApps.isEmpty {
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "info.circle")
+                                .foregroundStyle(.orange)
+                            Text("No Reward Apps Redeemed Yet")
+                                .font(.headline)
+                        }
 
-            Section("Coming Soon") {
-                Text("• Configure conversion rates per reward app\n• Support partial vs. full unlocks\n• Manage stacking/queueing policies")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+                        Text("Reward apps will appear here after \(child.name) redeems points to unlock them. Each app can have custom unlock rules.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
 
-            Section("Current Behaviour") {
-                Text("Global redemption settings remain in effect until per-app controls are implemented.")
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
+                        Divider()
+                            .padding(.vertical, 4)
+
+                        Text("How it works:")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(alignment: .top) {
+                                Text("1.")
+                                    .fontWeight(.medium)
+                                Text("Categories classify which apps need points to unlock")
+                            }
+                            HStack(alignment: .top) {
+                                Text("2.")
+                                    .fontWeight(.medium)
+                                Text("\(child.name) redeems points (e.g., 100 pts for TikTok)")
+                            }
+                            HStack(alignment: .top) {
+                                Text("3.")
+                                    .fontWeight(.medium)
+                                Text("System detects it → app appears here")
+                            }
+                            HStack(alignment: .top) {
+                                Text("4.")
+                                    .fontWeight(.medium)
+                                Text("You can then configure costs per individual app")
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                }
+            } else {
+                Section("Discovered Reward Apps") {
+                    ForEach(discoveredRewardApps, id: \.appId) { app in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Image(systemName: "app.fill")
+                                    .foregroundStyle(.orange)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("App \(app.appId.rawValue)")
+                                        .font(.headline)
+                                    Text("Detected through redemptions")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+                            }
+
+                            HStack(spacing: 20) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Times Unlocked")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(app.timesRedeemed)")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                }
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Total Points Spent")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(app.pointsSpent) pts")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.orange)
+                                }
+                            }
+
+                            Divider()
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Configuration (Coming Soon)")
+                                    .font(.caption)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                                Text("• Cost: 100 pts = 30 minutes (default)")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                                Text("• Min/Max: 10-120 minutes (default)")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                                Text("• Stacking: Replace (default)")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+
+                Section("Note") {
+                    Text("Per-app redemption controls (adjust costs, min/max times, stacking policies) will be added in the next phase. For now, all apps use default settings.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .listStyle(.insetGrouped)
