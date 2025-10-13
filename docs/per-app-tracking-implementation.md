@@ -129,6 +129,7 @@ public static func toAppIdentifier(_ token: ApplicationToken) -> AppIdentifier {
 
 ### Remaining Polish
 - Surface human-friendly app metadata (names/icons) in the UI.
+- Map category-only selections to concrete app identifiers so the tabs populate without actual usage.
 - Feed per-app metrics into Child Mode dashboards and redemption flow.
 - Add integration coverage once DeviceActivity simulations are possible in CI.
 

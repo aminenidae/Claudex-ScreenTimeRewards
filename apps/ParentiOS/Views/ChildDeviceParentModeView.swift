@@ -218,10 +218,12 @@ struct PerAppPointsConfigurationView: View {
     private var learningAppIds: [AppIdentifier] {
         var identifiers = Set<AppIdentifier>()
 
-        #if canImport(ScreenTimeService)
+        #if canImport(FamilyControls)
         let rules = rulesManager.getRules(for: child.id)
         for token in rules.learningSelection.applicationTokens {
-            identifiers.insert(ApplicationTokenHelper.toAppIdentifier(token))
+            let data = withUnsafeBytes(of: token) { Data($0) }
+            let hex = data.map { String(format: "%02x", $0) }.joined()
+            identifiers.insert(AppIdentifier("app-\(hex)"))
         }
         #endif
 
@@ -229,6 +231,21 @@ struct PerAppPointsConfigurationView: View {
         identifiers.formUnion(perAppStore.pointsAppIdentifiers(for: child.id))
 
         return identifiers.sorted { $0.rawValue < $1.rawValue }
+    }
+
+    private var learningAppNames: [AppIdentifier: String] {
+        var names: [AppIdentifier: String] = [:]
+        #if canImport(FamilyControls)
+        for (appId, metadata) in rulesManager.appMetadata(for: child.id) {
+            names[appId] = metadata.name
+        }
+        #endif
+        for appId in learningAppIds {
+            if let stored = perAppStore.displayName(childId: child.id, appId: appId) {
+                names[appId] = stored
+            }
+        }
+        return names
     }
 
     var body: some View {
@@ -285,9 +302,11 @@ struct PerAppPointsConfigurationView: View {
                 Section("Learning Apps") {
                     ForEach(learningAppIds, id: \.self) { appId in
                         let metrics = learningMetrics[appId] ?? (balance: 0, todayPoints: 0)
+                        let displayName = learningAppNames[appId] ?? friendlyName(for: appId)
 
                         PerAppPointsEditorRow(
                             appId: appId,
+                            displayName: displayName,
                             metrics: metrics,
                             isUsingDefault: perAppStore.isUsingDefaultPointsRule(childId: child.id, appId: appId),
                             pointsPerMinute: Binding(
@@ -326,6 +345,7 @@ struct PerAppPointsConfigurationView: View {
 @available(iOS 16.0, *)
 private struct PerAppPointsEditorRow: View {
     let appId: AppIdentifier
+    let displayName: String
     let metrics: (balance: Int, todayPoints: Int)
     let isUsingDefault: Bool
     let pointsPerMinute: Binding<Int>
@@ -338,7 +358,7 @@ private struct PerAppPointsEditorRow: View {
                 Image(systemName: "app.fill")
                     .foregroundStyle(.green)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(appDisplayName)
+                    Text(displayName)
                         .font(.headline)
                     Text(isUsingDefault ? "Using default settings" : "Custom settings applied")
                         .font(.caption)
@@ -369,10 +389,6 @@ private struct PerAppPointsEditorRow: View {
             .font(.subheadline)
         }
         .padding(.vertical, 4)
-    }
-
-    private var appDisplayName: String {
-        "App \(appId.rawValue)"
     }
 
     private struct MetricView: View {
@@ -411,10 +427,12 @@ struct PerAppRewardsConfigurationView: View {
     private var rewardAppIds: [AppIdentifier] {
         var identifiers = Set<AppIdentifier>()
 
-        #if canImport(ScreenTimeService)
+        #if canImport(FamilyControls)
         let rules = rulesManager.getRules(for: child.id)
         for token in rules.rewardSelection.applicationTokens {
-            identifiers.insert(ApplicationTokenHelper.toAppIdentifier(token))
+            let data = withUnsafeBytes(of: token) { Data($0) }
+            let hex = data.map { String(format: "%02x", $0) }.joined()
+            identifiers.insert(AppIdentifier("app-\(hex)"))
         }
         #endif
 
@@ -422,6 +440,21 @@ struct PerAppRewardsConfigurationView: View {
         identifiers.formUnion(perAppStore.rewardAppIdentifiers(for: child.id))
 
         return identifiers.sorted { $0.rawValue < $1.rawValue }
+    }
+
+    private var rewardAppNames: [AppIdentifier: String] {
+        var names: [AppIdentifier: String] = [:]
+        #if canImport(FamilyControls)
+        for (appId, metadata) in rulesManager.appMetadata(for: child.id) {
+            names[appId] = metadata.name
+        }
+        #endif
+        for appId in rewardAppIds {
+            if let stored = perAppStore.displayName(childId: child.id, appId: appId) {
+                names[appId] = stored
+            }
+        }
+        return names
     }
 
     var body: some View {
@@ -461,9 +494,11 @@ struct PerAppRewardsConfigurationView: View {
                 Section("Reward Apps") {
                     ForEach(rewardAppIds, id: \.self) { appId in
                         let usage = rewardUsageMap[appId] ?? RewardUsage()
+                        let displayName = rewardAppNames[appId] ?? friendlyName(for: appId)
 
                         PerAppRewardEditorRow(
                             appId: appId,
+                            displayName: displayName,
                             metrics: (usage.timesRedeemed, usage.pointsSpent),
                             isUsingDefault: perAppStore.isUsingDefaultRewardRule(childId: child.id, appId: appId),
                             pointsPerMinute: Binding(
@@ -520,6 +555,7 @@ struct PerAppRewardsConfigurationView: View {
 @available(iOS 16.0, *)
 private struct PerAppRewardEditorRow: View {
     let appId: AppIdentifier
+    let displayName: String
     let metrics: (timesRedeemed: Int, pointsSpent: Int)
     let isUsingDefault: Bool
     let pointsPerMinute: Binding<Int>
@@ -534,7 +570,7 @@ private struct PerAppRewardEditorRow: View {
                 Image(systemName: "app.fill")
                     .foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(appDisplayName)
+                    Text(displayName)
                         .font(.headline)
                     Text(isUsingDefault ? "Using default settings" : "Custom settings applied")
                         .font(.caption)
@@ -579,8 +615,6 @@ private struct PerAppRewardEditorRow: View {
         .padding(.vertical, 4)
     }
 
-    private var appDisplayName: String { "App \(appId.rawValue)" }
-
     private struct MetricView: View {
         let title: String
         let value: String
@@ -599,6 +633,17 @@ private struct PerAppRewardEditorRow: View {
         }
     }
 }
+
+#if canImport(FamilyControls)
+private func friendlyName(for appId: AppIdentifier) -> String {
+    if let suffix = appId.rawValue.split(separator: "-").last {
+        return "App \(suffix.prefix(6))"
+    }
+    return appId.rawValue
+}
+#else
+private func friendlyName(for appId: AppIdentifier) -> String { appId.rawValue }
+#endif
 
 // MARK: - Parent Mode Settings View
 

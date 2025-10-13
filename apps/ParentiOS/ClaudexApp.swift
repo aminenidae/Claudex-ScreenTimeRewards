@@ -91,6 +91,8 @@ struct ClaudexScreenTimeRewardsApp: App {
 
         let deviceRoleManager = DeviceRoleManager(pairingService: pairingService)
         self._deviceRoleManager = StateObject(wrappedValue: deviceRoleManager)
+
+        rulesManager.setPerAppStore(perAppStore)
     }
 
     var body: some Scene {

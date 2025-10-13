@@ -31,6 +31,8 @@ class CategoryRulesManager: ObservableObject {
     private var syncService: SyncServiceProtocol?
     #endif
 
+    private weak var perAppStore: PerAppConfigurationStore?
+
     /// Parent device ID for tracking who modified rules
     private let deviceId: String
 
@@ -62,6 +64,10 @@ class CategoryRulesManager: ObservableObject {
     }
     #endif
 
+    func setPerAppStore(_ store: PerAppConfigurationStore?) {
+        self.perAppStore = store
+    }
+
     // MARK: - Public API
 
     /// Get rules for a specific child
@@ -89,6 +95,8 @@ class CategoryRulesManager: ObservableObject {
             let bundleId = app.bundleIdentifier ?? "unknown"
             let displayName = app.localizedDisplayName ?? "unknown"
             print("📚 App \(index + 1): \(displayName) (bundle: \(bundleId))")
+            let appId = tokenToAppIdentifier(token)
+            perAppStore?.registerAppDisplayName(childId: childId, appId: appId, name: displayName)
         }
 
         // Log categories
@@ -128,6 +136,8 @@ class CategoryRulesManager: ObservableObject {
             let bundleId = app.bundleIdentifier ?? "unknown"
             let displayName = app.localizedDisplayName ?? "unknown"
             print("⭐ App \(index + 1): \(displayName) (bundle: \(bundleId))")
+            let appId = tokenToAppIdentifier(token)
+            perAppStore?.registerAppDisplayName(childId: childId, appId: appId, name: displayName)
         }
 
         // Log categories
@@ -473,6 +483,44 @@ struct RulesSummary {
         conflictCount > 0
     }
 }
+
+#if canImport(FamilyControls)
+struct AppDisplayMetadata {
+    let name: String
+    let bundleIdentifier: String?
+}
+
+extension CategoryRulesManager {
+    func appMetadata(for childId: ChildID) -> [AppIdentifier: AppDisplayMetadata] {
+        let rules = getRules(for: childId)
+        var result: [AppIdentifier: AppDisplayMetadata] = [:]
+
+        let tokens = rules.learningSelection.applicationTokens.union(rules.rewardSelection.applicationTokens)
+
+        for token in tokens {
+            let appId = tokenToAppIdentifier(token)
+            let application = ManagedSettings.Application(token: token)
+            let displayName = application.localizedDisplayName
+                ?? application.bundleIdentifier
+                ?? "App"
+            let bundleId = application.bundleIdentifier
+            result[appId] = AppDisplayMetadata(name: displayName, bundleIdentifier: bundleId)
+        }
+
+        return result
+    }
+
+    private func tokenToAppIdentifier(_ token: ApplicationToken) -> AppIdentifier {
+        #if canImport(ScreenTimeService)
+        return ApplicationTokenHelper.toAppIdentifier(token)
+        #else
+        let data = withUnsafeBytes(of: token) { Data($0) }
+        let hex = data.map { String(format: "%02x", $0) }.joined()
+        return AppIdentifier("app-\(hex)")
+        #endif
+    }
+}
+#endif
 
 // MARK: - Codable Wrappers (FamilyActivitySelection is not Codable)
 

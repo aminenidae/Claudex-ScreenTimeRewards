@@ -17,6 +17,10 @@ final class PerAppConfigurationStore: ObservableObject {
         didSet { persistIfNeeded() }
     }
 
+    @Published private var appNames: [String: [String: String]] = [:] {
+        didSet { persistIfNeeded() }
+    }
+
     private let fileURL: URL
     private var isLoading = false
 
@@ -145,6 +149,16 @@ final class PerAppConfigurationStore: ObservableObject {
         rewardUsage[childId.rawValue] = childUsage
     }
 
+    func registerAppDisplayName(childId: ChildID, appId: AppIdentifier, name: String) {
+        var childNames = appNames[childId.rawValue] ?? [:]
+        childNames[appId.rawValue] = name
+        appNames[childId.rawValue] = childNames
+    }
+
+    func displayName(childId: ChildID, appId: AppIdentifier) -> String? {
+        appNames[childId.rawValue]?[appId.rawValue]
+    }
+
     // MARK: - Persistence
 
     private func loadFromDisk() {
@@ -159,6 +173,7 @@ final class PerAppConfigurationStore: ObservableObject {
             pointsRules = decoded.pointsRules
             rewardRules = decoded.rewardRules
             rewardUsage = decoded.rewardUsage ?? [:]
+            appNames = decoded.appNames ?? [:]
         } catch {
             print("PerAppConfigurationStore: Failed to load from disk - \(error)")
         }
@@ -171,7 +186,7 @@ final class PerAppConfigurationStore: ObservableObject {
 
     private func persist() {
         do {
-            let payload = PersistedConfiguration(pointsRules: pointsRules, rewardRules: rewardRules, rewardUsage: rewardUsage)
+            let payload = PersistedConfiguration(pointsRules: pointsRules, rewardRules: rewardRules, rewardUsage: rewardUsage, appNames: appNames)
             let data = try JSONEncoder().encode(payload)
             let directory = fileURL.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -186,6 +201,7 @@ private struct PersistedConfiguration: Codable {
     var pointsRules: [String: [String: PerAppPointsRule]]
     var rewardRules: [String: [String: PerAppRewardRule]]
     var rewardUsage: [String: [String: RewardUsage]]?
+    var appNames: [String: [String: String]]?
 }
 
 struct RewardUsage: Codable, Equatable {
