@@ -2,6 +2,139 @@
 
 Track major milestones and implementation progress for Claudex Screen Time Rewards MVP.
 
+## 2025-10-12 Evening | Per-App Activity Detection & Session Tracking ✅
+
+### Per-App Points Tracking Implementation
+
+**Status**: ✅ Core functionality complete (build successful)
+
+**Problem Solved**: DeviceActivity interval callbacks don't identify which specific learning app is active. Points were accruing globally (appId = nil) instead of to specific apps.
+
+**Solution**: Implemented event-based per-app detection using encoded DeviceActivityEvent names.
+
+### What Was Built
+
+**1. Event-Based App Identification**
+- `ActivityScheduleCoordinator.startMonitoring()` now creates one `DeviceActivityEvent` per learning app
+- Event names encode both childId and appId: `"child_{childId}_app_{appId}"`
+- Events fire when app is used for 1+ second (threshold-based detection)
+- Enables real-time identification of which app child is using
+
+**2. ApplicationToken → AppIdentifier Conversion**
+- New `ApplicationTokenHelper` utility in DeviceActivityMonitor.swift
+- Converts opaque ApplicationToken to stable AppIdentifier using hash
+- Format: `AppIdentifier("app_{hashValue}")`
+- Consistent mapping: same token → same appId across sessions
+
+**3. Event Name Parsing**
+- `ActivityEventName` helper with `make()` and `parse()` methods
+- Extracts (childId, appId) from event names when events fire
+- Posted via new `.appActivityDetected` notification
+
+**4. Per-App Session Management**
+- `LearningSessionCoordinator` now tracks multiple concurrent app sessions
+- New `activeAppSessions` dictionary: `[String: UsageSession]` (key: "{childId}_{appId}")
+- Methods: `beginAppSession()`, `touchAppSession()`, `endAppSession()`
+- Observes `.appActivityDetected` notification
+- Starts sessions with correct appId parameter
+
+**5. Updated LearningActivityMonitor**
+- `eventDidReachThreshold()` parses event names
+- Posts `.appActivityDetected` with childId and appId in userInfo
+- Falls back to generic threshold notification for unparseable events
+
+### Data Flow Example
+
+```
+1. Parent selects Khan Academy + Duolingo as learning apps
+2. ActivityScheduleCoordinator creates 2 events:
+   - "child_ABC123_app_app_12345" (Khan Academy)
+   - "child_ABC123_app_app_67890" (Duolingo)
+
+3. Child opens Khan Academy
+4. DeviceActivity fires event: "child_ABC123_app_app_12345"
+5. LearningActivityMonitor parses → (childId: ABC123, appId: app_12345)
+6. Posts .appActivityDetected notification
+7. LearningSessionCoordinator receives notification
+8. beginAppSession(childId: ABC123, appId: app_12345)
+9. PointsEngine.startSession(childId, appId: app_12345)
+
+10. Child uses app for 5 minutes, closes it
+11. endAppSession() finalizes session
+12. PointsEngine calculates 50 points (10 pts/min × 5 min)
+13. PointsLedger.recordAccrual(childId: ABC123, appId: app_12345, points: 50)
+
+Result: 50 points credited to Khan Academy balance
+```
+
+### Technical Highlights
+
+- **Event-based vs Report-based**: Chose events for real-time detection (simpler than querying DeviceActivityReport retroactively)
+- **Thread Safety**: All session management on @MainActor, notifications on .main queue
+- **Backward Compatibility**: Kept legacy global session tracking alongside new per-app sessions
+- **Session Cleanup**: stopMonitoring() now cleans up both global and per-app sessions
+
+### Files Modified
+
+**Sources/ScreenTimeService/DeviceActivityMonitor.swift**:
+- ✅ Updated `ActivityScheduleCoordinator.startMonitoring()` - creates per-app events
+- ✅ Updated `LearningActivityMonitor.eventDidReachThreshold()` - parses event names
+- ✅ Added `ActivityEventName` utility (encode/parse)
+- ✅ Added `ApplicationTokenHelper` utility (token → appId conversion)
+- ✅ Added `.appActivityDetected` notification name
+
+**apps/ParentiOS/ViewModels/LearningSessionCoordinator.swift**:
+- ✅ Added `activeAppSessions` dictionary for per-app tracking
+- ✅ Added `beginAppSession()`, `touchAppSession()`, `endAppSession()` methods
+- ✅ Observes `.appActivityDetected` notification
+- ✅ Updated `stopMonitoring()` to clean up app sessions
+
+### Build Status
+
+✅ **Swift Package Build**: SUCCESS
+✅ **Warnings**: Only existing actor isolation warnings (not introduced by this change)
+✅ **Compilation**: Clean
+
+### Known Limitations
+
+1. **ApplicationToken Hash Stability**: Hashes should be stable within iOS version, but may change across major iOS updates (acceptable for MVP)
+2. **1-Second Threshold**: Very brief app switches (<1 second) won't be tracked (filters accidental taps)
+3. **Category Tokens**: Only individual apps tracked currently, not full category selections (future enhancement)
+
+### Next Steps (UI Integration)
+
+With per-app tracking now functional, the next phase is building the UI:
+
+1. **Points Tab** (ChildDeviceParentModeView Level 2):
+   - Display per-app balances
+   - Configure per-app point rates (points-per-minute)
+   - Set per-app daily caps
+
+2. **Rewards Tab**:
+   - Configure per-app redemption costs
+   - Set redemption rules per app
+
+3. **Child Mode UI**:
+   - Grid of app icons with balances
+   - Per-app redemption flow
+   - Multi-app partial redemption support
+
+4. **RedemptionService Extension**:
+   - Support spending from multiple apps (e.g., 200 pts from Khan + 100 pts from Duolingo)
+   - Validation across per-app balances
+
+### Documentation Created
+
+- ✅ `docs/per-app-tracking-implementation.md` - Comprehensive implementation guide
+
+### References
+
+- **Implementation Plan**: `docs/implementation-plan-2025-10-11-final.md` (Phase 3)
+- **Architecture**: `docs/architecture-confirmed-2025-10-11.md` (User answers)
+- **User Requirements**: Per-app balances, per-app rates, Option A data model (childId → appId → balance)
+
+---
+
 ## 2025-10-12 | Phase 2 Level 2 Scaffold + Per-App Ledger Foundations 🧱
 
 ### ChildDeviceParentModeView Redesign (Level 2)

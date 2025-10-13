@@ -19,7 +19,8 @@ final class LearningSessionCoordinator: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private var notificationTokens: [NSObjectProtocol] = []
-    private var activeSessions: [ChildID: UsageSession] = [:]
+    private var activeSessions: [ChildID: UsageSession] = [:]  // Legacy: global sessions
+    private var activeAppSessions: [String: UsageSession] = [:]  // Key: "{childId}_{appId}"
     private var monitoredChildren: Set<ChildID> = []
 
     init(
@@ -86,9 +87,19 @@ final class LearningSessionCoordinator: ObservableObject {
         scheduleCoordinator.stopMonitoring(childId: childId)
         monitoredChildren.remove(childId)
 
-        // End any lingering session
+        // End any lingering global session
         if let session = activeSessions[childId] {
             finalizeSession(session, endTime: Date())
+            activeSessions[childId] = nil
+        }
+
+        // End all active app sessions for this child
+        let sessionsToEnd = activeAppSessions.filter { key, _ in
+            key.hasPrefix("\(childId.rawValue)_")
+        }
+        for (key, session) in sessionsToEnd {
+            finalizeSession(session, endTime: Date())
+            activeAppSessions[key] = nil
         }
     }
 
@@ -119,7 +130,17 @@ final class LearningSessionCoordinator: ObservableObject {
             self.touchSession(for: childId, at: Date())
         }
 
-        notificationTokens = [startToken, endToken, thresholdToken]
+        // NEW: Per-app activity detection
+        let appActivityToken = center.addObserver(forName: .appActivityDetected, object: nil, queue: .main) { [weak self] notification in
+            guard let self = self,
+                  let childIdRaw = notification.userInfo?["childId"] as? String,
+                  let appIdRaw = notification.userInfo?["appId"] as? String else { return }
+            let childId = ChildID(childIdRaw)
+            let appId = AppIdentifier(appIdRaw)
+            self.beginAppSession(for: childId, appId: appId, startTime: Date())
+        }
+
+        notificationTokens = [startToken, endToken, thresholdToken, appActivityToken]
     }
 
     private func beginSession(for childId: ChildID, startTime: Date) {
@@ -155,6 +176,47 @@ final class LearningSessionCoordinator: ObservableObject {
         if result.pointsEarned > 0 {
             _ = pointsLedger.recordAccrual(childId: session.childId, appId: session.appId, points: result.pointsEarned, timestamp: endTime)
         }
+    }
+
+    // MARK: - Per-App Session Management
+
+    private func appSessionKey(childId: ChildID, appId: AppIdentifier) -> String {
+        "\(childId.rawValue)_\(appId.rawValue)"
+    }
+
+    private func beginAppSession(for childId: ChildID, appId: AppIdentifier, startTime: Date) {
+        let key = appSessionKey(childId: childId, appId: appId)
+
+        // End existing session for this app if any
+        if let existing = activeAppSessions[key] {
+            finalizeSession(existing, endTime: startTime)
+        }
+
+        // Check if child can accrue points for this app
+        let config = configurationProvider(childId, appId)
+        guard pointsEngine.canAccruePoints(childId: childId, appId: appId, config: config) else {
+            return
+        }
+
+        // Start new per-app session
+        let session = pointsEngine.startSession(childId: childId, appId: appId, at: startTime)
+        activeAppSessions[key] = session
+        print("📱 LearningSessionCoordinator: Started session for child \(childId.rawValue), app \(appId.rawValue)")
+    }
+
+    private func touchAppSession(for childId: ChildID, appId: AppIdentifier, at time: Date) {
+        let key = appSessionKey(childId: childId, appId: appId)
+        guard let session = activeAppSessions[key] else { return }
+        let updated = pointsEngine.updateActivity(session: session, at: time)
+        activeAppSessions[key] = updated
+    }
+
+    private func endAppSession(for childId: ChildID, appId: AppIdentifier, endTime: Date) {
+        let key = appSessionKey(childId: childId, appId: appId)
+        guard let session = activeAppSessions[key] else { return }
+        finalizeSession(session, endTime: endTime)
+        activeAppSessions[key] = nil
+        print("📱 LearningSessionCoordinator: Ended session for child \(childId.rawValue), app \(appId.rawValue)")
     }
 }
 
