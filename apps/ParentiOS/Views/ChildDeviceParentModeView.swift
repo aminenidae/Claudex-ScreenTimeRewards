@@ -2,6 +2,9 @@ import SwiftUI
 #if canImport(Core)
 import Core
 #endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Parent Mode view on child's device
 /// PIN-protected configuration interface where parents can:
@@ -18,11 +21,36 @@ struct ChildDeviceParentModeView: View {
     @EnvironmentObject private var pinManager: PINManager
     @EnvironmentObject private var learningCoordinator: LearningSessionCoordinator
     @EnvironmentObject private var rewardCoordinator: RewardCoordinator
+    @EnvironmentObject private var pairingService: PairingService
 
     @State private var selectedTab: Tab = .apps
     @State private var showingAddChildSheet = false
+    @State private var pairedChildId: ChildID?
+
+    private let deviceId: String
+
+    init() {
+        let defaults = UserDefaults.standard
+        if let storedDeviceId = defaults.string(forKey: "com.claudex.deviceId") {
+            self.deviceId = storedDeviceId
+        } else {
+            #if canImport(UIKit)
+            let resolvedId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+            #else
+            let resolvedId = ProcessInfo.processInfo.globallyUniqueString
+            #endif
+            self.deviceId = resolvedId
+            defaults.set(resolvedId, forKey: "com.claudex.deviceId")
+        }
+    }
 
     private var child: ChildProfile? {
+        // On child device, only show the paired child
+        if let pairedId = pairedChildId {
+            return childrenManager.children.first(where: { $0.id == pairedId })
+        }
+
+        // Fallback to selected or first child
         if let id = childrenManager.selectedChildId {
             return childrenManager.children.first(where: { $0.id == id })
         }
@@ -36,7 +64,7 @@ struct ChildDeviceParentModeView: View {
                     HeaderView(child: child)
 
                     TabView(selection: $selectedTab) {
-                        AppCategorizationView()
+                        AppCategorizationView(hideChildSelector: true)
                             .tag(Tab.apps)
                             .tabItem { Label("Apps", systemImage: "square.grid.2x2") }
 
@@ -108,12 +136,33 @@ struct ChildDeviceParentModeView: View {
         }
         .onAppear {
             pinManager.updateLastActivity()
-            if childrenManager.selectedChildId == nil, let child {
-                childrenManager.selectedChildId = child.id
-            }
+            loadPairing()
+        }
+        .onReceive(pairingService.objectWillChange) { _ in
+            loadPairing()
         }
         .onChange(of: selectedTab) { _ in
             pinManager.updateLastActivity()
+        }
+    }
+
+    private func loadPairing() {
+        // Look up which child is paired to this device
+        if let pairing = pairingService.getPairing(for: deviceId) {
+            pairedChildId = pairing.childId
+            childrenManager.selectedChildId = pairing.childId
+            print("📱 ChildDeviceParentModeView: Device paired to child \(pairing.childId.rawValue)")
+        } else {
+            // Fallback: check local pairing storage
+            if let data = UserDefaults.standard.data(forKey: PairingService.localPairingDefaultsKey),
+               let storedPairing = try? JSONDecoder().decode(ChildDevicePairing.self, from: data),
+               storedPairing.deviceId == deviceId {
+                pairedChildId = storedPairing.childId
+                childrenManager.selectedChildId = storedPairing.childId
+                print("📱 ChildDeviceParentModeView: Using local pairing for child \(storedPairing.childId.rawValue)")
+            } else {
+                print("⚠️ ChildDeviceParentModeView: No pairing found for device \(deviceId)")
+            }
         }
     }
 

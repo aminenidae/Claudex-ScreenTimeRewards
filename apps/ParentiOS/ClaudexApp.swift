@@ -235,6 +235,7 @@ struct ModeSelectionView: View {
                         .environmentObject(pinManager)
                         .environmentObject(learningCoordinator)
                         .environmentObject(rewardCoordinator)
+                        .environmentObject(pairingService)
                         .onDisappear {
                             pinManager.lock()
                         }

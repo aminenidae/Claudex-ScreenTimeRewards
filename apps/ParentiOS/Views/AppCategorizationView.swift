@@ -23,6 +23,12 @@ struct AppCategorizationView: View {
     @State private var conflictResolutionChoice = 0 // 0 = keep learning, 1 = keep reward
     @State private var isPairingSyncInProgress = false
 
+    let hideChildSelector: Bool
+
+    init(hideChildSelector: Bool = false) {
+        self.hideChildSelector = hideChildSelector
+    }
+
     var selectedChild: ChildProfile? {
         guard !childrenManager.children.isEmpty else { return nil }
         guard selectedChildIndex < childrenManager.children.count else { return nil }
@@ -31,7 +37,7 @@ struct AppCategorizationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if childrenManager.children.count > 1 {
+            if !hideChildSelector && childrenManager.children.count > 1 {
                 ChildSelectorView(
                     children: childrenManager.children,
                     selectedIndex: $selectedChildIndex
@@ -201,6 +207,13 @@ struct AppCategorizationView: View {
         .onReceive(childrenManager.$children) { newChildren in
             if selectedChildIndex >= newChildren.count {
                 selectedChildIndex = max(0, newChildren.count - 1)
+            }
+        }
+        .onReceive(childrenManager.$selectedChildId) { newSelectedId in
+            // Sync selectedChildIndex with selectedChildId
+            if let id = newSelectedId,
+               let index = childrenManager.children.firstIndex(where: { $0.id == id }) {
+                selectedChildIndex = index
             }
         }
     }
