@@ -217,14 +217,28 @@ struct ModeSelectionView: View {
                 }
             }
             .navigationDestination(isPresented: $navigateToParentMode) {
-                ParentDeviceParentModeView()
-                    .environmentObject(authorizationCoordinator)
-                    .environmentObject(childrenManager)
-                    .environmentObject(pairingService)
-                    .environmentObject(pinManager)
-                    .onDisappear {
-                        pinManager.lock()
-                    }
+                if deviceRoleManager.deviceRole == .parent {
+                    // Parent device → Family Dashboard (Level 1)
+                    ParentDeviceParentModeView()
+                        .environmentObject(authorizationCoordinator)
+                        .environmentObject(childrenManager)
+                        .environmentObject(pairingService)
+                        .environmentObject(pinManager)
+                        .onDisappear {
+                            pinManager.lock()
+                        }
+                } else {
+                    // Child device → Direct to child configuration (Level 2)
+                    ChildDeviceParentModeView()
+                        .environmentObject(childrenManager)
+                        .environmentObject(rulesManager)
+                        .environmentObject(pinManager)
+                        .environmentObject(learningCoordinator)
+                        .environmentObject(rewardCoordinator)
+                        .onDisappear {
+                            pinManager.lock()
+                        }
+                }
             }
             .navigationDestination(isPresented: $navigateToChildMode) {
                 ChildModeView(pendingPairingCode: $pendingPairingCode)
