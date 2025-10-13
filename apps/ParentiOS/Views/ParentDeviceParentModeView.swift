@@ -15,6 +15,7 @@ struct ParentDeviceParentModeView: View {
 
     @State private var selectedChildIndex: Int = 0
     @State private var showingPairingSheet = false
+    @State private var showingAddChildSheet = false
     @State private var pairingNotification: PairingNotification?
     @State private var showPairingSuccess = false
 
@@ -52,18 +53,26 @@ struct ParentDeviceParentModeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button {
-                        showingPairingSheet = true
+                        showingAddChildSheet = true
                     } label: {
-                        Label("Link Device", systemImage: "qrcode")
+                        Label("Add Child", systemImage: "person.badge.plus")
                     }
-                    .disabled(children.isEmpty)
                 }
 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        pinManager.lock()
-                    } label: {
-                        Label("Lock", systemImage: "lock.fill")
+                    HStack(spacing: 16) {
+                        Button {
+                            showingPairingSheet = true
+                        } label: {
+                            Label("Link Device", systemImage: "qrcode")
+                        }
+                        .disabled(children.isEmpty)
+
+                        Button {
+                            pinManager.lock()
+                        } label: {
+                            Label("Lock", systemImage: "lock.fill")
+                        }
                     }
                 }
             }
@@ -84,6 +93,14 @@ struct ParentDeviceParentModeView: View {
             if let child = selectedChild {
                 childrenManager.selectedChildId = child.id
             }
+        }
+        .sheet(isPresented: $showingAddChildSheet) {
+            AddChildSheet { name in
+                await childrenManager.addChild(named: name)
+            } onSuccess: { newChild in
+                childrenManager.selectedChildId = newChild.id
+            }
+            .environmentObject(childrenManager)
         }
         .sheet(isPresented: $showingPairingSheet) {
             if let child = selectedChild {
@@ -132,15 +149,15 @@ struct ParentDeviceParentModeView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
 
-            Text("Use the \"Link Device\" button to generate a pairing code, then link the child’s device to start configuring rules.")
+            Text("Add your first child to start configuring screen time rules and reward systems.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
             Button {
-                showingPairingSheet = true
+                showingAddChildSheet = true
             } label: {
-                Label("Link Child Device", systemImage: "qrcode")
+                Label("Add Child", systemImage: "person.badge.plus")
             }
             .buttonStyle(.borderedProminent)
         }

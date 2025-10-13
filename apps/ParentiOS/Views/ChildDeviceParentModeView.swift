@@ -20,6 +20,7 @@ struct ChildDeviceParentModeView: View {
     @EnvironmentObject private var rewardCoordinator: RewardCoordinator
 
     @State private var selectedTab: Tab = .apps
+    @State private var showingAddChildSheet = false
 
     private var child: ChildProfile? {
         if let id = childrenManager.selectedChildId {
@@ -63,21 +64,47 @@ struct ChildDeviceParentModeView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
 
-                    Text("Select a child from the parent dashboard to configure their rules, or pair a device to create a new profile.")
+                    Text("Add your first child to start configuring learning apps, points, and rewards.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal)
+
+                    Button {
+                        showingAddChildSheet = true
+                    } label: {
+                        Label("Add Child", systemImage: "person.badge.plus")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
+                .padding()
             }
         }
         .navigationTitle("Parent Mode")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if child == nil {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showingAddChildSheet = true
+                    } label: {
+                        Label("Add Child", systemImage: "person.badge.plus")
+                    }
+                }
+            }
+
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button { pinManager.lock() } label: {
                     Label("Lock", systemImage: "lock.fill")
                 }
             }
+        }
+        .sheet(isPresented: $showingAddChildSheet) {
+            AddChildSheet { name in
+                await childrenManager.addChild(named: name)
+            } onSuccess: { newChild in
+                childrenManager.selectedChildId = newChild.id
+            }
+            .environmentObject(childrenManager)
         }
         .onAppear {
             pinManager.updateLastActivity()
