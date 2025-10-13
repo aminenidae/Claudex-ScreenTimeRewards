@@ -64,7 +64,7 @@ public struct PairingCode: Codable, Equatable {
 }
 
 public struct FamilyID: Hashable, Codable { public let rawValue: String; public init(_ v: String) { self.rawValue = v } }
-public struct ChildID: Hashable, Codable { public let rawValue: String; public init(_ v: String) { self.rawValue = v } }
+public struct ChildID: Hashable, Codable, Sendable { public let rawValue: String; public init(_ v: String) { self.rawValue = v } }
 
 public enum AppClassification: String, Codable { case learning, reward }
 
@@ -212,7 +212,7 @@ public struct DevicePairingPayload: Codable, Equatable {
     }
 }
 
-public struct PointsLedgerEntry: Codable, Identifiable {
+public struct PointsLedgerEntry: Codable, Identifiable, Sendable {
     public enum EntryType: String, Codable { case accrual, redemption, adjustment }
     public let id: UUID
     public let childId: ChildID
@@ -280,6 +280,20 @@ public struct PointsConfiguration: Codable {
     public static let `default` = PointsConfiguration()
 }
 
+public struct PerAppPointsRule: Codable, Equatable {
+    public var pointsPerMinute: Int
+    public var dailyCapPoints: Int
+    public var idleTimeoutSeconds: TimeInterval
+
+    public init(pointsPerMinute: Int = 10, dailyCapPoints: Int = 600, idleTimeoutSeconds: TimeInterval = 180) {
+        self.pointsPerMinute = pointsPerMinute
+        self.dailyCapPoints = dailyCapPoints
+        self.idleTimeoutSeconds = idleTimeoutSeconds
+    }
+
+    public static let `default` = PerAppPointsRule()
+}
+
 public struct RedemptionConfiguration: Codable {
     public let pointsPerMinute: Int        // Points required per minute of earned time
     public let minRedemptionPoints: Int    // Minimum points to redeem
@@ -299,6 +313,27 @@ public struct RedemptionConfiguration: Codable {
     }
 
     public static let `default` = RedemptionConfiguration()
+}
+
+public struct PerAppRewardRule: Codable, Equatable {
+    public var pointsPerMinute: Int
+    public var minRedemptionPoints: Int
+    public var maxRedemptionPoints: Int
+    public var stackingPolicy: ExemptionStackingPolicy
+
+    public init(
+        pointsPerMinute: Int = 10,
+        minRedemptionPoints: Int = 30,
+        maxRedemptionPoints: Int = 600,
+        stackingPolicy: ExemptionStackingPolicy = .replace
+    ) {
+        self.pointsPerMinute = pointsPerMinute
+        self.minRedemptionPoints = minRedemptionPoints
+        self.maxRedemptionPoints = maxRedemptionPoints
+        self.stackingPolicy = stackingPolicy
+    }
+
+    public static let `default` = PerAppRewardRule()
 }
 
 public struct EarnedTimeWindow: Codable, Identifiable {

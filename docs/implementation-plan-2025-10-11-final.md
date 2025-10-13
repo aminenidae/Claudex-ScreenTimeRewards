@@ -384,15 +384,16 @@ struct DeviceRoleSetupView: View {
 
 ## Phase 3: Per-App Points System (MAJOR REFACTOR)
 
-**Status**: 🟡 In progress – per-app accrual logic now wired through `PointsEngine`; UI integration still pending.
+**Status**: 🟢 Core wiring complete – per-app accrual, configuration UI, and redemption routing are live; polish + naming UX remains.
 
 - Added `AppIdentifier` and extended `PointsLedgerEntry` / `PointsLedger` / `RedemptionService` to carry optional app context.
-- `PointsEngine` now tracks active sessions per app, enforces daily caps per app, and exposes `getTodayPoints(childId:appId:)` helpers for dashboards.
-- `LearningSessionCoordinator` records per-app ledger entries (currently defaulting to global until app identifiers are surfaced from DeviceActivity events).
-- Maintained backward-compatible helpers so existing global flows continue to work while per-app data accumulates.
-- Points & Rewards tabs in Level 2 still surface placeholders awaiting per-app configuration UI.
+- `PointsEngine` and `LearningSessionCoordinator` now attribute sessions to specific learning apps via DeviceActivity notifications.
+- `PerAppConfigurationStore` persists per-app earn/spend rules and aggregates reward usage history for dashboards.
+- Level 2 Points & Rewards tabs now surface live per-app metrics with editable rates, daily caps, costs, min/max, and stacking policies.
+- `RedemptionService` splits redemptions across multiple learning-app balances, records usage analytics, and emits callbacks for reward history.
+- New unit tests cover per-app daily caps and cross-app redemption flows.
 
-Next steps: surface the active learning app from DeviceActivity into `LearningSessionCoordinator`, build per-app redemption workflows, and replace the Points/Rewards placeholders with live data visualisations. See updated answers in `architecture-confirmed-2025-10-11.md` lines 262-277.
+Next steps: surface human-friendly app names/icons in the Level 2 UI, wire Child Mode dashboards to the new per-app metrics, and expand integration tests once DeviceActivity data can be simulated end-to-end.
 
 ---
 

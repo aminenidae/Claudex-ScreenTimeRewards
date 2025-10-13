@@ -28,6 +28,7 @@ struct ClaudexScreenTimeRewardsApp: App {
     @StateObject private var ledger: PointsLedger
     @StateObject private var learningCoordinator: LearningSessionCoordinator
     @StateObject private var rewardCoordinator: RewardCoordinator
+    @StateObject private var perAppStore: PerAppConfigurationStore
     @StateObject private var syncService = SyncService()
     @StateObject private var pinManager = PINManager()
 
@@ -40,7 +41,14 @@ struct ClaudexScreenTimeRewardsApp: App {
 
         let engine = PointsEngine()
         let exemptionManager = ExemptionManager()
-        let redemptionService = RedemptionService(ledger: ledger)
+        let perAppStore = PerAppConfigurationStore()
+        self._perAppStore = StateObject(wrappedValue: perAppStore)
+
+        let redemptionService = RedemptionService(ledger: ledger) { childId, rewardAppId, points in
+            Task { @MainActor in
+                perAppStore.recordRewardRedemption(childId: childId, appId: rewardAppId, pointsSpent: points)
+            }
+        }
 
         let childrenManager = ChildrenManager(
             ledger: ledger,
@@ -57,7 +65,10 @@ struct ClaudexScreenTimeRewardsApp: App {
         let learningCoordinator = LearningSessionCoordinator(
             rulesManager: rulesManager,
             pointsEngine: engine,
-            pointsLedger: ledger
+            pointsLedger: ledger,
+            configurationProvider: { childId, appId in
+                perAppStore.pointsConfiguration(for: childId, appId: appId)
+            }
         )
         self._learningCoordinator = StateObject(wrappedValue: learningCoordinator)
 
@@ -67,7 +78,8 @@ struct ClaudexScreenTimeRewardsApp: App {
             rulesManager: rulesManager,
             redemptionService: redemptionService,
             shieldController: shieldController,
-            exemptionManager: exemptionManager
+            exemptionManager: exemptionManager,
+            perAppStore: perAppStore
         )
         self._rewardCoordinator = StateObject(wrappedValue: rewardCoordinator)
         #else
@@ -103,6 +115,7 @@ struct ClaudexScreenTimeRewardsApp: App {
                             .environmentObject(ledger)
                             .environmentObject(learningCoordinator)
                             .environmentObject(rewardCoordinator)
+                            .environmentObject(perAppStore)
                             .environmentObject(syncService)
                             .environmentObject(pinManager)
                             .environmentObject(deviceRoleManager)

@@ -8,12 +8,16 @@ final class RedemptionServiceTests: XCTestCase {
     var ledger: PointsLedger!
     var childId: ChildID!
     var config: RedemptionConfiguration!
+    var recordedUsage: [(ChildID, AppIdentifier, Int)]!
 
     override func setUp() {
         super.setUp()
         let auditLog = AuditLog()
         ledger = PointsLedger(auditLog: auditLog)
-        service = RedemptionService(ledger: ledger)
+        recordedUsage = []
+        service = RedemptionService(ledger: ledger) { [weak self] childId, rewardAppId, points in
+            self?.recordedUsage.append((childId, rewardAppId, points))
+        }
         childId = ChildID("test-child")
         config = RedemptionConfiguration(
             pointsPerMinute: 10,
@@ -29,6 +33,7 @@ final class RedemptionServiceTests: XCTestCase {
         ledger = nil
         childId = nil
         config = nil
+        recordedUsage = nil
         super.tearDown()
     }
 
@@ -190,5 +195,30 @@ final class RedemptionServiceTests: XCTestCase {
         let window3 = try service.redeem(childId: childId, points: 100, config: config)
         XCTAssertEqual(window3.durationSeconds, 600) // 10 minutes
         XCTAssertEqual(ledger.getBalance(childId: childId), 0)
+    }
+
+    func testPerAppRedemptionDrawsFromMultipleApps() throws {
+        let mathApp = AppIdentifier("app.math")
+        let readingApp = AppIdentifier("app.reading")
+        let rewardApp = AppIdentifier("app.reward.games")
+
+        ledger.recordAccrual(childId: childId, appId: mathApp, points: 40)
+        ledger.recordAccrual(childId: childId, appId: readingApp, points: 30)
+        ledger.recordAccrual(childId: childId, points: 20) // Legacy global balance
+
+        _ = try service.redeem(childId: childId, points: 80, config: config, appId: rewardApp)
+
+        XCTAssertEqual(ledger.getBalance(childId: childId, appId: mathApp), 0)
+        XCTAssertEqual(ledger.getBalance(childId: childId, appId: readingApp), 0)
+        XCTAssertEqual(ledger.getBalance(childId: childId), 10)
+
+        XCTAssertEqual(recordedUsage.count, 1)
+        if let usage = recordedUsage.first {
+            XCTAssertEqual(usage.0, childId)
+            XCTAssertEqual(usage.1, rewardApp)
+            XCTAssertEqual(usage.2, 80)
+        } else {
+            XCTFail("Expected reward usage to be recorded")
+        }
     }
 }

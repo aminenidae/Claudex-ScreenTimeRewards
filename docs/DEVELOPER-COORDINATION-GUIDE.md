@@ -9,9 +9,9 @@ This guide helps you get up to speed on the current state of the project after t
 ## 🎯 Start Here: What You Need to Know
 
 ### Current Status
-- ✅ **Documentation**: Updated through Phase 3 accrual work (plan & guide refreshed)
-- ✅ **Code**: Phase 1 + Phase 2 Level 1/2 scaffolds landed; Phase 3 per-app ledger wiring has begun (PointsEngine + LearningSessionCoordinator updated)
-- 🔄 **Next Step**: Surface the active learning app identifier from DeviceActivity, then light up the Level 2 Points/Rewards tabs with real data
+- ✅ **Documentation**: Updated through Phase 3 per-app UI + redemption work (plan & guide refreshed)
+- ✅ **Code**: Phase 1 + Phase 2 complete; Phase 3 wiring now includes DeviceActivity-driven accrual, configurable Points/Rewards tabs, and cross-app redemption
+- 🔄 **Next Step**: Add friendly app metadata, surface per-app metrics in Child Mode, and expand integration tests for the new flows
 
 ### What Happened This Session
 1. **Attempted PIN authentication implementation** → UI broken (Continue button not visible)
@@ -189,20 +189,20 @@ This guide helps you get up to speed on the current state of the project after t
 
 ---
 
-### Priority 2: Per-App Points System (Phase 3)
+### Priority 2: Per-App Polish & Child Mode Surfacing
 
-**Effort**: 2-3 days total (now partially complete)
-**Status**: 🟡 PointsEngine + LearningSessionCoordinator supply per-app balances; UI + redemption updates pending
+**Effort**: ~1 day of UI polish + follow-up QA
+**Status**: 🟡 Core flows complete; metadata and downstream surfaces pending
 **Reference**: `docs/implementation-plan-2025-10-11-final.md` Phase 3, `docs/architecture-confirmed-2025-10-11.md`
 
 **Next actions**:
-1. Surface the active learning app identifier from DeviceActivity notifications so sessions accrue against the correct `AppIdentifier`.
-2. Update Level 2 Points/Rewards tabs to display live per-app balances, point rates, and redemption rules instead of placeholder copy.
-3. Extend `RedemptionService` flows + tests to spend from specific app balances (and to aggregate when multiple apps contribute to a redemption).
+1. Surface human-readable app metadata (name/icon) in the Level 2 Points/Rewards tables so parents aren’t staring at hashed IDs.
+2. Expose per-app balances and reward costs in Child Mode (grid + redemption flow) using `PerAppConfigurationStore` + `PointsLedger.getBalances`.
+3. Add integration tests that simulate DeviceActivity → ledger accrual → redemption to guard the cross-app deduction logic.
 
 **Testing**:
-- Unit: mixed per-app accrual + daily cap enforcement (`PointsEngineTests` already cover base cases; add DeviceActivity-driven coverage once identifiers flow through).
-- UI: Navigate Parent Mode Level 1 → select child → switch across Level 2 tabs and validate per-app metrics + editing flows.
+- Manual: verify editing rates/caps updates live metrics; confirm reward cost/stacking edits persist after relaunch.
+- Unit/Integration: extend automation to cover `PerAppConfigurationStore` persistence + `RedemptionService` multi-app deductions (new tests started, keep expanding once simulator permissions allow).
 
 ---
 
@@ -214,9 +214,9 @@ This guide helps you get up to speed on the current state of the project after t
 - ⚠️ **Warnings**: Clean up unused `result` in `SyncService` + redundant `await` warnings when time permits.
 
 ### Tracking Notes
-- Device role flow, Level 1 dashboard, and Level 2 shell are merged locally; keep running QA on real devices after each change.
-- Per-app accrual logic now sits behind DeviceActivity notifications—until app identifiers are plumbed, ledger entries still default to global balances.
-- CloudKit schema updates (DevicePairing record type) were drafted—double-check in production container before shipping.
+- Device role flow, Level 1 dashboard, and the new Level 2 editors are merged locally; keep running QA on real devices after each change.
+- DeviceActivity now tags sessions with `AppIdentifier`s—verify Screen Time entitlements on test devices to ensure per-app accrual fires in the wild.
+- CloudKit schema updates (DevicePairing + upcoming per-app config records) were drafted—double-check in production container before shipping.
 
 ---
 

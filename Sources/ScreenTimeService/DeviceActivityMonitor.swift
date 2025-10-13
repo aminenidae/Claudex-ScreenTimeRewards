@@ -16,7 +16,6 @@ public final class LearningActivityMonitor: DeviceActivityMonitor {
     /// Called when a monitored activity interval starts
     public override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
-        // Start tracking session (global level - no specific app yet)
         NotificationCenter.default.post(
             name: .learningSessionDidStart,
             object: nil,
@@ -27,7 +26,6 @@ public final class LearningActivityMonitor: DeviceActivityMonitor {
     /// Called when a monitored activity interval ends
     public override func intervalDidEnd(for activity: DeviceActivityName) {
         super.intervalDidEnd(for: activity)
-        // End tracking session
         NotificationCenter.default.post(
             name: .learningSessionDidEnd,
             object: nil,
@@ -151,17 +149,18 @@ public enum ActivityEventName {
 public enum ApplicationTokenHelper {
     /// Convert ApplicationToken to stable AppIdentifier using hash
     public static func toAppIdentifier(_ token: ApplicationToken) -> AppIdentifier {
-        // Use stable hash of token bytes as identifier
         let data = withUnsafeBytes(of: token) { Data($0) }
-        let hash = data.hashValue
-        return AppIdentifier("app_\(abs(hash))")
+        return AppIdentifier("app-\(hexString(from: data))")
     }
 
     /// Convert base64-encoded token string to AppIdentifier
     public static func toAppIdentifier(base64: String) -> AppIdentifier? {
         guard let data = Data(base64Encoded: base64) else { return nil }
-        let hash = data.hashValue
-        return AppIdentifier("app_\(abs(hash))")
+        return AppIdentifier("app-\(hexString(from: data))")
+    }
+
+    private static func hexString(from data: Data) -> String {
+        data.map { String(format: "%02x", $0) }.joined()
     }
 }
 #endif

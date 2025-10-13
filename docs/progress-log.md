@@ -381,7 +381,14 @@ With per-app tracking now functional, the next phase is building the UI:
 - Added tests covering per-app balance aggregation.
 - `PointsEngine` now tracks sessions per app, enforces daily caps individually, and exposes helpers for fetching per-app daily totals; unit tests cover the new behaviour.
 
-**Next:** Surface the active learning app identifier from DeviceActivity into `LearningSessionCoordinator`, wire per-app redemption flows, and replace the Points/Rewards tab placeholders with live configuration + analytics.
+### Per-App UI + Redemption Enhancements (2025-10-12 PM)
+- Added `PerAppConfigurationStore` to persist per-child earn & spend rules and track reward usage history.
+- Level 2 `Points` and `Rewards` tabs now list each configured app with live balances, earned-today metrics, and editable controls (rates, daily caps, costs, min/max, stacking).
+- `LearningSessionCoordinator` consumes DeviceActivity events to attribute sessions to `AppIdentifier`s; global sessions stay in sync for legacy flows.
+- `RedemptionService` now allocates point deductions across all learning-app balances, records usage callbacks, and is covered by new unit tests for cross-app redemption.
+- Reward configuration UI consumes the recorded history to show unlock counts and total points spent per reward app.
+
+**Next:** Surface friendly app metadata in the configuration UI, update Child Mode dashboards to use the new per-app balances, and add integration tests covering DeviceActivity → ledger → redemption loops.
 
 ---
 

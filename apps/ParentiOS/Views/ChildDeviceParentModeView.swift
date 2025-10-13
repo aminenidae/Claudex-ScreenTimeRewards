@@ -2,6 +2,12 @@ import SwiftUI
 #if canImport(Core)
 import Core
 #endif
+#if canImport(ScreenTimeService)
+import ScreenTimeService
+#endif
+#if canImport(FamilyControls)
+import FamilyControls
+#endif
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -18,6 +24,7 @@ struct ChildDeviceParentModeView: View {
 
     @EnvironmentObject private var childrenManager: ChildrenManager
     @EnvironmentObject private var rulesManager: CategoryRulesManager
+    @EnvironmentObject private var perAppStore: PerAppConfigurationStore
     @EnvironmentObject private var pinManager: PINManager
     @EnvironmentObject private var learningCoordinator: LearningSessionCoordinator
     @EnvironmentObject private var rewardCoordinator: RewardCoordinator
@@ -186,39 +193,47 @@ struct ChildDeviceParentModeView: View {
 @available(iOS 16.0, *)
 struct PerAppPointsConfigurationView: View {
     @EnvironmentObject private var childrenManager: ChildrenManager
+    @EnvironmentObject private var rulesManager: CategoryRulesManager
+    @EnvironmentObject private var perAppStore: PerAppConfigurationStore
     @EnvironmentObject private var pinManager: PINManager
     let child: ChildProfile
 
-    private var discoveredLearningApps: [(appId: AppIdentifier, balance: Int, todayPoints: Int)] {
-        // Get all apps that have point entries for this child
-        let allEntries = childrenManager.ledger.getEntries(childId: child.id, limit: 1000)
+    private let calendar = Calendar.current
 
-        // Group by appId, filter out nil (global entries)
-        var appsMap: [AppIdentifier: (balance: Int, todayPoints: Int)] = [:]
-        let today = Calendar.current.startOfDay(for: Date())
-
-        for entry in allEntries {
+    private var learningMetrics: [AppIdentifier: (balance: Int, todayPoints: Int)] {
+        var metrics: [AppIdentifier: (balance: Int, todayPoints: Int)] = [:]
+        let entries = childrenManager.ledger.getEntries(childId: child.id, limit: 1000)
+        for entry in entries {
             guard let appId = entry.appId else { continue }
-
-            // Calculate balance
-            let currentBalance = appsMap[appId]?.balance ?? 0
-            let newBalance = currentBalance + entry.amount
-
-            // Calculate today's points
-            let currentToday = appsMap[appId]?.todayPoints ?? 0
-            let isToday = Calendar.current.isDate(entry.timestamp, inSameDayAs: today)
-            let newToday = currentToday + (isToday && entry.type == .accrual ? entry.amount : 0)
-
-            appsMap[appId] = (balance: newBalance, todayPoints: newToday)
+            var current = metrics[appId] ?? (balance: 0, todayPoints: 0)
+            current.balance += entry.amount
+            if calendar.isDate(entry.timestamp, inSameDayAs: Date()), entry.type == .accrual {
+                current.todayPoints += entry.amount
+            }
+            metrics[appId] = current
         }
+        return metrics
+    }
 
-        return appsMap.map { (appId: $0.key, balance: $0.value.balance, todayPoints: $0.value.todayPoints) }
-            .sorted { $0.balance > $1.balance }  // Sort by balance descending
+    private var learningAppIds: [AppIdentifier] {
+        var identifiers = Set<AppIdentifier>()
+
+        #if canImport(ScreenTimeService)
+        let rules = rulesManager.getRules(for: child.id)
+        for token in rules.learningSelection.applicationTokens {
+            identifiers.insert(ApplicationTokenHelper.toAppIdentifier(token))
+        }
+        #endif
+
+        identifiers.formUnion(learningMetrics.keys)
+        identifiers.formUnion(perAppStore.pointsAppIdentifiers(for: child.id))
+
+        return identifiers.sorted { $0.rawValue < $1.rawValue }
     }
 
     var body: some View {
         List {
-            if discoveredLearningApps.isEmpty {
+            if learningAppIds.isEmpty {
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -267,68 +282,38 @@ struct PerAppPointsConfigurationView: View {
                     .padding(.vertical, 8)
                 }
             } else {
-                Section("Discovered Learning Apps") {
-                    ForEach(discoveredLearningApps, id: \.appId) { app in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "app.fill")
-                                    .foregroundStyle(.green)
+                Section("Learning Apps") {
+                    ForEach(learningAppIds, id: \.self) { appId in
+                        let metrics = learningMetrics[appId] ?? (balance: 0, todayPoints: 0)
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("App \(app.appId.rawValue)")
-                                        .font(.headline)
-                                    Text("Detected through usage")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                        PerAppPointsEditorRow(
+                            appId: appId,
+                            metrics: metrics,
+                            isUsingDefault: perAppStore.isUsingDefaultPointsRule(childId: child.id, appId: appId),
+                            pointsPerMinute: Binding(
+                                get: { perAppStore.pointsRule(for: child.id, appId: appId).pointsPerMinute },
+                                set: { newValue in
+                                    pinManager.updateLastActivity()
+                                    perAppStore.updatePointsRule(childId: child.id, appId: appId) { rule in
+                                        rule.pointsPerMinute = newValue
+                                    }
                                 }
-
-                                Spacer()
-                            }
-
-                            HStack(spacing: 20) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Total Balance")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text("\(app.balance) pts")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
+                            ),
+                            dailyCapPoints: Binding(
+                                get: { perAppStore.pointsRule(for: child.id, appId: appId).dailyCapPoints },
+                                set: { newValue in
+                                    pinManager.updateLastActivity()
+                                    perAppStore.updatePointsRule(childId: child.id, appId: appId) { rule in
+                                        rule.dailyCapPoints = newValue
+                                    }
                                 }
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Earned Today")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text("\(app.todayPoints) pts")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.green)
-                                }
+                            ),
+                            onReset: {
+                                pinManager.updateLastActivity()
+                                perAppStore.resetPointsRule(childId: child.id, appId: appId)
                             }
-
-                            Divider()
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Configuration (Coming Soon)")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.secondary)
-                                Text("• Points per minute: 10 pts/min (default)")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                Text("• Daily cap: 300 pts (default)")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        .padding(.vertical, 4)
+                        )
                     }
-                }
-
-                Section("Note") {
-                    Text("Per-app configuration controls (adjust rates, set caps) will be added in the next phase. For now, all apps use default settings: 10 pts/min, 300 pts daily cap.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -338,79 +323,134 @@ struct PerAppPointsConfigurationView: View {
     }
 }
 
+@available(iOS 16.0, *)
+private struct PerAppPointsEditorRow: View {
+    let appId: AppIdentifier
+    let metrics: (balance: Int, todayPoints: Int)
+    let isUsingDefault: Bool
+    let pointsPerMinute: Binding<Int>
+    let dailyCapPoints: Binding<Int>
+    let onReset: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "app.fill")
+                    .foregroundStyle(.green)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(appDisplayName)
+                        .font(.headline)
+                    Text(isUsingDefault ? "Using default settings" : "Custom settings applied")
+                        .font(.caption)
+                        .foregroundStyle(isUsingDefault ? .secondary : .primary)
+                }
+                Spacer()
+                Button("Reset") {
+                    onReset()
+                }
+                .buttonStyle(.bordered)
+                .disabled(isUsingDefault)
+            }
+
+            HStack(spacing: 20) {
+                MetricView(title: "Balance", value: "\(metrics.balance) pts")
+                MetricView(title: "Today", value: "\(metrics.todayPoints) pts", color: .green)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Stepper(value: pointsPerMinute, in: 1...60) {
+                    Text("Points per minute: \(pointsPerMinute.wrappedValue) pts")
+                }
+
+                Stepper(value: dailyCapPoints, in: 50...2400, step: 10) {
+                    Text("Daily cap: \(dailyCapPoints.wrappedValue) pts")
+                }
+            }
+            .font(.subheadline)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var appDisplayName: String {
+        "App \(appId.rawValue)"
+    }
+
+    private struct MetricView: View {
+        let title: String
+        let value: String
+        var color: Color = .primary
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(color)
+            }
+        }
+    }
+}
+
 // MARK: - Redemption Rules View
 
 @available(iOS 16.0, *)
 struct PerAppRewardsConfigurationView: View {
     @EnvironmentObject private var childrenManager: ChildrenManager
+    @EnvironmentObject private var rulesManager: CategoryRulesManager
+    @EnvironmentObject private var perAppStore: PerAppConfigurationStore
     @EnvironmentObject private var pinManager: PINManager
     let child: ChildProfile
 
-    private var discoveredRewardApps: [(appId: AppIdentifier, timesRedeemed: Int, pointsSpent: Int)] {
-        // Get all redemption entries for this child
-        let allEntries = childrenManager.ledger.getEntries(childId: child.id, limit: 1000)
+    private var rewardUsageMap: [AppIdentifier: RewardUsage] {
+        perAppStore.rewardUsageMap(for: child.id)
+    }
 
-        // Group by appId, count redemptions
-        var appsMap: [AppIdentifier: (timesRedeemed: Int, pointsSpent: Int)] = [:]
+    private var rewardAppIds: [AppIdentifier] {
+        var identifiers = Set<AppIdentifier>()
 
-        for entry in allEntries where entry.type == .redemption {
-            guard let appId = entry.appId else { continue }
-
-            let current = appsMap[appId] ?? (timesRedeemed: 0, pointsSpent: 0)
-            appsMap[appId] = (
-                timesRedeemed: current.timesRedeemed + 1,
-                pointsSpent: current.pointsSpent + abs(entry.amount)
-            )
+        #if canImport(ScreenTimeService)
+        let rules = rulesManager.getRules(for: child.id)
+        for token in rules.rewardSelection.applicationTokens {
+            identifiers.insert(ApplicationTokenHelper.toAppIdentifier(token))
         }
+        #endif
 
-        return appsMap.map { (appId: $0.key, timesRedeemed: $0.value.timesRedeemed, pointsSpent: $0.value.pointsSpent) }
-            .sorted { $0.timesRedeemed > $1.timesRedeemed }  // Sort by usage
+        identifiers.formUnion(rewardUsageMap.keys)
+        identifiers.formUnion(perAppStore.rewardAppIdentifiers(for: child.id))
+
+        return identifiers.sorted { $0.rawValue < $1.rawValue }
     }
 
     var body: some View {
         List {
-            if discoveredRewardApps.isEmpty {
+            if rewardAppIds.isEmpty {
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "info.circle")
                                 .foregroundStyle(.orange)
-                            Text("No Reward Apps Redeemed Yet")
+                            Text("No Reward Apps Configured Yet")
                                 .font(.headline)
                         }
 
-                        Text("Reward apps will appear here after \(child.name) redeems points to unlock them. Each app can have custom unlock rules.")
+                        Text("Select reward apps in the Apps tab or wait for \(child.name) to redeem points. Each app will appear here with customisable unlock rules.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
                         Divider()
                             .padding(.vertical, 4)
 
-                        Text("How it works:")
+                        Text("Tips:")
                             .font(.caption)
                             .fontWeight(.semibold)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            HStack(alignment: .top) {
-                                Text("1.")
-                                    .fontWeight(.medium)
-                                Text("Categories classify which apps need points to unlock")
-                            }
-                            HStack(alignment: .top) {
-                                Text("2.")
-                                    .fontWeight(.medium)
-                                Text("\(child.name) redeems points (e.g., 100 pts for TikTok)")
-                            }
-                            HStack(alignment: .top) {
-                                Text("3.")
-                                    .fontWeight(.medium)
-                                Text("System detects it → app appears here")
-                            }
-                            HStack(alignment: .top) {
-                                Text("4.")
-                                    .fontWeight(.medium)
-                                Text("You can then configure costs per individual app")
-                            }
+                            Text("• Use categories (Games, Entertainment) to auto-populate apps.")
+                            Text("• Configure cost, minimum, and maximum redemption per app.")
+                            Text("• Choose how new unlock time combines with existing time.")
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -418,77 +458,145 @@ struct PerAppRewardsConfigurationView: View {
                     .padding(.vertical, 8)
                 }
             } else {
-                Section("Discovered Reward Apps") {
-                    ForEach(discoveredRewardApps, id: \.appId) { app in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Image(systemName: "app.fill")
-                                    .foregroundStyle(.orange)
+                Section("Reward Apps") {
+                    ForEach(rewardAppIds, id: \.self) { appId in
+                        let usage = rewardUsageMap[appId] ?? RewardUsage()
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("App \(app.appId.rawValue)")
-                                        .font(.headline)
-                                    Text("Detected through redemptions")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                        PerAppRewardEditorRow(
+                            appId: appId,
+                            metrics: (usage.timesRedeemed, usage.pointsSpent),
+                            isUsingDefault: perAppStore.isUsingDefaultRewardRule(childId: child.id, appId: appId),
+                            pointsPerMinute: Binding(
+                                get: { perAppStore.rewardRule(for: child.id, appId: appId).pointsPerMinute },
+                                set: { newValue in
+                                    pinManager.updateLastActivity()
+                                    perAppStore.updateRewardRule(childId: child.id, appId: appId) { rule in
+                                        rule.pointsPerMinute = newValue
+                                    }
                                 }
-
-                                Spacer()
-                            }
-
-                            HStack(spacing: 20) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Times Unlocked")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text("\(app.timesRedeemed)")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
+                            ),
+                            minPoints: Binding(
+                                get: { perAppStore.rewardRule(for: child.id, appId: appId).minRedemptionPoints },
+                                set: { newValue in
+                                    pinManager.updateLastActivity()
+                                    perAppStore.updateRewardRule(childId: child.id, appId: appId) { rule in
+                                        rule.minRedemptionPoints = newValue
+                                    }
                                 }
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Total Points Spent")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                    Text("\(app.pointsSpent) pts")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.orange)
+                            ),
+                            maxPoints: Binding(
+                                get: { perAppStore.rewardRule(for: child.id, appId: appId).maxRedemptionPoints },
+                                set: { newValue in
+                                    pinManager.updateLastActivity()
+                                    perAppStore.updateRewardRule(childId: child.id, appId: appId) { rule in
+                                        rule.maxRedemptionPoints = newValue
+                                    }
                                 }
+                            ),
+                            stackingPolicy: Binding(
+                                get: { perAppStore.rewardRule(for: child.id, appId: appId).stackingPolicy },
+                                set: { newValue in
+                                    pinManager.updateLastActivity()
+                                    perAppStore.updateRewardRule(childId: child.id, appId: appId) { rule in
+                                        rule.stackingPolicy = newValue
+                                    }
+                                }
+                            ),
+                            onReset: {
+                                pinManager.updateLastActivity()
+                                perAppStore.resetRewardRule(childId: child.id, appId: appId)
                             }
-
-                            Divider()
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Configuration (Coming Soon)")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.secondary)
-                                Text("• Cost: 100 pts = 30 minutes (default)")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                Text("• Min/Max: 10-120 minutes (default)")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                Text("• Stacking: Replace (default)")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        .padding(.vertical, 4)
+                        )
                     }
-                }
-
-                Section("Note") {
-                    Text("Per-app redemption controls (adjust costs, min/max times, stacking policies) will be added in the next phase. For now, all apps use default settings.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Rewards")
         .onAppear { pinManager.updateLastActivity() }
+    }
+}
+
+@available(iOS 16.0, *)
+private struct PerAppRewardEditorRow: View {
+    let appId: AppIdentifier
+    let metrics: (timesRedeemed: Int, pointsSpent: Int)
+    let isUsingDefault: Bool
+    let pointsPerMinute: Binding<Int>
+    let minPoints: Binding<Int>
+    let maxPoints: Binding<Int>
+    let stackingPolicy: Binding<ExemptionStackingPolicy>
+    let onReset: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "app.fill")
+                    .foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(appDisplayName)
+                        .font(.headline)
+                    Text(isUsingDefault ? "Using default settings" : "Custom settings applied")
+                        .font(.caption)
+                        .foregroundStyle(isUsingDefault ? .secondary : .primary)
+                }
+                Spacer()
+                Button("Reset") {
+                    onReset()
+                }
+                .buttonStyle(.bordered)
+                .disabled(isUsingDefault)
+            }
+
+            HStack(spacing: 20) {
+                MetricView(title: "Times Unlocked", value: "\(metrics.timesRedeemed)")
+                MetricView(title: "Points Spent", value: "\(metrics.pointsSpent) pts", color: .orange)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Stepper(value: pointsPerMinute, in: 5...300, step: 5) {
+                    Text("Cost: \(pointsPerMinute.wrappedValue) pts per minute")
+                }
+
+                Stepper(value: minPoints, in: 10...600, step: 10) {
+                    Text("Minimum redemption: \(minPoints.wrappedValue) pts")
+                }
+
+                Stepper(value: maxPoints, in: 50...2000, step: 10) {
+                    Text("Maximum redemption: \(maxPoints.wrappedValue) pts")
+                }
+
+                Picker("Stacking", selection: stackingPolicy) {
+                    Text("Replace current time").tag(ExemptionStackingPolicy.replace)
+                    Text("Extend current time").tag(ExemptionStackingPolicy.extend)
+                    Text("Queue after current time").tag(ExemptionStackingPolicy.queue)
+                    Text("Block until expired").tag(ExemptionStackingPolicy.block)
+                }
+                .pickerStyle(.menu)
+            }
+            .font(.subheadline)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var appDisplayName: String { "App \(appId.rawValue)" }
+
+    private struct MetricView: View {
+        let title: String
+        let value: String
+        var color: Color = .primary
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(color)
+            }
+        }
     }
 }
 
@@ -621,11 +729,40 @@ struct ParentModeSettingsView: View {
     let ledger = PointsLedger()
     let engine = PointsEngine()
     let rulesManager = CategoryRulesManager()
+    let perAppStore = PerAppConfigurationStore()
     
+    let redemptionService = RedemptionService(ledger: ledger) { childId, appId, points in
+        perAppStore.recordRewardRedemption(childId: childId, appId: appId, pointsSpent: points)
+    }
+
+    let childrenManager = ChildrenManager(
+        ledger: ledger,
+        engine: engine,
+        exemptionManager: ExemptionManager(),
+        redemptionService: redemptionService
+    )
+
+    let rewardCoordinator: RewardCoordinator = {
+#if canImport(ScreenTimeService)
+    RewardCoordinator(
+        rulesManager: rulesManager,
+        redemptionService: redemptionService,
+        shieldController: ShieldController(),
+        exemptionManager: ExemptionManager(),
+        perAppStore: perAppStore
+    )
+#else
+    RewardCoordinator()
+#endif
+    }()
+
     ChildDeviceParentModeView()
-        .environmentObject(ChildrenManager(ledger: ledger, engine: engine, exemptionManager: ExemptionManager(), redemptionService: RedemptionService(ledger: ledger)))
+        .environmentObject(childrenManager)
         .environmentObject(rulesManager)
+        .environmentObject(perAppStore)
         .environmentObject(PINManager())
-        .environmentObject(LearningSessionCoordinator(rulesManager: rulesManager, pointsEngine: engine, pointsLedger: ledger))
-        .environmentObject(RewardCoordinator())
+        .environmentObject(LearningSessionCoordinator(rulesManager: rulesManager, pointsEngine: engine, pointsLedger: ledger, configurationProvider: { childId, appId in
+            perAppStore.pointsConfiguration(for: childId, appId: appId)
+        }))
+        .environmentObject(rewardCoordinator)
 }

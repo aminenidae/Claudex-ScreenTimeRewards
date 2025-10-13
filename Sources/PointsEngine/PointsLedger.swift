@@ -35,11 +35,7 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
             amount: points,
             timestamp: timestamp
         )
-        queue.async(flags: .barrier) {
-            Task { @MainActor in
-                self.entries.append(entry)
-            }
-        }
+        append(entry)
         return entry
     }
 
@@ -49,15 +45,11 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
             childId: childId,
             appId: appId,
             type: .redemption,
-            amount: -abs(points), // Redemptions are negative
+            amount: -abs(points),
             timestamp: timestamp
         )
-        queue.async(flags: .barrier) {
-            Task { @MainActor in
-                self.entries.append(entry)
-                self.logAudit(action: "redemption", childId: childId, points: -abs(points), timestamp: timestamp, extra: nil)
-            }
-        }
+        append(entry)
+        logAudit(action: "redemption", childId: childId, points: -abs(points), timestamp: timestamp, extra: nil)
         return entry
     }
 
@@ -70,18 +62,14 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
             amount: points,
             timestamp: timestamp
         )
-        queue.async(flags: .barrier) {
-            Task { @MainActor in
-                self.entries.append(entry)
-                self.logAudit(
-                    action: "adjustment",
-                    childId: childId,
-                    points: points,
-                    timestamp: timestamp,
-                    extra: ["reason": reason]
-                )
-            }
-        }
+        append(entry)
+        logAudit(
+            action: "adjustment",
+            childId: childId,
+            points: points,
+            timestamp: timestamp,
+            extra: ["reason": reason]
+        )
         return entry
     }
 
@@ -209,6 +197,14 @@ public final class PointsLedger: ObservableObject, PointsLedgerProtocol {
 // MARK: - Audit Helpers
 
 private extension PointsLedger {
+    func append(_ entry: PointsLedgerEntry) {
+        queue.async(flags: .barrier) { [entry] in
+            Task { @MainActor in
+                self.entries.append(entry)
+            }
+        }
+    }
+
     func logAudit(
         action: String,
         childId: ChildID,

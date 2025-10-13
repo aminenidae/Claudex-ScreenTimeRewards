@@ -109,6 +109,31 @@ public static func toAppIdentifier(_ token: ApplicationToken) -> AppIdentifier {
 
 ---
 
+## 5. Per-App Configuration & Redemption (2025-10-12)
+
+### PerAppConfigurationStore
+- New `PerAppConfigurationStore` persists per-child learning (earn) and reward (spend) rules.
+- Stores per-app points rules (rate, daily cap, idle timeout) and reward rules (cost, min/max, stacking policy).
+- Records reward usage history (times unlocked, total points spent) to drive dashboard metrics.
+- Persists to `per_app_configuration.json` in the shared documents directory.
+
+### Parent Mode UI
+- Level 2 `Points` tab lists each detected/configured learning app with live balance + earned-today metrics.
+- Parents can adjust points-per-minute and daily caps per app, reset to defaults, and changes persist instantly.
+- Level 2 `Rewards` tab lists reward apps with unlock counts, total points spent, and editable cost/min/max/stacking controls.
+
+### RedemptionService Updates
+- Redemptions now allocate deductions across all learning-app balances (`PointsLedger.getBalances`), ensuring per-app totals remain accurate.
+- Reward usage callback records each redemption in `PerAppConfigurationStore` for analytics.
+- Unit tests cover mixed per-app deductions and reward usage recording.
+
+### Remaining Polish
+- Surface human-friendly app metadata (names/icons) in the UI.
+- Feed per-app metrics into Child Mode dashboards and redemption flow.
+- Add integration coverage once DeviceActivity simulations are possible in CI.
+
+---
+
 ## Data Flow
 
 ### 1. Parent Configures Learning Apps
