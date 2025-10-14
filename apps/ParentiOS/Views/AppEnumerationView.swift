@@ -9,6 +9,9 @@ import Core
 #if canImport(SyncKit)
 import SyncKit
 #endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// View for child device to select all installed apps during initial setup
 @available(iOS 16.0, *)
@@ -181,15 +184,26 @@ struct AppEnumerationView: View {
 
                 // Convert tokens to base64
                 var appMetadataItems: [(token: ApplicationToken, id: AppIdentifier, name: String, iconData: Data?)] = []
-                let appTokens = selectedApps.applicationTokens.map { token in
+                var appTokens: [String] = []
+
+                for token in selectedApps.applicationTokens {
                     let data = withUnsafeBytes(of: token) { Data($0) }
                     let base64 = data.base64EncodedString()
-                    let application = ManagedSettings.Application(token: token)
-                    let name = application.localizedDisplayName ?? application.bundleIdentifier ?? "App"
-                    let iconData = application.icon?.pngData()
+
+                    // Extract metadata using the spike implementation
+                    let extractedMetadata = await MetadataExtractionSpike.extractMetadata(from: token)
+                    #if canImport(ManagedSettings)
+                    let managedApp = ManagedSettings.Application(token: token)
+                    let managedName = managedApp.localizedDisplayName ?? managedApp.bundleIdentifier
+                    #else
+                    let managedName: String? = nil
+                    #endif
+
+                    let name = extractedMetadata?.displayName ?? managedName ?? "App"
+                    let iconData: Data? = extractedMetadata?.icon?.pngData()
                     let appId = tokenToAppIdentifier(token)
                     appMetadataItems.append((token, appId, name, iconData))
-                    return base64
+                    appTokens.append(base64)
                 }
 
                 let categoryTokens = selectedApps.categoryTokens.map { token in

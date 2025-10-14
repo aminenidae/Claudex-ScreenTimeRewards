@@ -59,9 +59,6 @@ public class MetadataExtractionSpike {
         // Step 2: Extract icon via ImageRenderer
         var icon = extractAppIcon(from: token)
 
-        let endTime = CFAbsoluteTimeGetCurrent()
-        let elapsedMs = (endTime - startTime) * 1000
-
         #if canImport(ManagedSettings)
         let application = ManagedSettings.Application(token: token)
 
@@ -72,6 +69,7 @@ public class MetadataExtractionSpike {
 
         #endif
 
+        // Step 4: user-provided fallback nickname
         if displayName == nil, let fallback = fallbackName {
             displayName = fallback
             method = .fallbackNickname(fallback)
@@ -80,6 +78,9 @@ public class MetadataExtractionSpike {
         if displayName == nil {
             method = .failed("No name extracted and no fallback provided")
         }
+
+        let endTime = CFAbsoluteTimeGetCurrent()
+        let elapsedMs = (endTime - startTime) * 1000
 
         print("📊 Metadata extraction: \(displayName ?? "nil") in \(String(format: "%.1f", elapsedMs))ms")
 
@@ -101,6 +102,7 @@ public class MetadataExtractionSpike {
             return name
         }
 
+        // Failed extraction
         print("❌ Failed to extract app name from accessibility traversal")
         return nil
     }
@@ -145,6 +147,8 @@ public class MetadataExtractionSpike {
         tempWindow.isHidden = false
         tempWindow.makeKey()
         containerController.view.layoutIfNeeded()
+
+        // Allow the run loop to advance briefly so accessibility metadata is populated
         RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
 
         let cleanup: () -> Void = {
@@ -179,18 +183,20 @@ public class MetadataExtractionSpike {
         return nil
     }
 
-    /// Recursively search view hierarchy for accessibility labels
+    /// Recursively search view hierarchy for accessibility labels or attributed strings
     private static func findAccessibilityLabel(in view: UIView) -> String? {
         if let text = extractAccessibilityText(from: view) {
             return text
         }
 
+        // Check subviews (breadth-first search) for a quick match
         for subview in view.subviews {
             if let text = extractAccessibilityText(from: subview) {
                 return text
             }
         }
 
+        // Fall back to deep traversal if nothing surfaced yet
         for subview in view.subviews {
             if let label = findAccessibilityLabel(in: subview) {
                 return label
@@ -200,6 +206,7 @@ public class MetadataExtractionSpike {
         return nil
     }
 
+    /// Extract any accessible text associated with a view or its delegated elements
     private static func extractAccessibilityText(from view: UIView) -> String? {
         if let label = normalizedAccessibilityString(view.accessibilityLabel) {
             return label
@@ -224,6 +231,7 @@ public class MetadataExtractionSpike {
         return nil
     }
 
+    /// Inspect accessibilityElements array for text the SwiftUI bridge might expose
     private static func textFromAccessibilityElements(of view: UIView) -> String? {
         guard let elements = view.accessibilityElements else { return nil }
 
@@ -254,6 +262,7 @@ public class MetadataExtractionSpike {
         return nil
     }
 
+    /// Normalize accessibility strings so blank values are filtered out
     private static func normalizedAccessibilityString(_ text: String?) -> String? {
         guard let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
             return nil

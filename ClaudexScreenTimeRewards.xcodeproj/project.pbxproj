@@ -24,9 +24,10 @@
 		43A4BFE32E9AA96D00005648 /* PINSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFE22E9AA96D00005648 /* PINSetupView.swift */; };
 		43A4BFE52E9AA97A00005648 /* PINEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFE42E9AA97A00005648 /* PINEntryView.swift */; };
 		43A4BFE72E9AA98D00005648 /* ChildDeviceParentModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFE62E9AA98D00005648 /* ChildDeviceParentModeView.swift */; };
-		43A4BFE92E9B5DC800005648 /* DeviceRoleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFE82E9B5DC800005648 /* DeviceRoleManager.swift */; };
-		A1F5E0002E9C3A2A00A1C2F3 /* PerAppConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F5DFFF2E9C3A2A00A1C2F3 /* PerAppConfigurationStore.swift */; };
+		43A4BFE92E9B5DC800005648 /* Services/DeviceRoleManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFE82E9B5DC800005648 /* Services/DeviceRoleManager.swift */; };
 		43A4BFEB2E9B5E2F00005648 /* DeviceRoleSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFEA2E9B5E2F00005648 /* DeviceRoleSetupView.swift */; };
+		43A4BFED2E9DF00A00005648 /* AppEnumerationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFEC2E9DF00A00005648 /* AppEnumerationView.swift */; };
+		43A4BFEF2E9DFAD300005648 /* MetadataExtractionSpike.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4BFEE2E9DFAD300005648 /* MetadataExtractionSpike.swift */; };
 		43A4C0012E9B81D700005648 /* ParentDeviceParentModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43A4C0002E9B81D700005648 /* ParentDeviceParentModeView.swift */; };
 		4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4D89FB4BB9434E9541282E /* RedemptionService.swift */; };
 		5C88686AC522427197256D46 /* AppCategorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E896DFBB48584CB187C1E735 /* AppCategorizationView.swift */; };
@@ -48,6 +49,7 @@
 		A10000352B6D000000000002 /* AuditLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000352B6D000000000001 /* AuditLog.swift */; };
 		A10000362B6D000000000004 /* AddChildSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000362B6D000000000003 /* AddChildSheet.swift */; };
 		A10000372B6D000000000005 /* FeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000372B6D000000000004 /* FeatureFlags.swift */; };
+		A1F5E0002E9C3A2A00A1C2F3 /* Services/PerAppConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F5DFFF2E9C3A2A00A1C2F3 /* Services/PerAppConfigurationStore.swift */; };
 		A20000382B6D000000000005 /* PairingStatusCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000392B6D000000000006 /* PairingStatusCard.swift */; };
 		A30000382B6D000000000007 /* ManageChildrenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000392B6D000000000008 /* ManageChildrenView.swift */; };
 		AF74CC913F4642C88C9AB017 /* PointsLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B3A0A871F6497DA90A3104 /* PointsLedger.swift */; };
@@ -75,9 +77,10 @@
 		43A4BFE22E9AA96D00005648 /* PINSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINSetupView.swift; sourceTree = "<group>"; };
 		43A4BFE42E9AA97A00005648 /* PINEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINEntryView.swift; sourceTree = "<group>"; };
 		43A4BFE62E9AA98D00005648 /* ChildDeviceParentModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChildDeviceParentModeView.swift; sourceTree = "<group>"; };
-		43A4BFE82E9B5DC800005648 /* DeviceRoleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/DeviceRoleManager.swift; sourceTree = "<group>"; };
-		A1F5DFFF2E9C3A2A00A1C2F3 /* PerAppConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/PerAppConfigurationStore.swift; sourceTree = "<group>"; };
+		43A4BFE82E9B5DC800005648 /* Services/DeviceRoleManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/DeviceRoleManager.swift; sourceTree = "<group>"; };
 		43A4BFEA2E9B5E2F00005648 /* DeviceRoleSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceRoleSetupView.swift; sourceTree = "<group>"; };
+		43A4BFEC2E9DF00A00005648 /* AppEnumerationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnumerationView.swift; sourceTree = "<group>"; };
+		43A4BFEE2E9DFAD300005648 /* MetadataExtractionSpike.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataExtractionSpike.swift; sourceTree = "<group>"; };
 		43A4C0002E9B81D700005648 /* ParentDeviceParentModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParentDeviceParentModeView.swift; sourceTree = "<group>"; };
 		5CE7850EDF984DA8B28A3E41 /* DataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExporter.swift; sourceTree = "<group>"; };
 		6075ADFFD2904E07AF741291 /* RedemptionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedemptionsCard.swift; sourceTree = "<group>"; };
@@ -101,6 +104,7 @@
 		A10000362B6D000000000003 /* AddChildSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddChildSheet.swift; sourceTree = "<group>"; };
 		A10000372B6D000000000004 /* FeatureFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeatureFlags.swift; sourceTree = "<group>"; };
 		A1E67DA07E9E4804A4A5151A /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
+		A1F5DFFF2E9C3A2A00A1C2F3 /* Services/PerAppConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/PerAppConfigurationStore.swift; sourceTree = "<group>"; };
 		A20000392B6D000000000006 /* PairingStatusCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PairingStatusCard.swift; sourceTree = "<group>"; };
 		A30000392B6D000000000008 /* ManageChildrenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageChildrenView.swift; sourceTree = "<group>"; };
 		D06177B58C5C4EC19F9BD6E6 /* ExemptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExemptionManager.swift; sourceTree = "<group>"; };
@@ -123,6 +127,7 @@
 		13673F6094824ACBB7E8CBA4 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				43A4BFEC2E9DF00A00005648 /* AppEnumerationView.swift */,
 				43A4BFEA2E9B5E2F00005648 /* DeviceRoleSetupView.swift */,
 				43A4BFE62E9AA98D00005648 /* ChildDeviceParentModeView.swift */,
 				43A4C0002E9B81D700005648 /* ParentDeviceParentModeView.swift */,
@@ -212,8 +217,9 @@
 		A10000222B6D000000000001 /* ParentiOS */ = {
 			isa = PBXGroup;
 			children = (
-				43A4BFE82E9B5DC800005648 /* DeviceRoleManager.swift */,
-				A1F5DFFF2E9C3A2A00A1C2F3 /* PerAppConfigurationStore.swift */,
+				43A4BFEE2E9DFAD300005648 /* MetadataExtractionSpike.swift */,
+				43A4BFE82E9B5DC800005648 /* Services/DeviceRoleManager.swift */,
+				A1F5DFFF2E9C3A2A00A1C2F3 /* Services/PerAppConfigurationStore.swift */,
 				43A4BFE02E9AA6E100005648 /* PINManager.swift */,
 				A10000102B6D000000000001 /* ClaudexApp.swift */,
 				8B1BD99FB5F04C26B26A34C5 /* ViewModels */,
@@ -342,6 +348,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000192B6D000000000001 /* SyncService.swift in Sources */,
+				43A4BFEF2E9DFAD300005648 /* MetadataExtractionSpike.swift in Sources */,
 				A10000172B6D000000000001 /* ScreenTimeService.swift in Sources */,
 				A10000352B6D000000000002 /* AuditLog.swift in Sources */,
 				A10000372B6D000000000005 /* FeatureFlags.swift in Sources */,
@@ -363,9 +370,10 @@
 				C7687F500A96443693F21C1C /* DataExporter.swift in Sources */,
 				66A679F598DD4497903C277E /* PairingService.swift in Sources */,
 				432A8AA32E92CF7700E03796 /* CountdownTimerView.swift in Sources */,
+				43A4BFED2E9DF00A00005648 /* AppEnumerationView.swift in Sources */,
 				432A8AA12E92CCE600E03796 /* CloudKitMapper.swift in Sources */,
-				43A4BFE92E9B5DC800005648 /* DeviceRoleManager.swift in Sources */,
-				A1F5E0002E9C3A2A00A1C2F3 /* PerAppConfigurationStore.swift in Sources */,
+				43A4BFE92E9B5DC800005648 /* Services/DeviceRoleManager.swift in Sources */,
+				A1F5E0002E9C3A2A00A1C2F3 /* Services/PerAppConfigurationStore.swift in Sources */,
 				AF74CC913F4642C88C9AB017 /* PointsLedger.swift in Sources */,
 				4BC4A6A96C324133823D79C0 /* RedemptionService.swift in Sources */,
 				62D49C4C7CF54D6D8C576E1E /* ExemptionManager.swift in Sources */,

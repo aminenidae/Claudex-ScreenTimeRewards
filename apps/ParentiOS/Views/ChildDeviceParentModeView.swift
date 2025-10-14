@@ -32,6 +32,7 @@ struct ChildDeviceParentModeView: View {
     @EnvironmentObject private var learningCoordinator: LearningSessionCoordinator
     @EnvironmentObject private var rewardCoordinator: RewardCoordinator
     @EnvironmentObject private var pairingService: PairingService
+    @EnvironmentObject private var syncService: SyncService
 
     @State private var selectedTab: Tab = .apps
     @State private var showingAddChildSheet = false
@@ -131,7 +132,9 @@ struct ChildDeviceParentModeView: View {
             }
 
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button { pinManager.lock() } label: {
+                Button {
+                    pinManager.lock()
+                } label: {
                     Label("Lock", systemImage: "lock.fill")
                 }
             }
@@ -254,7 +257,10 @@ struct PerAppPointsConfigurationView: View {
     }
 
     private var needsInventorySync: Bool {
-        learningAppIds.contains { perAppStore.displayName(childId: child.id, appId: $0) == nil }
+        learningAppIds.contains { 
+            perAppStore.displayName(childId: child.id, appId: $0) == nil || 
+            perAppStore.iconData(childId: child.id, appId: $0) == nil 
+        }
     }
 
     var body: some View {
@@ -507,7 +513,10 @@ struct PerAppRewardsConfigurationView: View {
     }
 
     private var needsInventorySync: Bool {
-        rewardAppIds.contains { perAppStore.displayName(childId: child.id, appId: $0) == nil }
+        rewardAppIds.contains { 
+            perAppStore.displayName(childId: child.id, appId: $0) == nil || 
+            perAppStore.iconData(childId: child.id, appId: $0) == nil 
+        }
     }
 
     var body: some View {
@@ -860,7 +869,7 @@ struct ParentModeSettingsView: View {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("ChildDeviceParentModeView") {
     let ledger = PointsLedger()
     let engine = PointsEngine()
     let rulesManager = CategoryRulesManager()
@@ -891,15 +900,28 @@ struct ParentModeSettingsView: View {
         #endif
     }()
 
+    let learningCoordinator = LearningSessionCoordinator(
+        rulesManager: rulesManager,
+        pointsEngine: engine,
+        pointsLedger: ledger,
+        configurationProvider: { childId, appId in
+            perAppStore.pointsConfiguration(for: childId, appId: appId)
+        }
+    )
+    
+    let pairingService = PairingService()
+    let pinManager = PINManager()
+    let syncService = SyncService()
+
     rulesManager.setPerAppStore(perAppStore)
 
     return ChildDeviceParentModeView()
         .environmentObject(childrenManager)
         .environmentObject(rulesManager)
         .environmentObject(perAppStore)
-        .environmentObject(PINManager())
-        .environmentObject(LearningSessionCoordinator(rulesManager: rulesManager, pointsEngine: engine, pointsLedger: ledger, configurationProvider: { childId, appId in
-            perAppStore.pointsConfiguration(for: childId, appId: appId)
-        }))
+        .environmentObject(pinManager)
+        .environmentObject(learningCoordinator)
         .environmentObject(rewardCoordinator)
+        .environmentObject(pairingService)
+        .environmentObject(syncService)
 }
