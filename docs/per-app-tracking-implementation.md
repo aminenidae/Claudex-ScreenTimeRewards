@@ -121,6 +121,7 @@ public static func toAppIdentifier(_ token: ApplicationToken) -> AppIdentifier {
 - Level 2 `Points` tab lists each detected/configured learning app with live balance + earned-today metrics.
 - Parents can adjust points-per-minute and daily caps per app, reset to defaults, and changes persist instantly.
 - Level 2 `Rewards` tab lists reward apps with unlock counts, total points spent, and editable cost/min/max/stacking controls.
+- Both tabs expose a child-device “Sync App Info” button that launches the inventory flow to capture friendly names/icons immediately after selection.
 
 ### RedemptionService Updates
 - Redemptions now allocate deductions across all learning-app balances (`PointsLedger.getBalances`), ensuring per-app totals remain accurate.
@@ -128,7 +129,7 @@ public static func toAppIdentifier(_ token: ApplicationToken) -> AppIdentifier {
 - Unit tests cover mixed per-app deductions and reward usage recording.
 
 ### Remaining Polish
-- Surface human-friendly app metadata (names/icons) in the UI.
+- Automate/polish the new app inventory sync (auto prompt, success feedback, periodic refresh).
 - Map category-only selections to concrete app identifiers so the tabs populate without actual usage.
 - Feed per-app metrics into Child Mode dashboards and redemption flow.
 - Add integration coverage once DeviceActivity simulations are possible in CI.

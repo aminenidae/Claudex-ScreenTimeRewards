@@ -386,6 +386,7 @@ With per-app tracking now functional, the next phase is building the UI:
 - Level 2 `Points` and `Rewards` tabs now list each configured app with live balances, earned-today metrics, and editable controls (rates, daily caps, costs, min/max, stacking).
 - Selecting explicit apps (via FamilyActivityPicker) now seeds the tabs immediately—no need to wait for the child to launch each app.
 - Tabs show the best-known name for each token; when `ManagedSettings.Application` returns `nil`, we fall back to a placeholder until the child runs the app inventory sync.
+- Added a `Sync App Info` flow (child device) that captures friendly names/icons via FamilyActivityPicker and persists them in `PerAppConfigurationStore` so the Points/Rewards tabs update immediately after the sync.
 - `LearningSessionCoordinator` consumes DeviceActivity events to attribute sessions to `AppIdentifier`s; global sessions stay in sync for legacy flows.
 - `RedemptionService` now allocates point deductions across all learning-app balances, records usage callbacks, and is covered by new unit tests for cross-app redemption.
 - Reward configuration UI consumes the recorded history to show unlock counts and total points spent per reward app.

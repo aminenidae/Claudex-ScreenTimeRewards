@@ -11,6 +11,9 @@ import FamilyControls
 #if canImport(UIKit)
 import UIKit
 #endif
+#if canImport(ManagedSettings)
+import ManagedSettings
+#endif
 
 /// Parent Mode view on child's device
 /// PIN-protected configuration interface where parents can:
@@ -75,11 +78,11 @@ struct ChildDeviceParentModeView: View {
                             .tag(Tab.apps)
                             .tabItem { Label("Apps", systemImage: "square.grid.2x2") }
 
-                        PerAppPointsConfigurationView(child: child)
+                        PerAppPointsConfigurationView(child: child, deviceId: deviceId)
                             .tag(Tab.points)
                             .tabItem { Label("Points", systemImage: "star.fill") }
 
-                        PerAppRewardsConfigurationView(child: child)
+                        PerAppRewardsConfigurationView(child: child, deviceId: deviceId)
                             .tag(Tab.rewards)
                             .tabItem { Label("Rewards", systemImage: "gift.fill") }
 
@@ -197,8 +200,10 @@ struct PerAppPointsConfigurationView: View {
     @EnvironmentObject private var perAppStore: PerAppConfigurationStore
     @EnvironmentObject private var pinManager: PINManager
     let child: ChildProfile
+    let deviceId: String
 
     private let calendar = Calendar.current
+    @State private var showingInventorySync = false
 
     private var learningMetrics: [AppIdentifier: (balance: Int, todayPoints: Int)] {
         var metrics: [AppIdentifier: (balance: Int, todayPoints: Int)] = [:]
@@ -248,8 +253,25 @@ struct PerAppPointsConfigurationView: View {
         return names
     }
 
+    private var needsInventorySync: Bool {
+        learningAppIds.contains { perAppStore.displayName(childId: child.id, appId: $0) == nil }
+    }
+
     var body: some View {
         List {
+            if needsInventorySync {
+                Section {
+                    Button("Sync App Info") {
+                        showingInventorySync = true
+                    }
+                    .frame(maxWidth: .infinity)
+                    .buttonStyle(.borderedProminent)
+                } footer: {
+                    Text("Run once to capture app names and icons from this device. Takes under a minute.")
+                        .font(.caption)
+                }
+            }
+
             if learningAppIds.isEmpty {
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
@@ -303,10 +325,12 @@ struct PerAppPointsConfigurationView: View {
                     ForEach(learningAppIds, id: \.self) { appId in
                         let metrics = learningMetrics[appId] ?? (balance: 0, todayPoints: 0)
                         let displayName = learningAppNames[appId] ?? friendlyName(for: appId)
+                        let iconData = perAppStore.iconData(childId: child.id, appId: appId)
 
                         PerAppPointsEditorRow(
                             appId: appId,
                             displayName: displayName,
+                            iconData: iconData,
                             metrics: metrics,
                             isUsingDefault: perAppStore.isUsingDefaultPointsRule(childId: child.id, appId: appId),
                             pointsPerMinute: Binding(
@@ -339,6 +363,15 @@ struct PerAppPointsConfigurationView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Points")
         .onAppear { pinManager.updateLastActivity() }
+        .sheet(isPresented: $showingInventorySync) {
+            NavigationStack {
+                AppEnumerationView(
+                    childId: child.id,
+                    deviceId: deviceId,
+                    onComplete: { showingInventorySync = false }
+                )
+            }
+        }
     }
 }
 
@@ -346,6 +379,7 @@ struct PerAppPointsConfigurationView: View {
 private struct PerAppPointsEditorRow: View {
     let appId: AppIdentifier
     let displayName: String
+    let iconData: Data?
     let metrics: (balance: Int, todayPoints: Int)
     let isUsingDefault: Bool
     let pointsPerMinute: Binding<Int>
@@ -355,8 +389,20 @@ private struct PerAppPointsEditorRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
+                #if canImport(UIKit)
+                if let iconData, let image = UIImage(data: iconData) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .frame(width: 28, height: 28)
+                        .cornerRadius(6)
+                } else {
+                    Image(systemName: "app.fill")
+                        .foregroundStyle(.green)
+                }
+                #else
                 Image(systemName: "app.fill")
                     .foregroundStyle(.green)
+                #endif
                 VStack(alignment: .leading, spacing: 2) {
                     Text(displayName)
                         .font(.headline)
@@ -419,6 +465,9 @@ struct PerAppRewardsConfigurationView: View {
     @EnvironmentObject private var perAppStore: PerAppConfigurationStore
     @EnvironmentObject private var pinManager: PINManager
     let child: ChildProfile
+    let deviceId: String
+
+    @State private var showingInventorySync = false
 
     private var rewardUsageMap: [AppIdentifier: RewardUsage] {
         perAppStore.rewardUsageMap(for: child.id)
@@ -457,6 +506,10 @@ struct PerAppRewardsConfigurationView: View {
         return names
     }
 
+    private var needsInventorySync: Bool {
+        rewardAppIds.contains { perAppStore.displayName(childId: child.id, appId: $0) == nil }
+    }
+
     var body: some View {
         List {
             if rewardAppIds.isEmpty {
@@ -491,14 +544,29 @@ struct PerAppRewardsConfigurationView: View {
                     .padding(.vertical, 8)
                 }
             } else {
+                if needsInventorySync {
+                    Section {
+                        Button("Sync App Info") {
+                            showingInventorySync = true
+                        }
+                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.borderedProminent)
+                    } footer: {
+                        Text("Sync once to capture reward app names/icons from this device.")
+                            .font(.caption)
+                    }
+                }
+
                 Section("Reward Apps") {
                     ForEach(rewardAppIds, id: \.self) { appId in
                         let usage = rewardUsageMap[appId] ?? RewardUsage()
                         let displayName = rewardAppNames[appId] ?? friendlyName(for: appId)
+                        let iconData = perAppStore.iconData(childId: child.id, appId: appId)
 
                         PerAppRewardEditorRow(
                             appId: appId,
                             displayName: displayName,
+                            iconData: iconData,
                             metrics: (usage.timesRedeemed, usage.pointsSpent),
                             isUsingDefault: perAppStore.isUsingDefaultRewardRule(childId: child.id, appId: appId),
                             pointsPerMinute: Binding(
@@ -549,6 +617,15 @@ struct PerAppRewardsConfigurationView: View {
         .listStyle(.insetGrouped)
         .navigationTitle("Rewards")
         .onAppear { pinManager.updateLastActivity() }
+        .sheet(isPresented: $showingInventorySync) {
+            NavigationStack {
+                AppEnumerationView(
+                    childId: child.id,
+                    deviceId: deviceId,
+                    onComplete: { showingInventorySync = false }
+                )
+            }
+        }
     }
 }
 
@@ -556,6 +633,7 @@ struct PerAppRewardsConfigurationView: View {
 private struct PerAppRewardEditorRow: View {
     let appId: AppIdentifier
     let displayName: String
+    let iconData: Data?
     let metrics: (timesRedeemed: Int, pointsSpent: Int)
     let isUsingDefault: Bool
     let pointsPerMinute: Binding<Int>
@@ -567,8 +645,20 @@ private struct PerAppRewardEditorRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
+                #if canImport(UIKit)
+                if let iconData, let image = UIImage(data: iconData) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .frame(width: 28, height: 28)
+                        .cornerRadius(6)
+                } else {
+                    Image(systemName: "app.fill")
+                        .foregroundStyle(.orange)
+                }
+                #else
                 Image(systemName: "app.fill")
                     .foregroundStyle(.orange)
+                #endif
                 VStack(alignment: .leading, spacing: 2) {
                     Text(displayName)
                         .font(.headline)
@@ -788,20 +878,22 @@ struct ParentModeSettingsView: View {
     )
 
     let rewardCoordinator: RewardCoordinator = {
-#if canImport(ScreenTimeService)
-    RewardCoordinator(
-        rulesManager: rulesManager,
-        redemptionService: redemptionService,
-        shieldController: ShieldController(),
-        exemptionManager: ExemptionManager(),
-        perAppStore: perAppStore
-    )
-#else
-    RewardCoordinator()
-#endif
+        #if canImport(ScreenTimeService)
+        return RewardCoordinator(
+            rulesManager: rulesManager,
+            redemptionService: redemptionService,
+            shieldController: ShieldController(),
+            exemptionManager: ExemptionManager(),
+            perAppStore: perAppStore
+        )
+        #else
+        return RewardCoordinator()
+        #endif
     }()
 
-    ChildDeviceParentModeView()
+    rulesManager.setPerAppStore(perAppStore)
+
+    return ChildDeviceParentModeView()
         .environmentObject(childrenManager)
         .environmentObject(rulesManager)
         .environmentObject(perAppStore)

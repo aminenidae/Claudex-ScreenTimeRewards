@@ -93,10 +93,12 @@ class CategoryRulesManager: ObservableObject {
         for (index, token) in selection.applicationTokens.enumerated() {
             let app = ManagedSettings.Application(token: token)
             let bundleId = app.bundleIdentifier ?? "unknown"
-            let displayName = app.localizedDisplayName ?? "unknown"
+            let displayName = app.localizedDisplayName
+                ?? perAppStore?.displayName(childId: childId, appId: tokenToAppIdentifier(token))
+                ?? "App"
             print("📚 App \(index + 1): \(displayName) (bundle: \(bundleId))")
             let appId = tokenToAppIdentifier(token)
-            perAppStore?.registerAppDisplayName(childId: childId, appId: appId, name: displayName)
+            perAppStore?.registerAppMetadata(childId: childId, appId: appId, name: displayName, iconData: nil)
         }
 
         // Log categories
@@ -134,10 +136,12 @@ class CategoryRulesManager: ObservableObject {
         for (index, token) in selection.applicationTokens.enumerated() {
             let app = ManagedSettings.Application(token: token)
             let bundleId = app.bundleIdentifier ?? "unknown"
-            let displayName = app.localizedDisplayName ?? "unknown"
+            let displayName = app.localizedDisplayName
+                ?? perAppStore?.displayName(childId: childId, appId: tokenToAppIdentifier(token))
+                ?? "App"
             print("⭐ App \(index + 1): \(displayName) (bundle: \(bundleId))")
             let appId = tokenToAppIdentifier(token)
-            perAppStore?.registerAppDisplayName(childId: childId, appId: appId, name: displayName)
+            perAppStore?.registerAppMetadata(childId: childId, appId: appId, name: displayName, iconData: nil)
         }
 
         // Log categories

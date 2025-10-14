@@ -17,7 +17,7 @@ final class PerAppConfigurationStore: ObservableObject {
         didSet { persistIfNeeded() }
     }
 
-    @Published private var appNames: [String: [String: String]] = [:] {
+    @Published private var appMetadata: [String: [String: AppMetadata]] = [:] {
         didSet { persistIfNeeded() }
     }
 
@@ -62,8 +62,14 @@ final class PerAppConfigurationStore: ObservableObject {
     }
 
     func pointsAppIdentifiers(for childId: ChildID) -> [AppIdentifier] {
-        guard let rules = pointsRules[childId.rawValue] else { return [] }
-        return rules.keys.map { AppIdentifier($0) }
+        var identifiers: Set<AppIdentifier> = []
+        if let rules = pointsRules[childId.rawValue] {
+            identifiers.formUnion(rules.keys.map { AppIdentifier($0) })
+        }
+        if let metadata = appMetadata[childId.rawValue] {
+            identifiers.formUnion(metadata.keys.map { AppIdentifier($0) })
+        }
+        return Array(identifiers)
     }
 
     func pointsConfiguration(for childId: ChildID, appId: AppIdentifier?) -> PointsConfiguration {
@@ -109,6 +115,9 @@ final class PerAppConfigurationStore: ObservableObject {
         if let usage = rewardUsage[childId.rawValue] {
             identifiers.formUnion(usage.keys.map { AppIdentifier($0) })
         }
+        if let metadata = appMetadata[childId.rawValue] {
+            identifiers.formUnion(metadata.keys.map { AppIdentifier($0) })
+        }
         return Array(identifiers)
     }
 
@@ -149,14 +158,20 @@ final class PerAppConfigurationStore: ObservableObject {
         rewardUsage[childId.rawValue] = childUsage
     }
 
-    func registerAppDisplayName(childId: ChildID, appId: AppIdentifier, name: String) {
-        var childNames = appNames[childId.rawValue] ?? [:]
-        childNames[appId.rawValue] = name
-        appNames[childId.rawValue] = childNames
+    func registerAppMetadata(childId: ChildID, appId: AppIdentifier, name: String, iconData: Data?) {
+        var childMetadata = appMetadata[childId.rawValue] ?? [:]
+        let existing = childMetadata[appId.rawValue]
+        let metadata = AppMetadata(name: name, iconData: iconData ?? existing?.iconData)
+        childMetadata[appId.rawValue] = metadata
+        appMetadata[childId.rawValue] = childMetadata
     }
 
     func displayName(childId: ChildID, appId: AppIdentifier) -> String? {
-        appNames[childId.rawValue]?[appId.rawValue]
+        appMetadata[childId.rawValue]?[appId.rawValue]?.name
+    }
+
+    func iconData(childId: ChildID, appId: AppIdentifier) -> Data? {
+        appMetadata[childId.rawValue]?[appId.rawValue]?.iconData
     }
 
     // MARK: - Persistence
@@ -173,7 +188,7 @@ final class PerAppConfigurationStore: ObservableObject {
             pointsRules = decoded.pointsRules
             rewardRules = decoded.rewardRules
             rewardUsage = decoded.rewardUsage ?? [:]
-            appNames = decoded.appNames ?? [:]
+            appMetadata = decoded.appMetadata ?? [:]
         } catch {
             print("PerAppConfigurationStore: Failed to load from disk - \(error)")
         }
@@ -186,7 +201,7 @@ final class PerAppConfigurationStore: ObservableObject {
 
     private func persist() {
         do {
-            let payload = PersistedConfiguration(pointsRules: pointsRules, rewardRules: rewardRules, rewardUsage: rewardUsage, appNames: appNames)
+            let payload = PersistedConfiguration(pointsRules: pointsRules, rewardRules: rewardRules, rewardUsage: rewardUsage, appMetadata: appMetadata)
             let data = try JSONEncoder().encode(payload)
             let directory = fileURL.deletingLastPathComponent()
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -201,10 +216,15 @@ private struct PersistedConfiguration: Codable {
     var pointsRules: [String: [String: PerAppPointsRule]]
     var rewardRules: [String: [String: PerAppRewardRule]]
     var rewardUsage: [String: [String: RewardUsage]]?
-    var appNames: [String: [String: String]]?
+    var appMetadata: [String: [String: AppMetadata]]?
 }
 
 struct RewardUsage: Codable, Equatable {
     var timesRedeemed: Int = 0
     var pointsSpent: Int = 0
+}
+
+struct AppMetadata: Codable, Equatable {
+    var name: String
+    var iconData: Data?
 }

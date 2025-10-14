@@ -2,6 +2,9 @@ import SwiftUI
 #if canImport(ScreenTimeService)
 import ScreenTimeService
 #endif
+#if canImport(ManagedSettings)
+import ManagedSettings
+#endif
 #if canImport(PointsEngine)
 import PointsEngine
 #endif
@@ -13,6 +16,9 @@ import UIKit
 #endif
 #if canImport(FamilyControls)
 import FamilyControls
+#endif
+#if canImport(SyncKit)
+import SyncKit
 #endif
 
 // PINManager is available directly in the ParentiOS module
@@ -247,10 +253,12 @@ struct ModeSelectionView: View {
                     ChildDeviceParentModeView()
                         .environmentObject(childrenManager)
                         .environmentObject(rulesManager)
+                        .environmentObject(perAppStore)
                         .environmentObject(pinManager)
                         .environmentObject(learningCoordinator)
                         .environmentObject(rewardCoordinator)
                         .environmentObject(pairingService)
+                        .environmentObject(syncService)
                         .onDisappear {
                             pinManager.lock()
                         }
@@ -345,14 +353,16 @@ struct ChildModeView: View {
         if let pairing = currentPairing {
             if showAppEnumeration && !appEnumerationComplete {
                 // Show app enumeration step
-                AppEnumerationView(
-                    childId: pairing.childId,
-                    deviceId: deviceId,
-                    onComplete: {
-                        appEnumerationComplete = true
-                        showAppEnumeration = false
-                    }
+               AppEnumerationView(
+                   childId: pairing.childId,
+                   deviceId: deviceId,
+                   onComplete: {
+                       appEnumerationComplete = true
+                       showAppEnumeration = false
+                   }
                 )
+                .environmentObject(syncService)
+                .environmentObject(perAppStore)
             } else {
                 pairedContent(for: pairing)
             }
@@ -744,6 +754,7 @@ struct AppEnumerationView: View {
     let onComplete: () -> Void
 
     @EnvironmentObject private var syncService: SyncService
+    @EnvironmentObject private var perAppStore: PerAppConfigurationStore
     @State private var selectedApps = FamilyActivitySelection()
     @State private var showingPicker = false
     @State private var isUploading = false
@@ -884,8 +895,16 @@ struct AppEnumerationView: View {
             do {
                 print("📱 AppEnumerationView: Starting app inventory upload")
 
+                var metadataItems: [(id: AppIdentifier, name: String, iconData: Data?)] = []
                 let appTokens = selectedApps.applicationTokens.map { token in
-                    withUnsafeBytes(of: token) { Data($0) }.base64EncodedString()
+                    let data = withUnsafeBytes(of: token) { Data($0) }
+                    let base64 = data.base64EncodedString()
+                    let application = ManagedSettings.Application(token: token)
+                    let name = application.localizedDisplayName ?? application.bundleIdentifier ?? "App"
+                    let iconData = application.icon?.pngData()
+                    let appId = tokenToAppIdentifier(token)
+                    metadataItems.append((appId, name, iconData))
+                    return base64
                 }
                 let categoryTokens = selectedApps.categoryTokens.map { token in
                     withUnsafeBytes(of: token) { Data($0) }.base64EncodedString()
@@ -906,6 +925,9 @@ struct AppEnumerationView: View {
                 print("📱 AppEnumerationView: Successfully uploaded \(payload.appCount) apps to CloudKit")
 
                 await MainActor.run {
+                    for item in metadataItems {
+                        perAppStore.registerAppMetadata(childId: childId, appId: item.id, name: item.name, iconData: item.iconData)
+                    }
                     isUploading = false
                     onComplete()
                 }
@@ -919,6 +941,16 @@ struct AppEnumerationView: View {
         }
         #else
         onComplete()
+        #endif
+    }
+
+    private func tokenToAppIdentifier(_ token: ApplicationToken) -> AppIdentifier {
+        #if canImport(ScreenTimeService)
+        return ApplicationTokenHelper.toAppIdentifier(token)
+        #else
+        let data = withUnsafeBytes(of: token) { Data($0) }
+        let hex = data.map { String(format: "%02x", $0) }.joined()
+        return AppIdentifier("app-\(hex)")
         #endif
     }
 }

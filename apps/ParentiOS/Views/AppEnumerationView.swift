@@ -1,5 +1,8 @@
 import SwiftUI
 import FamilyControls
+#if canImport(ManagedSettings)
+import ManagedSettings
+#endif
 #if canImport(Core)
 import Core
 #endif
@@ -15,6 +18,7 @@ struct AppEnumerationView: View {
     let onComplete: () -> Void
 
     @EnvironmentObject private var syncService: SyncService
+    @EnvironmentObject private var perAppStore: PerAppConfigurationStore
     @State private var selectedApps = FamilyActivitySelection()
     @State private var showingPicker = false
     @State private var isUploading = false
@@ -176,9 +180,16 @@ struct AppEnumerationView: View {
                 print("📱 AppEnumerationView: Starting app inventory upload")
 
                 // Convert tokens to base64
+                var appMetadataItems: [(token: ApplicationToken, id: AppIdentifier, name: String, iconData: Data?)] = []
                 let appTokens = selectedApps.applicationTokens.map { token in
                     let data = withUnsafeBytes(of: token) { Data($0) }
-                    return data.base64EncodedString()
+                    let base64 = data.base64EncodedString()
+                    let application = ManagedSettings.Application(token: token)
+                    let name = application.localizedDisplayName ?? application.bundleIdentifier ?? "App"
+                    let iconData = application.icon?.pngData()
+                    let appId = tokenToAppIdentifier(token)
+                    appMetadataItems.append((token, appId, name, iconData))
+                    return base64
                 }
 
                 let categoryTokens = selectedApps.categoryTokens.map { token in
@@ -202,6 +213,9 @@ struct AppEnumerationView: View {
                 print("📱 AppEnumerationView: Successfully uploaded \(payload.appCount) apps to CloudKit")
 
                 await MainActor.run {
+                    for item in appMetadataItems {
+                        perAppStore.registerAppMetadata(childId: childId, appId: item.id, name: item.name, iconData: item.iconData)
+                    }
                     isUploading = false
                     onComplete()
                 }
@@ -215,6 +229,16 @@ struct AppEnumerationView: View {
         }
         #else
         onComplete()
+        #endif
+    }
+
+    private func tokenToAppIdentifier(_ token: ApplicationToken) -> AppIdentifier {
+        #if canImport(ScreenTimeService)
+        return ApplicationTokenHelper.toAppIdentifier(token)
+        #else
+        let data = withUnsafeBytes(of: token) { Data($0) }
+        let hex = data.map { String(format: "%02x", $0) }.joined()
+        return AppIdentifier("app-\(hex)")
         #endif
     }
 }

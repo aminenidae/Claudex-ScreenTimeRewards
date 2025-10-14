@@ -39,7 +39,7 @@ Due to Apple's ApplicationToken device-specific limitation, the app architecture
 - [ ] **[POST-PIVOT]** App categorization UI moved to child device's PIN-protected Parent Mode
 - [ ] **[POST-PIVOT]** Parent device dashboard shows read-only category summary (synced from child)
 - [ ] **Category ↔ App Mapping:** Category-only selections surface concrete app entries (inventory-driven) so per-app metrics populate without manual app picks.
-- [ ] **App Inventory Sync Flow:** Child device captures friendly app names/icons after selection so Parent Mode immediately shows recognisable labels.
+- [x] **App Inventory Sync Flow:** Child device captures friendly app names/icons after selection so Parent Mode immediately shows recognisable labels.
 
 ## 4) Points Engine Correctness
 - [x] Accrual only during foreground, unlocked usage

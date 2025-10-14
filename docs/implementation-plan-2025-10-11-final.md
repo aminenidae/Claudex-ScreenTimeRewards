@@ -389,11 +389,11 @@ struct DeviceRoleSetupView: View {
 - Added `AppIdentifier` and extended `PointsLedgerEntry` / `PointsLedger` / `RedemptionService` to carry optional app context.
 - `PointsEngine` and `LearningSessionCoordinator` now attribute sessions to specific learning apps via DeviceActivity notifications.
 - `PerAppConfigurationStore` persists per-app earn/spend rules and aggregates reward usage history for dashboards.
-- Level 2 Points & Rewards tabs now surface live per-app metrics immediately after selection, with editable rates, daily caps, costs, min/max, and stacking policies.
+- Level 2 Points & Rewards tabs now surface live per-app metrics immediately after selection, with editable rates, daily caps, costs, min/max, and stacking policies; a new child-device “Sync App Info” flow captures friendly names/icons and persists them.
 - `RedemptionService` splits redemptions across multiple learning-app balances, records usage analytics, and emits callbacks for reward history.
 - New unit tests cover per-app daily caps and cross-app redemption flows.
 
-Next steps: add a one-tap child-device “App Inventory Sync” to capture friendly names/icons, resolve the current “category-only” gap by mapping selected categories to concrete app tokens/inventory, wire Child Mode dashboards to the new per-app metrics, and expand integration tests once DeviceActivity data can be simulated end-to-end.
+Next steps: resolve the current “category-only” gap by mapping selected categories to concrete app tokens/inventory, wire Child Mode dashboards to the new per-app metrics, and expand integration tests once DeviceActivity data can be simulated end-to-end.
 
 ---
 

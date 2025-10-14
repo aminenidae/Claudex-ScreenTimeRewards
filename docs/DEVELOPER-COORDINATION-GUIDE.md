@@ -196,9 +196,9 @@ This guide helps you get up to speed on the current state of the project after t
 **Reference**: `docs/implementation-plan-2025-10-11-final.md` Phase 3, `docs/architecture-confirmed-2025-10-11.md`
 
 **Next actions**:
-1. Ship the child-device “App Inventory Sync” flow so we capture friendly names/icons immediately after selection (no more generic “App …” rows).
-2. Map learning/reward **categories** to concrete app identifiers (inventory-driven) so category-only setups populate per-app metrics; explicit app selections already appear instantly.
-3. Expose the new per-app balances + reward costs in Child Mode (grid + redemption flow) and add integration tests for DeviceActivity → ledger → redemption.
+1. Map learning/reward **categories** to concrete app identifiers (inventory-driven) so category-only setups populate per-app metrics; explicit app selections already appear instantly, and the new sync button covers friendly names.
+2. Expose the new per-app balances + reward costs in Child Mode (grid + redemption flow) and add integration tests for DeviceActivity → ledger → redemption.
+3. Polish the inventory sync UX (success toast, scheduled refresh) and surface icons on the parent dashboard.
 
 **Testing**:
 - Manual: verify a category-only configuration on device now yields populated app rows once mapping lands; confirm edits persist after relaunch.
